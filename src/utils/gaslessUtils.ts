@@ -38,8 +38,8 @@ export const initGaslessClient = async () => {
     const client = await createSmartAccountClient({
       chainId: avalancheFuji.id, // Chain ID for Avalanche Fuji Testnet (43113)
       rpcUrl: 'https://api.avax-test.network/ext/bc/C/rpc', // Avalanche Fuji RPC
-      paymasterUrl: "https://paymaster.0xgasless.com/v1/43114/rpc/7e00b844-d446-4f8c-bfac-3ecc7b46408e", // Obtain from 0xGasless Dashboard
-      bundlerUrl: "https://bundler.0xgasless.com/{chainId}", // Obtain from 0xGasless Dashboard
+      paymasterUrl: import.meta.env.VITE_PAYMASTER_URL,
+      bundlerUrl: import.meta.env.VITE_BUNDLER_URL,
       entryPointAddress: "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789", // Obtain from 0xGasless Dashboard or documentation
       signer: signer, // MetaMask signer from ethers
     });
