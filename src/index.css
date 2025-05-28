@@ -1,30 +1,92 @@
 /* src/index.css */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.145 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.145 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.985 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.396 0.141 25.723);
+  --destructive-foreground: oklch(0.637 0 0);
 }
 
+@theme {
+  --color-primary-bg: #F8F9FA;
+  --color-secondary-bg: #FFFFFF;
+  --color-accent-orange: #FF6B35;
+  --color-text-primary: #1A1A1A;
+  --color-text-secondary: #6B7280;
+  --color-border-gray: #E5E7EB;
+  --color-success-green: #10B981;
+  --color-danger-red: #EF4444;
+  /* Define borderColor to enable border-border utility */
+  --borderColor-border: var(--border);
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: 'Inter', sans-serif;
+  }
+}
+
+/* Custom styles */
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
   min-width: 320px;
   min-height: 100vh;
 }
@@ -34,111 +96,26 @@ h1 {
   line-height: 1.1;
 }
 
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
-}
-
-/* Name Form Styles */
-.name-form {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1em;
-  padding: 2em;
-  max-width: 400px;
-  margin: 0 auto;
-}
-
-.name-form label {
-  font-size: 1.2em;
-  font-weight: 500;
-}
-
-.name-form input {
-  padding: 0.6em;
-  font-size: 1em;
-  border-radius: 8px;
-  border: 1px solid #646cff;
-  background-color: #1a1a1a;
-  color: rgba(255, 255, 255, 0.87);
-  width: 100%;
-  max-width: 300px;
-}
-
-.name-form input:focus {
-  outline: 2px solid #646cff;
-}
-
-/* Profile Styles */
-.app-container {
-  position: relative;
-  padding: 2em;
-  max-width: 600px;
-  margin: 0 auto;
-}
-
-.profile {
-  position: absolute;
-  top: 1em;
-  right: 1em;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-}
-
-.profile-button {
-  display: flex;
-  align-items: center;
-  gap: 0.5em;
-  background-color: #1a1a1a;
-  padding: 0.5em 1em;
-}
-
-.profile-button span {
-  font-size: 0.9em;
-}
-
+/* Profile Dropdown Styles */
 .profile-dropdown {
   position: absolute;
-  top: 100%;
-  right: 0;
-  background-color: #1a1a1a;
-  border: 1px solid #646cff;
-  border-radius: 8px;
+  top: calc(100% + 0.5rem);
+  right: 4px;
+  background-color: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
   padding: 1em;
   display: flex;
   flex-direction: column;
   gap: 0.5em;
   z-index: 10;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
 }
 
 .profile-dropdown p {
   margin: 0;
   font-size: 0.9em;
-}
-
-.profile-dropdown button {
-  background-color: #646cff;
-  color: white;
-}
-
-.profile-dropdown button:hover {
-  background-color: #535bf2;
 }
 
 .profile-dropdown .import-button {
@@ -155,177 +132,25 @@ button:focus-visible {
   background-color: #535bf2;
 }
 
-/* Wallet Toggle Styles */
-.wallet-toggle {
-  display: flex;
-  align-items: center;
-  gap: 1em;
-  margin-bottom: 1em;
-}
-
-.wallet-toggle label {
-  font-size: 1em;
-  font-weight: 500;
-}
-
-.wallet-toggle select {
-  padding: 0.6em;
-  font-size: 1em;
-  border-radius: 8px;
-  border: 1px solid #646cff;
-  background-color: #1a1a1a;
-  color: rgba(255, 255, 255, 0.87);
-  cursor: pointer;
-}
-
-.wallet-toggle select:focus {
-  outline: 2px solid #646cff;
-}
-
-/* Wallet Item and Send Form Styles */
-.wallet-item {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5em;
-  margin-bottom: 1em;
-}
-
-.wallet-item p {
-  margin: 0;
-  display: flex;
-  align-items: center;
-  gap: 1em;
-  flex-wrap: wrap;
-}
-
-.wallet-item .balance {
-  font-size: 0.9em;
-  color: #00ff00;
-}
-
-.wallet-item button {
-  font-size: 0.9em;
-  padding: 0.4em 0.8em;
-}
-
-.send-form {
-  background-color: #1a1a1a;
-  border: 1px solid #646cff;
-  border-radius: 8px;
-  padding: 1em;
-  display: flex;
-  flex-direction: column;
-  gap: 1em;
-  margin-top: 0.5em;
-  width: 100%;
-}
-
-.send-form h3 {
-  margin: 0;
-  font-size: 1.2em;
-}
-
-.send-form label {
-  font-size: 1em;
-  font-weight: 500;
-}
-
-.send-form input {
-  padding: 0.6em;
-  font-size: 1em;
-  border-radius: 8px;
-  border: 1px solid #646cff;
-  background-color: #1a1a1a;
-  color: rgba(255, 255, 255, 0.87);
-  width: 100%;
-}
-
-.send-form input:focus {
-  outline: 2px solid #646cff;
-}
-
-.send-form-buttons {
-  display: flex;
-  gap: 1em;
-}
-
-.send-form-buttons button {
-  flex: 1;
-}
-
-.transaction-status {
-  margin: 0;
-  font-size: 0.9em;
-}
-
-.transaction-status.success {
-  color: #00ff00;
-}
-
-.transaction-status.error {
-  color: #ff0000;
-}
-
 /* Light Mode */
 @media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
-  .name-form input {
-    background-color: #f9f9f9;
-    color: #213547;
-    border: 1px solid #747bff;
-  }
-  .name-form input:focus {
-    outline: 2px solid #747bff;
-  }
-  .profile-button {
-    background-color: #f9f9f9;
-  }
-  .profile-dropdown {
-    background-color: #f9f9f9;
-    border: 1px solid #747bff;
-  }
-  .profile-dropdown button {
-    background-color: #747bff;
-  }
-  .profile-dropdown button:hover {
-    background-color: #535bf2;
-  }
-  .profile-dropdown .import-button {
-    background-color: #747bff;
-  }
   .profile-dropdown .import-button:hover {
     background-color: #535bf2;
   }
-  .wallet-toggle select {
-    background-color: #f9f9f9;
-    color: #213547;
-    border: 1px solid #747bff;
-  }
-  .wallet-toggle select:focus {
-    outline: 2px solid #747bff;
-  }
-  .send-form {
-    background-color: #f9f9f9;
-    border: 1px solid #747bff;
-  }
-  .send-form input {
-    background-color: #f9f9f9;
-    color: #213547;
-    border: 1px solid #747bff;
-  }
-  .send-form input:focus {
-    outline: 2px solid #747bff;
-  }
-  .wallet-item .balance {
-    color: #008000;
-  }
+}
+
+/* Name Form Styles */
+.name-form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1em;
+  padding: 2em;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.name-form label {
+  font-size: 1.2em;
+  font-weight: 500;
 }
