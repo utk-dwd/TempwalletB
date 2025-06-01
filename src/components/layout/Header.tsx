@@ -84,7 +84,7 @@ export function Header({
           </div>
         ) : (
           <div className="relative flex items-center gap-2">
-            <Avatar className="bg-success-green w-12 h-12">
+            <Avatar className="bg-success-green w-24 h-24">
               {profilePicture ? (
                 <AvatarImage src={profilePicture} alt="Profile Picture" />
               ) : (
@@ -120,14 +120,14 @@ export function Header({
           ) : (
             <div className="relative">
               <div className="text-right">
-                <p className="text-sm font-medium text-text-primary">
+                <p className="text-regular font-medium text-text-primary mb-3">
                   {walletAddress ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-5)}` : 'Not connected'}
                 </p>
                 <p className="text-xs text-text-secondary">{walletName || 'wallet-name'}</p>
               </div>
               <button
                 onClick={handleEditWalletName}
-                className="absolute -top-2 -right-2 p-1 bg-white/30 rounded-full hover:bg-white/50"
+                className="absolute -top-2 -right-7 p-8 bg-white/30 rounded-full hover:bg-white/50"
               >
                 <Pencil className="w-4 h-4 text-text-primary" />
               </button>

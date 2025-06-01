@@ -16,7 +16,13 @@ export function ProfileDropdown({ address, onExport, onImport, onLogout, feedbac
         Address: {address ? `${address.slice(0, 6)}...${address.slice(-4)}` : 'Not connected'}
       </p>
       <p className="text-sm text-text-primary">Full Address: {address || 'Not connected'}</p>
-      <Button className="bg-accent-orange text-white rounded-lg hover:bg-orange-600" onClick={onExport}>
+      <Button
+        className="bg-accent-orange text-white rounded-lg hover:bg-orange-600"
+        onClick={() => {
+          console.log('Export Wallets button clicked, triggering onExport'); // More specific log
+          onExport();
+        }}
+      >
         Export Wallets
       </Button>
       <label className="import-button bg-accent-orange text-white text-regular rounded-lg hover:bg-orange-600 px-15 flex items-center justify-center cursor-pointer">
