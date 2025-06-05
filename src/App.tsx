@@ -9,6 +9,7 @@ import { UnsupportedDevice } from '@/components/pages/UnsupportedDevice';
 import { Wallet, UserData, TransactionStatus } from '@/utils/types';
 import { exportUserData, importUserData } from './utils/exportImport';
 import '@/index.css';
+import { Image } from 'lucide-react'; // Icon for switching backgrounds
 
 function App() {
   const [showLandingPage, setShowLandingPage] = useState<boolean>(true);
@@ -26,6 +27,14 @@ function App() {
     activeAccount: null,
     walletNames: {},
   });
+  // State for background image
+  const backgroundImages: string[] = ['/bg1.jpg', '/bg2.jpg', '/bg3.jpg', '/bg4.jpg','/bg5.jpg','/bg6.jpg'];
+  const [bgIndex, setBgIndex] = useState<number>(0);
+
+  // Function to cycle background images
+  const handleSwitchBackground = () => {
+    setBgIndex((prevIndex) => (prevIndex + 1) % backgroundImages.length);
+  };
 
   useEffect(() => {
     const handleResize = () => {
@@ -218,13 +227,13 @@ function App() {
     if (!newUserData.accounts) {
       newUserData.accounts = [];
     }
-    let account = newUserData.accounts.find(acc => acc.account === walletAddress);
+    let account = newUserData.accounts.find((acc) => acc.account === walletAddress);
     if (!account) {
       account = { account: walletAddress!, name: walletName, externalAccountNumber: 1, wallets: [] };
       newUserData.accounts.push(account);
     }
     const existingWalletIndex = account.wallets.findIndex(
-      w => w.address === wallet.address && w.walletNumber === wallet.walletNumber
+      (w) => w.address === wallet.address && w.walletNumber === wallet.walletNumber
     );
     if (existingWalletIndex !== -1) {
       account.wallets[existingWalletIndex] = wallet;
@@ -237,10 +246,10 @@ function App() {
 
   const handleWalletDeleted = (wallet: Wallet) => {
     const newUserData = { ...userData };
-    const account = newUserData.accounts.find(acc => acc.account === walletAddress);
+    const account = newUserData.accounts.find((acc) => acc.account === walletAddress);
     if (account) {
       account.wallets = account.wallets.filter(
-        w => !(w.address === wallet.address && w.walletNumber === wallet.walletNumber)
+        (w) => !(w.address === wallet.address && w.walletNumber === wallet.walletNumber)
       );
       setUserData(newUserData);
       localStorage.setItem('tempWalletUserData', JSON.stringify(newUserData));
@@ -249,10 +258,10 @@ function App() {
 
   const handleTransactionSent = (wallet: Wallet, status: TransactionStatus) => {
     const newUserData = { ...userData };
-    const account = newUserData.accounts.find(acc => acc.account === walletAddress);
+    const account = newUserData.accounts.find((acc) => acc.account === walletAddress);
     if (account) {
       const walletIndex = account.wallets.findIndex(
-        w => w.address === wallet.address && w.walletNumber === wallet.walletNumber
+        (w) => w.address === wallet.address && w.walletNumber === wallet.walletNumber
       );
       if (walletIndex !== -1) {
         account.wallets[walletIndex] = {
@@ -275,90 +284,117 @@ function App() {
 
   if (!hasSubmittedName) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-primary-bg">
-        <div className="name-form">
-          <h1 className="text-4xl font-bold">Temp Wallet dApp</h1>
-          <form onSubmit={handleNameSubmit} className="space-y-4">
-            <label htmlFor="name-input" className="text-lg font-medium">Enter Your Name</label>
-            <input
-              id="name-input"
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Your Name"
-              autoFocus
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent-orange"
-            />
-            <button
-              type="submit"
-              className="w-full px-4 py-2 bg-accent-orange text-white rounded-lg hover:bg-orange-600"
-            >
-              Submit
-            </button>
-          </form>
+      <>
+        {/* Background wrapper with dynamic image */}
+        <div className="app-background" style={{ backgroundImage: `url(${backgroundImages[bgIndex]})` }} />
+        <div className="relative min-h-screen flex items-center justify-center">
+          <div className="name-form bg-[var(--overlay)] backdrop-blur-[var(--blur)] rounded-xl p-6 shadow-lg max-w-md w-full">
+            <h1 className="text-4xl font-bold text-white mb-4">Temp Wallet dApp</h1>
+            <form onSubmit={handleNameSubmit} className="space-y-4">
+              <label htmlFor="name-input" className="text-lg font-medium text-white">
+                Enter Your Name
+              </label>
+              <input
+                id="name-input"
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Your Name"
+                autoFocus
+                className="w-full px-3 py-2 bg-transparent text-white placeholder-white/50 border border-white/20 rounded-[var(--radius)] focus:outline-none focus:ring-2 focus:ring-white"
+              />
+              <button
+                type="submit"
+                className="w-full px-4 py-2 bg-primary text-primary-foreground rounded-[var(--radius)] hover:bg-gray-400/50 hover:scale-105 hover:shadow-md transition-all duration-200"
+              >
+                Submit
+              </button>
+            </form>
+          </div>
+          {/* Background switcher button */}
+          <button
+            className="fixed bottom-4 right-4 p-2 bg-primary text-primary-foreground rounded-full shadow-md hover:bg-[#3C3AB4] z-10"
+            onClick={handleSwitchBackground}
+            aria-label="Switch background image"
+          >
+            <Image className="w-6 h-6" />
+          </button>
         </div>
-      </div>
+      </>
     );
   }
 
-  const currentAccountWallets = userData.accounts.find(acc => acc.account === walletAddress)?.wallets || [];
+  const currentAccountWallets = userData.accounts.find((acc) => acc.account === walletAddress)?.wallets || [];
 
   return (
-    <div className="min-h-screen bg-primary-bg p-6">
-      <div className="grid grid-cols-[280px_1fr] gap-6 h-screen">
-        <Sidebar activeItem={activeItem} onNavClick={handleNavClick} />
-        <div className="space-y-4 flex flex-col">
-          <div className="relative">
-            <Header
-              walletAddress={walletAddress}
-              walletName={walletName}
-              name={name}
-              profilePicture={profilePicture}
-              onConnectWallet={handleConnectWallet}
-              onProfileClick={() => setShowProfile(!showProfile)}
-              onEditProfile={handleEditProfile}
-              onEditWalletName={handleEditWalletName}
-            />
-            {showProfile && (
-              <div className="absolute top-[calc(100%+0.5rem)] right-4 bg-white/10 backdrop-blur-lg shadow-lg border border-white/20 rounded-xl p-4 flex flex-col gap-2 z-10">
-                <p className="text-sm text-text-primary">
-                  Address: {walletAddress ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}` : 'Not connected'}
-                </p>
-                <p className="text-sm text-text-primary">Full Address: {walletAddress || 'Not connected'}</p>
-                <button
-                  className="bg-accent-orange text-white rounded-lg hover:bg-orange-600 px-4 py-2"
-                  onClick={handleExport}
-                >
-                  Export Wallets
-                </button>
-                <label className="bg-accent-orange text-white text-regular rounded-lg hover:bg-orange-600 px-4 py-2 flex items-center justify-center cursor-pointer">
-                  Import Wallets
-                  <input type="file" accept=".json" onChange={handleImport} style={{ display: 'none' }} />
-                </label>
-                <button
-                  className="bg-danger-red text-white rounded-lg hover:bg-red-600 px-4 py-2"
-                  onClick={handleLogout}
-                >
-                  Logout
-                </button>
-                {feedback && (
-                  <p className={`text-sm ${feedback.type === 'success' ? 'text-success-green' : 'text-danger-red'}`}>
-                    {feedback.message}
+    <>
+      {/* Background wrapper with dynamic image */}
+      <div className="app-background" style={{ backgroundImage: `url(${backgroundImages[bgIndex]})` }} />
+      {/* Main app content */}
+      <div className="relative min-h-screen flex flex-col p-6">
+        <div className="grid grid-cols-[280px_1fr] gap-6 h-screen">
+          <Sidebar activeItem={activeItem} onNavClick={handleNavClick} />
+          <div className="space-y-4 flex flex-col">
+            <div className="relative">
+              <Header
+                walletAddress={walletAddress}
+                walletName={walletName}
+                name={name}
+                profilePicture={profilePicture}
+                onConnectWallet={handleConnectWallet}
+                onProfileClick={() => setShowProfile(!showProfile)}
+                onEditProfile={handleEditProfile}
+                onEditWalletName={handleEditWalletName}
+              />
+              {showProfile && (
+                <div className="absolute top-[calc(100%+0.5rem)] right-4 bg-white/10 backdrop-blur-lg shadow-lg border border-white/20 rounded-xl p-4 flex flex-col gap-2 z-10">
+                  <p className="text-sm text-text-primary">
+                    Address: {walletAddress ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}` : 'Not connected'}
                   </p>
-                )}
-              </div>
-            )}
+                  <p className="text-sm text-text-primary">Full Address: {walletAddress || 'Not connected'}</p>
+                  <button
+                    className="bg-accent-orange text-white rounded-lg hover:bg-orange-600 px-4 py-2"
+                    onClick={handleExport}
+                  >
+                    Export Wallets
+                  </button>
+                  <label className="bg-accent-orange text-white text-regular rounded-lg hover:bg-orange-600 px-4 py-2 flex items-center justify-center cursor-pointer">
+                    Import Wallets
+                    <input type="file" accept=".json" onChange={handleImport} style={{ display: 'none' }} />
+                  </label>
+                  <button
+                    className="bg-danger-red text-white rounded-lg hover:bg-red-600 px-4 py-2"
+                    onClick={handleLogout}
+                  >
+                    Logout
+                  </button>
+                  {feedback && (
+                    <p className={`text-sm ${feedback.type === 'success' ? 'text-success-green' : 'text-danger-red'}`}>
+                      {feedback.message}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+            <MainContent
+              walletAddress={walletAddress}
+              wallets={currentAccountWallets}
+              onWalletCreated={handleWalletCreated}
+              onWalletDeleted={handleWalletDeleted}
+              onTransactionSent={handleTransactionSent}
+            />
           </div>
-          <MainContent
-            walletAddress={walletAddress}
-            wallets={currentAccountWallets}
-            onWalletCreated={handleWalletCreated}
-            onWalletDeleted={handleWalletDeleted}
-            onTransactionSent={handleTransactionSent}
-          />
         </div>
+        {/* Background switcher button */}
+        <button
+          className="fixed bottom-4 right-4 p-2 bg-primary text-primary-foreground rounded-full shadow-md hover:bg-[#3C3AB4] z-10"
+          onClick={handleSwitchBackground}
+          aria-label="Switch background image"
+        >
+          <Image className="w-6 h-6" />
+        </button>
       </div>
-    </div>
+    </>
   );
 }
 

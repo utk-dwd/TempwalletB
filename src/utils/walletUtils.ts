@@ -161,6 +161,7 @@ export const createSmartAccount = async (account: string, externalAccountNumber:
       transactionStatus: { state: 'idle' },
       balance: await getBalance(accountAddress),
       tokenBalance: await getTokenBalance(accountAddress),
+      balances: []
     };
 
     accountData.wallets.push(wallet);
@@ -245,6 +246,7 @@ export const createSmartAccountWithCounter = async (
       transactionStatus: { state: 'idle' },
       balance: await getBalance(accountAddress),
       tokenBalance: await getTokenBalance(accountAddress),
+      balances: []
     };
 
     accountData.wallets.push(wallet);

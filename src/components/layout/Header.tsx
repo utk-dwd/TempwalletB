@@ -2,7 +2,8 @@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Pencil } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { getAnimeAvatarUrl } from '@/server/animeAvatarService'; // Using the updated service
 
 interface HeaderProps {
   walletAddress: string | null;
@@ -60,47 +61,74 @@ export function Header({
     }
   };
 
+  const [animeAvatarUrl, setAnimeAvatarUrl] = useState<string | null>(null);
+   // On mount, fetch the anime avatar (only if no profilePicture is set)
+   useEffect(() => {
+    if (!profilePicture && !tempProfilePicture) {
+      // Directly get the full URL from the service
+      const newAnimeAvatarUrl = getAnimeAvatarUrl(name); // Pass name or other params as needed
+      console.log('[HEADER] Setting anime avatar URL to:', newAnimeAvatarUrl);
+      setAnimeAvatarUrl(newAnimeAvatarUrl);
+    } else if (profilePicture || tempProfilePicture) {
+      if (animeAvatarUrl) { // Only clear if it was previously set
+        console.log('[HEADER] User picture present, clearing anime avatar URL.');
+        setAnimeAvatarUrl(null);
+      }
+    }
+  }, [name, profilePicture, tempProfilePicture, animeAvatarUrl]); // Added animeAvatarUrl to deps to avoid clearing if already null
+
+  // Use this helper to decide which avatar image to show
+  const avatarSrc = isEditingProfile
+    ? tempProfilePicture || animeAvatarUrl || null
+    : profilePicture || animeAvatarUrl || null;
+
+
+
   return (
-    <header className="h-28 bg-white/10 backdrop-blur-lg shadow-lg border border-white/20 rounded-xl px-8 py-6 flex items-center justify-between">
-      {/* Left Side: Avatar and Name */}
-      <div className="flex items-center gap-3">
-        {isEditingProfile ? (
-          <div className="flex items-center gap-2">
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleFileChange}
-              className="text-sm text-text-primary bg-white border border-gray-300 rounded-lg px-2 py-1"
-            />
-            <input
-              type="text"
-              value={tempName}
-              onChange={(e) => setTempName(e.target.value)}
-              className="text-xl font-medium text-text-primary px-2 py-1 rounded-lg bg-white border border-gray-300"
-            />
-            <Button onClick={handleSaveProfile} className="bg-success-green text-white rounded-lg hover:bg-green-600">
-              Save
-            </Button>
-          </div>
-        ) : (
-          <div className="relative flex items-center gap-2">
-            <Avatar className="bg-success-green w-24 h-24">
-              {profilePicture ? (
-                <AvatarImage src={profilePicture} alt="Profile Picture" />
-              ) : (
-                <AvatarFallback className="text-2xl">{name.charAt(0)}</AvatarFallback>
-              )}
-            </Avatar>
-            <p className="text-xl font-medium text-text-primary">Welcome {name}</p>
-            <button
-              onClick={handleEditProfile}
-              className="absolute -top-2 -right-2 p-1 bg-white/30 rounded-full hover:bg-white/50"
-            >
-              <Pencil className="w-4 h-4 text-text-primary" />
-            </button>
-          </div>
-        )}
-      </div>
+    <header className="h-28 bg-[var(--overlay)] backdrop-blur-[var(--blur)] rounded-xl px-8 py-6 flex items-center justify-between">
+    {/* Left Side: Avatar and Name */}
+    <div className="flex items-center gap-3">
+      {isEditingProfile ? (
+        <div className="flex items-center gap-2">
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleFileChange}
+            className="px-3 py-2 bg-transparent text-white border border-white/20 rounded-[var(--radius)] focus:outline-none focus:ring-2 focus:ring-white"
+          />
+          <input
+            type="text"
+            value={tempName}
+            onChange={(e) => setTempName(e.target.value)}
+            className="px-3 py-2 bg-transparent text-white border border-white/20 rounded-[var(--radius)] focus:outline-none focus:ring-2 focus:ring-white"
+          />
+          <Button
+            onClick={handleSaveProfile}
+            className="px-4 py-2 bg-primary text-primary-foreground rounded-[var(--radius)] hover:bg-gray-400/50 transition-colors"
+          >
+            Save
+          </Button>
+        </div>
+      ) : (
+        <div className="relative flex items-center gap-2">
+          <Avatar className="bg-success-green w-24 h-24">
+            {avatarSrc ? (
+              <AvatarImage src={avatarSrc} alt="Profile Picture" className="object-cover w-full h-full -top-0" />
+            ) : (
+              <AvatarFallback className="text-2xl">{name.charAt(0)}</AvatarFallback>
+            )}
+          </Avatar>
+          <p className="text-xl font-medium text-white">Welcome {name}</p>
+          <button
+            onClick={handleEditProfile}
+            className="absolute top-[0.5rem] -right-2 p-1 bg-white/30 rounded-full hover:bg-white/50"
+          >
+            <Pencil className="w-4 h-4 text-white" />
+          </button>
+        </div>
+      )}
+    </div>
+
 
       {/* Right Side: Wallet Info or Connect Button and Profile Toggle */}
       <div className="flex items-center gap-2">
@@ -111,35 +139,44 @@ export function Header({
                 type="text"
                 value={tempWalletName}
                 onChange={(e) => setTempWalletName(e.target.value)}
-                className="text-sm font-medium text-text-primary px-2 py-1 rounded-lg bg-white border border-gray-300"
+                className="px-3 py-2 bg-transparent text-white border border-white/20 rounded-[var(--radius)] focus:outline-none focus:ring-2 focus:ring-white"
               />
-              <Button onClick={handleSaveWalletName} className="bg-success-green text-white rounded-lg hover:bg-green-600">
+              <Button
+                onClick={handleSaveWalletName}
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-[var(--radius)] hover:bg-gray-400/50 transition-colors"
+              >
                 Save
               </Button>
             </div>
           ) : (
             <div className="relative">
-              <div className="text-right">
-                <p className="text-regular font-medium text-text-primary mb-3">
+              <div className="text-left">
+                <p className="text-regular font-medium text-white mb-3">
                   {walletAddress ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-5)}` : 'Not connected'}
                 </p>
-                <p className="text-xs text-text-secondary">{walletName || 'wallet-name'}</p>
+                <p className="text-xs text-white">{walletName || 'wallet-name'}</p>
               </div>
               <button
                 onClick={handleEditWalletName}
-                className="absolute -top-2 -right-7 p-8 bg-white/30 rounded-full hover:bg-white/50"
+                className="absolute top-[1rem] right-[calc(var(--spacing)*7)] p-[calc(var(--spacing)*1)] bg-white/30 rounded-full hover:bg-white/50"
               >
-                <Pencil className="w-4 h-4 text-text-primary" />
+                <Pencil className="w-4 h-4 text-white" />
               </button>
             </div>
           )
         ) : (
-          <Button onClick={onConnectWallet} className="bg-accent-orange text-white rounded-lg hover:bg-orange-600">
+          <Button
+            onClick={onConnectWallet}
+            className="px-4 py-2 bg-primary text-primary-foreground rounded-[var(--radius)] hover:bg-gray-400/50 transition-colors"
+          >
             Connect Wallet
           </Button>
         )}
-        <button className="p-2 rounded-full hover:bg-gray-100" onClick={onProfileClick}>
-          <svg className="w-6 h-6 text-text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <button
+          className="px-4 py-2 bg-primary text-primary-foreground rounded-[var(--radius)] hover:bg-gray-400/50 transition-colors"
+          onClick={onProfileClick}
+        >
+          <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
           </svg>
         </button>

@@ -1,156 +1,177 @@
 /* src/index.css */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+/* Import Roboto from Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* Define custom variants */
 @custom-variant dark (&:is(.dark *));
 
+/* Root variables */
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+    --background: #F9FAFB;
+    --overlay: rgba(255, 255, 255, 0.1);
+    --blur: 10px;
+    --foreground: #FFFFFF;
+    --card: #FFFFFF;
+    --card-foreground: #1F2937;
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.145 0 0);
+    --primary: #4F46E5;
+    --primary-foreground: #FFFFFF;
+    --secondary: oklch(0.97 0 0);
+    --secondary-foreground: oklch(0.205 0 0);
+    --muted: oklch(0.97 0 0);
+    --muted-foreground: oklch(0.556 0 0);
+    --accent: oklch(0.97 0 0);
+    --accent-foreground: oklch(0.205 0 0);
+    --destructive: oklch(0.577 0.245 27.325);
+    --destructive-foreground: oklch(0.577 0.245 27.325);
+    --border: #E5E7EB;
+    --input: oklch(0.922 0 0);
+    --ring: oklch(0.708 0 0);
+    --chart-1: oklch(0.646 0.222 41.116);
+    --chart-2: oklch(0.6 0.118 184.704);
+    --chart-3: oklch(0.398 0.07 227.392);
+    --chart-4: oklch(0.828 0.189 84.429);
+    --chart-5: oklch(0.769 0.188 70.08);
+    --radius: 0.75rem;
+    --sidebar-foreground: #F9FAFB;
+    --sidebar-accent: rgba(79, 70, 229, 0.3);
+    --sidebar-glow: 0 0 8px rgba(79, 70, 229, 0.8);
+    --sidebar-primary: #4F46E5;
+    --sidebar-primary-foreground: #FFFFFF;
+    --sidebar-accent-foreground: oklch(0.205 0 0);
+    --sidebar-border: #E5E7EB;
+    --sidebar-ring: oklch(0.708 0 0);
+    --spacing: 0.25rem; /* 4px, adjust as needed */
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.145 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.145 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.985 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.396 0.141 25.723);
-  --destructive-foreground: oklch(0.637 0 0);
+    --background: #1F2937;
+    --overlay: rgba(255, 255, 255, 0.1);
+    --blur: 10px;
+    --foreground: #FFFFFF;
+    --card: #374151;
+    --card-foreground: #F9FAFB;
+    --popover: oklch(0.145 0 0);
+    --popover-foreground: oklch(0.985 0 0);
+    --primary: #818CF8;
+    --primary-foreground: #1F2937;
+    --secondary: oklch(0.269 0 0);
+    --secondary-foreground: oklch(0.985 0 0);
+    --muted: oklch(0.269 0 0);
+    --muted-foreground: oklch(0.708 0 0);
+    --accent: oklch(0.269 0 0);
+    --accent-foreground: oklch(0.985 0 0);
+    --destructive: oklch(0.396 0.141 25.723);
+    --destructive-foreground: oklch(0.637 0 0);
+    --border: #4B5563;
+    --sidebar-foreground: #F9FAFB;
+    --sidebar-accent: rgba(129, 140, 248, 0.3);
+    --sidebar-glow: 0 0 8px rgba(129, 140, 248, 0.8);
+    --sidebar-primary: #818CF8;
+    --sidebar-primary-foreground: #1F2937;
+    --sidebar-accent-foreground: oklch(0.985 0 0);
+    --sidebar-border: #4B5563;
+    --sidebar-ring: oklch(0.708 0 0);
 }
 
+/* Theme-specific variables */
 @theme {
-  --color-primary-bg: #F8F9FA;
-  --color-secondary-bg: #FFFFFF;
-  --color-accent-orange: #FF6B35;
-  --color-text-primary: #1A1A1A;
-  --color-text-secondary: #6B7280;
-  --color-border-gray: #E5E7EB;
-  --color-success-green: #10B981;
-  --color-danger-red: #EF4444;
-  /* Define borderColor to enable border-border utility */
-  --borderColor-border: var(--border);
+    --color-primary-bg: #F8F9FA;
+    --color-secondary-bg: #FFFFFF;
+    --color-accent-orange: #FF6B35;
+    --color-text-primary: #1A1A1A;
+    --color-text-secondary: #6B7280;
+    --color-border-gray: #E5E7EB;
+    --color-success-green: #10B981;
+    --color-danger-red: #EF4444;
+    --borderColor-border: var(--border);
 }
 
+/* Base layer for border color */
 @layer base {
-  * {
-    border-color: var(--border);
-  }
-  body {
-    background: var(--background);
-    color: var(--foreground);
-    font-family: 'Inter', sans-serif;
-  }
+    * {
+        border-color: var(--border);
+    }
 }
 
-/* Custom styles */
+/* Body styles */
 body {
-  margin: 0;
-  min-width: 320px;
-  min-height: 100vh;
+    margin: 0;
+    min-width: 320px;
+    min-height: 100vh;
+    color: var(--foreground);
+    font-family: 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif; /* Changed to Roboto */
+    position: relative;
 }
 
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
+/* Wrapper for background image and overlay */
+.app-background {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    z-index: -1;
 }
 
-/* Profile Dropdown Styles */
-.profile-dropdown {
-  position: absolute;
-  top: calc(100% + 0.5rem);
-  right: 4px;
-  background-color: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 12px;
-  padding: 1em;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5em;
-  z-index: 10;
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+.app-background::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--overlay);
+    backdrop-filter: blur(var(--blur));
+    z-index: 0;
 }
 
-.profile-dropdown p {
-  margin: 0;
-  font-size: 0.9em;
+/* Sidebar styles */
+.sidebar {
+    background: var(--overlay);
+    backdrop-filter: blur(var(--blur));
+    border-right: 1px solid var(--border);
+    color: var(--sidebar-foreground);
 }
 
-.profile-dropdown .import-button {
-  display: inline-block;
-  background-color: #646cff;
-  color: white;
-  padding: 0.6em 1.2em;
-  border-radius: 8px;
-  cursor: pointer;
-  text-align: center;
+.sidebar-item {
+    padding: 0.75rem 1.5rem;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all 0.2s ease;
 }
 
-.profile-dropdown .import-button:hover {
-  background-color: #535bf2;
+.sidebar-item:hover {
+    background: var(--sidebar-accent);
+    text-shadow: var(--sidebar-glow);
 }
 
-/* Light Mode */
+.sidebar-item.active {
+    background: var(--sidebar-accent);
+    font-weight: 600;
+}
+
+/* Keep existing profile dropdown and name form styles */
+profile-dropdown {
+    display: inline-block;
+    background-color: #646cff;
+    color: white;
+    padding: 0.6em 1.2em;
+    border-radius: 8px;
+    cursor: pointer;
+    text-align: center;
+}
+
+/* Light mode adjustments */
 @media (prefers-color-scheme: light) {
-  .profile-dropdown .import-button:hover {
-    background-color: #535bf2;
-  }
-}
-
-/* Name Form Styles */
-.name-form {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1em;
-  padding: 2em;
-  max-width: 400px;
-  margin: 0 auto;
-}
-
-.name-form label {
-  font-size: 1.2em;
-  font-weight: 500;
+    profile-dropdown import-button:hover {
+        background-color: #535bf2;
+    }
 }

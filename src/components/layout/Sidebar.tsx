@@ -7,64 +7,30 @@ interface SidebarProps {
 }
 
 export function Sidebar({ activeItem, onNavClick }: SidebarProps) {
+  const navItems = ['Dashboard', 'Address Book', 'History', 'Settings', 'Terms of Use'];
+
   return (
-    <div className="w-[280px] h-screen bg-white/10 backdrop-blur-lg shadow-lg border border-white/20 rounded-xl p-4 flex flex-col">
+    <div className="sidebar w-[280px] h-screen p-4 flex flex-col rounded-xl">
       {/* Temp Wallet Logo */}
       <div className="mb-6">
-        <h2 className="text-2xl font-semibold text-text-primary">tempwallets.com</h2>
+        <h2 className="text-2xl font-semibold text-sidebar-foreground">tempwallets.com</h2>
       </div>
 
       {/* Navigation Items */}
-      <nav className="space-y-2">
-        <Button
-          variant="ghost"
-          className={`w-full justify-start h-10 px-3 py-2 rounded-lg ${
-            activeItem === 'Dashboard'
-              ? 'bg-orange-50 text-orange-600 border-l-2 border-orange-500'
-              : 'hover:bg-gray-50'
-          }`}
-          onClick={() => onNavClick('Dashboard')}
-        >
-          Dashboard
-        </Button>
-        <Button
-          variant="ghost"
-          className={`w-full justify-start h-10 px-3 py-2 rounded-lg ${
-            activeItem === 'Address Book' ? 'bg-orange-50 text-orange-600 border-l-2 border-orange-500' : 'hover:bg-gray-50'
-          }`}
-          onClick={() => onNavClick('Address Book')}
-        >
-          Address Book
-        </Button>
-        <Button
-          variant="ghost"
-          className={`w-full justify-start h-10 px-3 py-2 rounded-lg ${
-            activeItem === 'History' ? 'bg-orange-50 text-orange-600 border-l-2 border-orange-500' : 'hover:bg-gray-50'
-          }`}
-          onClick={() => onNavClick('History')}
-        >
-          History
-        </Button>
-        <Button
-          variant="ghost"
-          className={`w-full justify-start h-10 px-3 py-2 rounded-lg ${
-            activeItem === 'Settings' ? 'bg-orange-50 text-orange-600 border-l-2 border-orange-500' : 'hover:bg-gray-50'
-          }`}
-          onClick={() => onNavClick('Settings')}
-        >
-          Settings
-        </Button>
+      <nav className="space-y-2 flex-1">
+        {navItems.map((item) => (
+          <Button
+            key={item}
+            variant="ghost"
+            className={`sidebar-item w-full justify-start h-10 px-3 py-2 text-sidebar-foreground ${
+              activeItem === item ? 'active' : ''
+            } ${item === 'Terms of Use' ? 'mt-auto' : ''}`}
+            onClick={() => onNavClick(item)}
+          >
+            {item}
+          </Button>
+        ))}
       </nav>
-      {/* Terms of Use at Bottom of Sidebar */}
-      <Button
-        variant="ghost"
-        className={`w-full justify-start h-10 px-3 py-2 rounded-lg mt-auto ${
-          activeItem === 'Terms of Use' ? 'bg-orange-50 text-orange-600 border-l-2 border-orange-500' : 'hover:bg-gray-50'
-        }`}
-        onClick={() => onNavClick('Terms of Use')}
-      >
-        Terms of Use
-      </Button>
     </div>
   );
 }

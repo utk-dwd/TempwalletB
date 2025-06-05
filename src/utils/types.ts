@@ -10,14 +10,22 @@ export interface TransactionStatus {
   feeQuote?: string; // Fee in AVAX (sponsored) or USDC (ERC-20)
 }
 
+export interface TokenBalance {
+  address: string; // Token address (or 0xEeee... for native token)
+  chainId: number;
+  amount: string; // Balance in wei/token units
+  decimals: number;
+  formattedAmount: string; // Human-readable balance
+  symbol?: string; // Optional, from getSupportedTokens
+}
+
 export interface Wallet {
   address: string;
   walletNumber: number;
   externalAccountNumber: number;
   index: number;
   transactionStatus?: TransactionStatus;
-  balance?: string; // AVAX balance in wei
-  tokenBalance?: string; // USDC balance in token units
+  balances: TokenBalance[]; // Array of all token balances
 }
 
 export interface WalletAccount {
@@ -30,4 +38,5 @@ export interface WalletAccount {
 export interface UserData {
   accounts: WalletAccount[];
   activeAccount: string | null;
+  walletNames: {};
 }
