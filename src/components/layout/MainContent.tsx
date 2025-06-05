@@ -3,8 +3,8 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Copy, Send, Trash, RefreshCw, Funnel } from 'lucide-react';
-import { createSmartAccount, createSmartAccountWithCounter, getBalance, getTokenBalance, sendTransaction } from '@/utils/walletUtils';
+import { Copy, Send, Trash, RefreshCw, Funnel, Search  } from 'lucide-react';
+import { createSmartAccount, createSmartAccountWithCounter, createRandomSmartAccount, getBalance, getTokenBalance, sendTransaction } from '@/utils/walletUtils';
 import { Wallet, TransactionStatus } from '@/utils/types';
 import { formatEther, formatUnits, parseEther } from 'viem';
 
@@ -74,9 +74,9 @@ export function MainContent({ walletAddress, wallets, onWalletCreated, onWalletD
       return;
     }
     try {
-      const randomCounter = Math.floor(Math.random() * 1000);
-      const wallet = await createSmartAccount(walletAddress, randomCounter);
-      onWalletCreated(wallet); // Parent component needs to update its state immutably here
+      // Simply call createRandomSmartAccount - it will handle everything internally
+      const wallet = await createRandomSmartAccount(walletAddress, externalAccountNumber);
+      onWalletCreated(wallet);
       setError(null);
     } catch (err: any) {
       setError(err.message || 'Failed to create random wallet');
@@ -301,8 +301,13 @@ export function MainContent({ walletAddress, wallets, onWalletCreated, onWalletD
               >
                 <div>
                   <p className="text-sm font-medium text-white">
-                    Wallet {wallet.walletNumber} - <span className="text-xs text-gray-400">{wallet.address}</span>
-                  </p>
+                    Wallet #{wallet.walletNumber} 
+                    <span className="text-xs text-blue-400 ml-2">
+                      {wallet.walletNumber > 1000 ? '[Random]' : '[Sequential]'}
+                    </span>
+                    <br />
+                    <span className="text-xs text-gray-400">{wallet.address}</span>
+                  </p>      
                   {wallet.transactionStatus && wallet.transactionStatus.state !== 'idle' && (
                     <p className={`text-xs mt-1 ${
                         wallet.transactionStatus.state === 'success' ? 'text-green-400' 
@@ -357,6 +362,19 @@ export function MainContent({ walletAddress, wallets, onWalletCreated, onWalletD
                   >
                     <Trash className="w-4 h-4" />
                   </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="bg-white/10 text-white rounded-md hover:bg-white/20 p-2"
+                    onClick={(e) => { 
+                      e.stopPropagation(); 
+                      window.open(`https://testnet.snowtrace.io/address/${wallet.address}`, '_blank');
+                    }}
+                    title="View on Snowtrace"
+                  >
+                    <Search className="w-4 h-4" />
+                  </Button>
+
                   <Button
                     variant="ghost"
                     size="icon"
