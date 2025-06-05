@@ -8,6 +8,16 @@
 /* Define custom variants */
 @custom-variant dark (&:is(.dark *));
 
+html, body {
+    height: 100%;
+    overflow: hidden;
+  }
+  
+  #root {
+    height: 100vh;
+    overflow: hidden;
+  }
+
 /* Root variables */
 :root {
     --background: #F9FAFB;

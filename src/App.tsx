@@ -54,7 +54,7 @@ function App() {
       setProfilePicture(storedPicture || null);
       setHasSubmittedName(true);
     }
-
+  
     // Load user data
     const storedUserData = localStorage.getItem('tempWalletUserData');
     if (storedUserData) {
@@ -66,19 +66,10 @@ function App() {
         }
       }
     }
-
-    // Load wallet names
-    const storedWalletNames = localStorage.getItem('tempWalletNames');
-    if (storedWalletNames) {
-      const walletNames = JSON.parse(storedWalletNames);
-      if (walletAddress && walletNames[walletAddress]) {
-        setWalletName(walletNames[walletAddress]);
-      }
-    }
-
-    // MetaMask account changes
+  
+    // MetaMask account changes listener
     if (window.ethereum) {
-      window.ethereum.on('accountsChanged', (accounts: string[]) => {
+      const handleAccountsChanged = (accounts: string[]) => {
         if (accounts.length > 0) {
           setWalletAddress(accounts[0]);
           const storedWalletNames = localStorage.getItem('tempWalletNames');
@@ -88,16 +79,42 @@ function App() {
           } else {
             setWalletName('wallet-name');
           }
-          const newUserData = { ...userData, activeAccount: accounts[0], walletNames: userData.walletNames || {} };
-          setUserData(newUserData);
-          localStorage.setItem('tempWalletUserData', JSON.stringify(newUserData));
+          // Update user data with new active account
+          setUserData(prevUserData => {
+            const newUserData = { ...prevUserData, activeAccount: accounts[0], walletNames: prevUserData.walletNames || {} };
+            localStorage.setItem('tempWalletUserData', JSON.stringify(newUserData));
+            return newUserData;
+          });
         } else {
           setWalletAddress(null);
           setWalletName('wallet-name');
-          setUserData({ accounts: [], activeAccount: null, walletNames: {} });
-          localStorage.setItem('tempWalletUserData', JSON.stringify({ accounts: [], activeAccount: null, walletNames: {} }));
+          const emptyUserData = { accounts: [], activeAccount: null, walletNames: {} };
+          setUserData(emptyUserData);
+          localStorage.setItem('tempWalletUserData', JSON.stringify(emptyUserData));
         }
-      });
+      };
+  
+      window.ethereum.on('accountsChanged', handleAccountsChanged);
+      
+      // Cleanup listener on unmount
+      return () => {
+        if (window.ethereum?.removeListener) {
+          window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
+        }
+      };
+    }
+  }, []); // Empty dependency array - only run once on mount
+  
+  // Separate effect for handling wallet name updates when walletAddress changes
+  useEffect(() => {
+    if (walletAddress) {
+      const storedWalletNames = localStorage.getItem('tempWalletNames');
+      if (storedWalletNames) {
+        const walletNames = JSON.parse(storedWalletNames);
+        if (walletNames[walletAddress]) {
+          setWalletName(walletNames[walletAddress]);
+        }
+      }
     }
   }, [walletAddress]);
 
@@ -223,55 +240,101 @@ function App() {
   };
 
   const handleWalletCreated = (wallet: Wallet) => {
-    const newUserData = { ...userData };
-    if (!newUserData.accounts) {
-      newUserData.accounts = [];
-    }
-    let account = newUserData.accounts.find((acc) => acc.account === walletAddress);
-    if (!account) {
-      account = { account: walletAddress!, name: walletName, externalAccountNumber: 1, wallets: [] };
-      newUserData.accounts.push(account);
-    }
-    const existingWalletIndex = account.wallets.findIndex(
-      (w) => w.address === wallet.address && w.walletNumber === wallet.walletNumber
-    );
-    if (existingWalletIndex !== -1) {
-      account.wallets[existingWalletIndex] = wallet;
-    } else {
-      account.wallets.push(wallet);
-    }
-    setUserData(newUserData);
-    localStorage.setItem('tempWalletUserData', JSON.stringify(newUserData));
+    setUserData(prevUserData => {
+      const newUserData = { ...prevUserData };
+      if (!newUserData.accounts) {
+        newUserData.accounts = [];
+      }
+      
+      // Find or create account
+      let accountIndex = newUserData.accounts.findIndex((acc) => acc.account === walletAddress);
+      if (accountIndex === -1) {
+        // Create new account
+        const newAccount = { 
+          account: walletAddress!, 
+          name: walletName, 
+          externalAccountNumber: 1, 
+          wallets: [wallet] 
+        };
+        newUserData.accounts = [...newUserData.accounts, newAccount];
+      } else {
+        // Update existing account
+        const account = { ...newUserData.accounts[accountIndex] };
+        const existingWalletIndex = account.wallets.findIndex(
+          (w) => w.address === wallet.address && w.walletNumber === wallet.walletNumber
+        );
+        
+        if (existingWalletIndex !== -1) {
+          // Update existing wallet
+          account.wallets = account.wallets.map((w, index) => 
+            index === existingWalletIndex ? wallet : w
+          );
+        } else {
+          // Add new wallet
+          account.wallets = [...account.wallets, wallet];
+        }
+        
+        // Update accounts array immutably
+        newUserData.accounts = newUserData.accounts.map((acc, index) => 
+          index === accountIndex ? account : acc
+        );
+      }
+      
+      localStorage.setItem('tempWalletUserData', JSON.stringify(newUserData));
+      return newUserData;
+    });
   };
 
   const handleWalletDeleted = (wallet: Wallet) => {
-    const newUserData = { ...userData };
-    const account = newUserData.accounts.find((acc) => acc.account === walletAddress);
-    if (account) {
-      account.wallets = account.wallets.filter(
-        (w) => !(w.address === wallet.address && w.walletNumber === wallet.walletNumber)
-      );
-      setUserData(newUserData);
-      localStorage.setItem('tempWalletUserData', JSON.stringify(newUserData));
-    }
+    setUserData(prevUserData => {
+      const newUserData = { ...prevUserData };
+      const accountIndex = newUserData.accounts.findIndex((acc) => acc.account === walletAddress);
+      
+      if (accountIndex !== -1) {
+        const account = { ...newUserData.accounts[accountIndex] };
+        account.wallets = account.wallets.filter(
+          (w) => !(w.address === wallet.address && w.walletNumber === wallet.walletNumber)
+        );
+        
+        // Update accounts array immutably
+        newUserData.accounts = newUserData.accounts.map((acc, index) => 
+          index === accountIndex ? account : acc
+        );
+        
+        localStorage.setItem('tempWalletUserData', JSON.stringify(newUserData));
+      }
+      
+      return newUserData;
+    });
   };
 
   const handleTransactionSent = (wallet: Wallet, status: TransactionStatus) => {
-    const newUserData = { ...userData };
-    const account = newUserData.accounts.find((acc) => acc.account === walletAddress);
-    if (account) {
-      const walletIndex = account.wallets.findIndex(
-        (w) => w.address === wallet.address && w.walletNumber === wallet.walletNumber
-      );
-      if (walletIndex !== -1) {
-        account.wallets[walletIndex] = {
-          ...account.wallets[walletIndex],
-          transactionStatus: status,
-        };
-        setUserData(newUserData);
-        localStorage.setItem('tempWalletUserData', JSON.stringify(newUserData));
+    setUserData(prevUserData => {
+      const newUserData = { ...prevUserData };
+      const accountIndex = newUserData.accounts.findIndex((acc) => acc.account === walletAddress);
+      
+      if (accountIndex !== -1) {
+        const account = { ...newUserData.accounts[accountIndex] };
+        const walletIndex = account.wallets.findIndex(
+          (w) => w.address === wallet.address && w.walletNumber === wallet.walletNumber
+        );
+        
+        if (walletIndex !== -1) {
+          account.wallets = account.wallets.map((w, index) => 
+            index === walletIndex ? { ...w, transactionStatus: status } : w
+          );
+          
+          // Update accounts array immutably
+          newUserData.accounts = newUserData.accounts.map((acc, index) => 
+            index === accountIndex ? account : acc
+          );
+          
+          localStorage.setItem('tempWalletUserData', JSON.stringify(newUserData));
+        }
       }
-    }
+      
+      return newUserData;
+    });
   };
 
   if (showLandingPage) {
@@ -331,10 +394,10 @@ function App() {
       {/* Background wrapper with dynamic image */}
       <div className="app-background" style={{ backgroundImage: `url(${backgroundImages[bgIndex]})` }} />
       {/* Main app content */}
-      <div className="relative min-h-screen flex flex-col p-6">
-        <div className="grid grid-cols-[280px_1fr] gap-6 h-screen">
+      <div className="relative h-screen flex flex-col p-6 overflow-hidden">
+        <div className="grid grid-cols-[280px_1fr] gap-6 flex-1 min-h-0">
           <Sidebar activeItem={activeItem} onNavClick={handleNavClick} />
-          <div className="space-y-4 flex flex-col">
+          <div className="space-y-4 flex flex-col h-full min-h-0">
             <div className="relative">
               <Header
                 walletAddress={walletAddress}

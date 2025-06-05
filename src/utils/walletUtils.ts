@@ -26,7 +26,11 @@ export const signMessage = async (): Promise<string> => {
 // Function to get user data from localStorage
 export const getUserData = (): UserData => {
   const data = localStorage.getItem('tempWalletUserData');
-  return data ? JSON.parse(data) : { accounts: [], activeAccount: null };
+  return data ? JSON.parse(data) : { 
+    accounts: [], 
+    activeAccount: null,
+    walletNames: {}
+  };
 };
 
 // Function to save user data to localStorage
@@ -161,7 +165,6 @@ export const createSmartAccount = async (account: string, externalAccountNumber:
       transactionStatus: { state: 'idle' },
       balance: await getBalance(accountAddress),
       tokenBalance: await getTokenBalance(accountAddress),
-      balances: []
     };
 
     accountData.wallets.push(wallet);
@@ -246,7 +249,6 @@ export const createSmartAccountWithCounter = async (
       transactionStatus: { state: 'idle' },
       balance: await getBalance(accountAddress),
       tokenBalance: await getTokenBalance(accountAddress),
-      balances: []
     };
 
     accountData.wallets.push(wallet);

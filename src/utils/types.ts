@@ -25,7 +25,8 @@ export interface Wallet {
   externalAccountNumber: number;
   index: number;
   transactionStatus?: TransactionStatus;
-  balances: TokenBalance[]; // Array of all token balances
+  balance: string;
+  tokenBalance: string;
 }
 
 export interface WalletAccount {
