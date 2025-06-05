@@ -17,6 +17,9 @@ module.exports = {
       borderColor: {
         'purple': '#646cff',
       },
+      fontFamily: {
+        sans: ['Roboto', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+      },
     },
   },
   plugins: [],
