@@ -7,6 +7,7 @@ import { Copy, Send, Trash, RefreshCw, Funnel, Search  } from 'lucide-react';
 import { createSmartAccount, createSmartAccountWithCounter, createRandomSmartAccount, getBalance, getTokenBalance, sendTransaction } from '@/utils/walletUtils';
 import { Wallet, TransactionStatus } from '@/utils/types';
 import { formatEther, formatUnits, parseEther } from 'viem';
+import { HoverInfoBox } from '@/components/ui/HoverInfoBox'; // Add this line
 
 interface MainContentProps {
   walletAddress: string | null;
@@ -245,7 +246,7 @@ export function MainContent({ walletAddress, wallets, onWalletCreated, onWalletD
         scrollbar-color: rgba(209, 213, 219, 0.5) rgba(55, 65, 81, 0.3); /* thumb track */
       }
     `}</style>
-    <div className="bg-[var(--overlay)] backdrop-blur-[var(--blur)] rounded-xl p-4 flex-1 flex flex-col h-full min-h-0 mb-7">
+    <div className="bg-[var(--overlay)] backdrop-blur-[var(--blur)] rounded-xl p-4 flex-1 flex flex-col h-full min-h-0 mb-10">
       {/* Top Strip */}
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold text-white">Your Temporary Wallets</h2>
@@ -331,15 +332,16 @@ export function MainContent({ walletAddress, wallets, onWalletCreated, onWalletD
                   )}
                 </div>
                 <div className="flex items-center gap-2"> 
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="bg-white/10 text-white rounded-md hover:bg-white/20 p-2" 
-                    onClick={(e) => { e.stopPropagation(); handleCopyAddress(wallet.address);}}
-                    title="Copy Address"
-                  >
-                    <Copy className="w-4 h-4" />
-                  </Button>
+                <HoverInfoBox infoText="Copy Address" position="bottom">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="bg-white/10 text-white rounded-md hover:bg-white/20 p-2" 
+                      onClick={(e) => { e.stopPropagation(); handleCopyAddress(wallet.address);}}
+                    >
+                      <Copy className="w-4 h-4" />
+                    </Button>
+                  </HoverInfoBox>
                   <Button
                     variant="ghost"
                     size="icon"
