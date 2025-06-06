@@ -20,7 +20,7 @@ export interface TokenBalance {
 }
 
 export interface Wallet {
-  address: string;
+  address: `0x${string}`;
   walletNumber: number;
   externalAccountNumber: number;
   index: number;

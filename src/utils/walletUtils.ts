@@ -121,7 +121,7 @@ export const getBalance = async (address: string): Promise<string> => {
 };
 
 // Function to get USDC balance
-export const getTokenBalance = async (address: string): Promise<string> => {
+export const getTokenBalance = async (address: `0x${string}`): Promise<string> => {
   try {
     const publicClient = createPublicClient({
       chain: avalancheFuji,
@@ -134,7 +134,25 @@ export const getTokenBalance = async (address: string): Promise<string> => {
     const balance = await publicClient.readContract({
       address: usdcAddress,
       abi: [
-        'function balanceOf(address) view returns (uint256)',
+        {
+          inputs: [
+            {
+              internalType: 'address',
+              name: 'account',
+              type: 'address',
+            },
+          ],
+          name: 'balanceOf',
+          outputs: [
+            {
+              internalType: 'uint256',
+              name: '',
+              type: 'uint256',
+            },
+          ],
+          stateMutability: 'view',
+          type: 'function',
+        },
       ],
       functionName: 'balanceOf',
       args: [address],
