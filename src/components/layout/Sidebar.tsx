@@ -10,7 +10,7 @@ export function Sidebar({ activeItem, onNavClick }: SidebarProps) {
   const navItems = ['Dashboard', 'Address Book', 'History', 'Settings', 'Terms of Use'];
 
   return (
-    <div className="sidebar w-[280px] h-screen p-4 flex flex-col rounded-xl">
+    <div className="sidebar w-[280px] h-auto p-4 flex flex-col rounded-xl mb-5 mt-5 ml-5 border border-white/20">
       {/* Temp Wallet Logo */}
       <div className="mb-6">
         <h2 className="text-2xl font-semibold text-sidebar-foreground">tempwallets.com</h2>

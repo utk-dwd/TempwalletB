@@ -1,7 +1,7 @@
 // src/utils/walletUtils.ts
 import { createSmartAccountClient, PaymasterMode } from '@biconomy/account';
 import { avalancheFuji } from 'viem/chains';
-import { createPublicClient, http, parseEther, isAddress, formatEther, formatUnits } from 'viem';
+import { createPublicClient, http, parseEther, isAddress, formatEther, formatUnits, parseUnits, encodeFunctionData } from 'viem';
 import { keccak256, AbiCoder } from 'ethers';
 import { getProvider } from './provider';
 import { Wallet, UserData, WalletAccount, TransactionStatus } from './types';
@@ -37,6 +37,33 @@ export const getUserData = (): UserData => {
 const saveUserData = (userData: UserData) => {
   localStorage.setItem('tempWalletUserData', JSON.stringify(userData));
 };
+
+// Define USDC ABI as a constant for reuse
+const USDC_ABI = [
+  {
+    inputs: [
+      { internalType: 'address', name: 'account', type: 'address' },
+    ],
+    name: 'balanceOf',
+    outputs: [
+      { internalType: 'uint256', name: '', type: 'uint256' },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { internalType: 'address', name: 'recipient', type: 'address' },
+      { internalType: 'uint256', name: 'amount', type: 'uint256' },
+    ],
+    name: 'transfer',
+    outputs: [
+      { internalType: 'bool', name: '', type: 'bool' },
+    ],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+];
 
 // Function to get the next incremented wallet number for a specific account
 export const getNextWalletNumber = (account: string): number => {
@@ -424,49 +451,37 @@ export const createWalletFromNumber = async (
   }
 };
 
-// Function to send a transaction from a smart account
+// Updated sendTransaction function
 export const sendTransaction = async (
   account: string, // EOA address
   walletAddress: string, // Smart account address
   index: number, // Index for reinitializing smart account
   to: string, // Recipient address
-  amount: string // Amount in AVAX
+  amount: string, // Amount in token units
+  tokenType: 'AVAX' | 'USDC' // Token type
 ): Promise<TransactionStatus> => {
   try {
     if (!isAddress(to)) {
       throw new Error('Invalid recipient address');
     }
-    const amountWei = parseEther(amount);
-    if (amountWei <= 0) {
-      throw new Error('Amount must be positive');
-    }
-
     const publicClient = createPublicClient({
       chain: avalancheFuji,
       transport: http(import.meta.env.VITE_AVALANCHE_FUJI_RPC),
     });
-    const balance = await publicClient.getBalance({ address: walletAddress as `0x${string}` });
-    if (balance < amountWei) {
-      throw new Error('Insufficient balance in smart account');
-    }
-
     const provider = await getProvider(account);
     const signer = await provider.getSigner();
     const signerAddress = await signer.getAddress();
     if (signerAddress.toLowerCase() !== account.toLowerCase()) {
       throw new Error('Signer address does not match the provided account');
     }
-
     const bundlerUrl = import.meta.env.VITE_BUNDLER_URL;
     const paymasterApiKey = import.meta.env.VITE_BICONOMY_PAYMASTER_API_KEY;
     const rpcUrl = import.meta.env.VITE_AVALANCHE_FUJI_RPC;
-
     if (!bundlerUrl || !paymasterApiKey || !rpcUrl) {
       throw new Error(
         'Missing environment variables: Ensure VITE_BUNDLER_URL, VITE_BICONOMY_PAYMASTER_API_KEY, and VITE_AVALANCHE_FUJI_RPC are set in .env'
       );
     }
-
     const smartAccount = await createSmartAccountClient({
       signer,
       bundlerUrl,
@@ -476,17 +491,57 @@ export const sendTransaction = async (
       rpcUrl,
     });
 
-    const tx = {
-      to,
-      value: amountWei,
-    };
+    let tx;
+    if (tokenType === 'AVAX') {
+      const amountWei = parseEther(amount);
+      if (amountWei <= 0) {
+        throw new Error('Amount must be positive');
+      }
+      const balance = await publicClient.getBalance({ address: walletAddress as `0x${string}` });
+      if (balance < amountWei) {
+        throw new Error('Insufficient AVAX balance in smart account');
+      }
+      tx = {
+        to,
+        value: amountWei,
+      };
+    } else if (tokenType === 'USDC') {
+      const usdcAddress = import.meta.env.VITE_USDC_ADDRESS;
+      if (!usdcAddress) {
+        throw new Error('USDC address not configured in .env');
+      }
+      // Convert the amount to Wei (smallest USDC unit) by assuming 6 decimal places
+      const amountWei = parseUnits(amount, 6); // USDC has 6 decimals
+      if (amountWei <= 0) {
+        throw new Error('Amount must be positive');
+      }
+      const balance = await publicClient.readContract({
+        address: usdcAddress,
+        abi: USDC_ABI,
+        functionName: 'balanceOf',
+        args: [walletAddress],
+      }) as bigint;
+      if (balance < amountWei) {
+        throw new Error('Insufficient USDC balance in smart account');
+      }
+      tx = {
+        to: usdcAddress,
+        data: encodeFunctionData({
+          abi: USDC_ABI,
+          functionName: 'transfer',
+          args: [to, amountWei],
+        }),
+      };
+    } else {
+      throw new Error('Unsupported token type');
+    }
 
     const { waitForTxHash } = await smartAccount.sendTransaction(tx, {
       paymasterServiceData: { mode: PaymasterMode.SPONSORED },
     });
 
     const { transactionHash } = await waitForTxHash();
-    console.log('Transaction sent:', { transactionHash, walletAddress, to, amount });
+    console.log('Transaction sent:', { transactionHash, walletAddress, to, amount, tokenType });
 
     return {
       state: 'success',

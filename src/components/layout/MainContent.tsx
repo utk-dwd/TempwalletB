@@ -32,6 +32,9 @@ export function MainContent({ walletAddress, wallets, onWalletCreated, onWalletD
   const [sortType, setSortType] = useState<SortType>('original');
   const [displayedWallets, setDisplayedWallets] = useState<Wallet[]>(wallets);
 
+  // Add state for token selection
+  const [selectedToken, setSelectedToken] = useState<'AVAX' | 'USDC'>('AVAX');
+
   const externalAccountNumber = walletAddress ? 1 : 0;
 
   // Effect to sort wallets when 'wallets' prop or 'sortType' changes.
@@ -135,30 +138,32 @@ export function MainContent({ walletAddress, wallets, onWalletCreated, onWalletD
     }
   };
 
-  const handleSendCrypto = async () => {
-    if (!walletAddress || !selectedWallet) {
-      setError('Please connect a wallet and select a wallet to send from');
-      setIsSendModalOpen(false);
-      return;
-    }
-    try {
-      const status = await sendTransaction(
-        walletAddress,
-        selectedWallet.address,
-        selectedWallet.index,
-        recipient,
-        amount
-      );
-      onTransactionSent(selectedWallet, status);
-      setError(null);
-      setIsSendModalOpen(false);
-      setRecipient('');
-      setAmount('');
-      handleRefreshBalance(selectedWallet, true);
-    } catch (err: any) {
-      setError(err.message || 'Failed to send transaction');
-    }
-  };
+  // Update handleSendCrypto to pass selectedToken
+const handleSendCrypto = async () => {
+  if (!walletAddress || !selectedWallet) {
+    setError('Please connect a wallet and select a wallet to send from');
+    setIsSendModalOpen(false);
+    return;
+  }
+  try {
+    const status = await sendTransaction(
+      walletAddress,
+      selectedWallet.address,
+      selectedWallet.index,
+      recipient,
+      amount,
+      selectedToken // Pass selected token
+    );
+    onTransactionSent(selectedWallet, status);
+    setError(null);
+    setIsSendModalOpen(false);
+    setRecipient('');
+    setAmount('');
+    await handleRefreshBalance(selectedWallet, true);
+  } catch (err: any) {
+    setError(err.message || 'Failed to send transaction');
+  }
+};
 
   const handleRefreshBalance = async (wallet: Wallet, isPostTransaction: boolean = false) => {
     try {
@@ -246,7 +251,7 @@ export function MainContent({ walletAddress, wallets, onWalletCreated, onWalletD
         scrollbar-color: rgba(209, 213, 219, 0.5) rgba(55, 65, 81, 0.3); /* thumb track */
       }
     `}</style>
-    <div className="bg-[var(--overlay)] backdrop-blur-[var(--blur)] rounded-xl p-4 flex-1 flex flex-col h-full min-h-0 mb-10">
+    <div className="bg-[var(--overlay)] border border-white/20 backdrop-blur-[var(--blur)] rounded-xl p-4 flex-1 flex flex-col h-full min-h-0 mb-5 ml-5 mr-5">
       {/* Top Strip */}
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold text-white">Your Temporary Wallets</h2>
@@ -341,7 +346,9 @@ export function MainContent({ walletAddress, wallets, onWalletCreated, onWalletD
                     >
                       <Copy className="w-4 h-4" />
                     </Button>
-                  </HoverInfoBox>
+                </HoverInfoBox>
+
+                  <HoverInfoBox infoText="Send Crypto" position="bottom">
                   <Button
                     variant="ghost"
                     size="icon"
@@ -355,6 +362,9 @@ export function MainContent({ walletAddress, wallets, onWalletCreated, onWalletD
                   >
                     <Send className="w-4 h-4" />
                   </Button>
+                  </HoverInfoBox>
+
+                  <HoverInfoBox infoText="Delete Wallet" position="bottom">
                   <Button
                     variant="ghost"
                     size="icon"
@@ -364,6 +374,9 @@ export function MainContent({ walletAddress, wallets, onWalletCreated, onWalletD
                   >
                     <Trash className="w-4 h-4" />
                   </Button>
+                  </HoverInfoBox>
+
+                  <HoverInfoBox infoText="View on Snowtrace" position="bottom">
                   <Button
                     variant="ghost"
                     size="icon"
@@ -376,7 +389,8 @@ export function MainContent({ walletAddress, wallets, onWalletCreated, onWalletD
                   >
                     <Search className="w-4 h-4" />
                   </Button>
-
+                  </HoverInfoBox>
+                  <HoverInfoBox infoText="Refresh Balance" position="left">
                   <Button
                     variant="ghost"
                     size="icon"
@@ -386,6 +400,7 @@ export function MainContent({ walletAddress, wallets, onWalletCreated, onWalletD
                   >
                     <RefreshCw className="w-4 h-4" />
                   </Button>
+                  </HoverInfoBox>
                 </div>
               </div>
             ))
@@ -465,12 +480,29 @@ export function MainContent({ walletAddress, wallets, onWalletCreated, onWalletD
       </Dialog>
 
       {/* Send Crypto Modal */}
-      <Dialog open={isSendModalOpen} onOpenChange={(isOpen) => {setIsSendModalOpen(isOpen); if (!isOpen) setError(null);}}>
-        <DialogContent className="bg-[var(--overlay)] backdrop-blur-[var(--blur)] rounded-xl p-6 bg-gray-500/50 border border-white/20">
+      {/* Update the Send Crypto Modal in the return statement */}
+      <Dialog open={isSendModalOpen} onOpenChange={(isOpen) => { setIsSendModalOpen(isOpen); if (!isOpen) setError(null); }}>
+        <DialogContent className="bg-[var(--overlay)] backdrop-blur-[var(--blur)] rounded-xl p-6 bg-gray-800/50 border border-white/20">
           <DialogHeader>
-            <DialogTitle className="text-xl font-semibold text-white">Send AVAX from Wallet #{selectedWallet?.walletNumber}</DialogTitle>
+            <DialogTitle className="text-xl font-semibold text-white">
+              Send {selectedToken} from Wallet #{selectedWallet?.walletNumber}
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            <div>
+              <label htmlFor="token" className="text-sm font-medium text-white block mb-1">
+                Select Token
+              </label>
+              <select
+                id="token"
+                value={selectedToken}
+                onChange={(e) => setSelectedToken(e.target.value as 'AVAX' | 'USDC')}
+                className="mt-1 px-3 py-2 bg-transparent text-white border border-white/20 rounded-[var(--radius)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)] w-full"
+              >
+                <option value="AVAX" className="bg-gray-800 text-white">AVAX</option>
+                <option value="USDC" className="bg-gray-800 text-white">USDC</option>
+              </select>
+            </div>
             <div>
               <label htmlFor="recipient" className="text-sm font-medium text-white block mb-1">
                 Recipient Address
@@ -486,21 +518,23 @@ export function MainContent({ walletAddress, wallets, onWalletCreated, onWalletD
             </div>
             <div>
               <label htmlFor="amount" className="text-sm font-medium text-white block mb-1">
-                Amount (AVAX)
+                Crypto ({selectedToken})
               </label>
               <Input
                 id="amount"
                 type="number"
-                step="any" 
+                step={selectedToken === 'AVAX' ? '0.000000000000000001' : '0.000001'} // 18 decimals for AVAX, 6 for USDC
                 min="0"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 className="mt-1 px-3 py-2 bg-transparent text-white placeholder-white/50 border border-white/20 rounded-[var(--radius)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)] w-full"
                 placeholder="0.0"
               />
-              {selectedWallet?.balance && (
+              {selectedWallet && (
                 <p className="text-xs text-gray-400 mt-1">
-                  Available: {formatEther(BigInt(selectedWallet.balance))} AVAX
+                  Available: {selectedToken === 'AVAX' 
+                    ? selectedWallet.balance ? formatEther(BigInt(selectedWallet.balance)) : '0'
+                    : selectedWallet.tokenBalance ? formatUnits(BigInt(selectedWallet.tokenBalance), 6) : '0'} {selectedToken}
                 </p>
               )}
             </div>
@@ -508,7 +542,7 @@ export function MainContent({ walletAddress, wallets, onWalletCreated, onWalletD
           </div>
           <DialogFooter className="flex gap-2 sm:justify-end">
             <Button
-              onClick={() => {setIsSendModalOpen(false); setError(null);}}
+              onClick={() => { setIsSendModalOpen(false); setError(null); }}
               className="px-4 py-2 bg-red-500/60 text-primary-foreground rounded-[var(--radius)] hover:bg-red-500/80 transition-colors"
             >
               Cancel

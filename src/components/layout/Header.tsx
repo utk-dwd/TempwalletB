@@ -85,7 +85,7 @@ export function Header({
 
 
   return (
-    <header className="h-28 bg-[var(--overlay)] backdrop-blur-[var(--blur)] rounded-xl px-8 py-6 flex items-center justify-between">
+    <header className="h-28 bg-[var(--overlay)] backdrop-blur-[var(--blur)] rounded-xl px-8 py-6 flex items-center justify-between ml-5 mr-5 mt-5 mb-3 ">
     {/* Left Side: Avatar and Name */}
     <div className="flex items-center gap-3">
       {isEditingProfile ? (
@@ -111,7 +111,7 @@ export function Header({
         </div>
       ) : (
         <div className="relative flex items-center gap-2">
-          <Avatar className="bg-success-green w-24 h-24">
+          <Avatar className="bg-success-green w-18 h-18">
             {avatarSrc ? (
               <AvatarImage src={avatarSrc} alt="Profile Picture" className="object-cover w-full h-full -top-0" />
             ) : (
@@ -121,7 +121,7 @@ export function Header({
           <p className="text-xl font-medium text-white">Welcome {name}</p>
           <button
             onClick={handleEditProfile}
-            className="absolute top-[0.5rem] -right-2 p-1 bg-white/30 rounded-full hover:bg-white/50"
+            className="absolute top-[1.3rem] -right-8 p-1 bg-white/30 rounded-full hover:bg-white/50"
           >
             <Pencil className="w-4 h-4 text-white" />
           </button>
@@ -158,7 +158,7 @@ export function Header({
               </div>
               <button
                 onClick={handleEditWalletName}
-                className="absolute top-[1rem] right-[calc(var(--spacing)*7)] p-[calc(var(--spacing)*1)] bg-white/30 rounded-full hover:bg-white/50"
+                className="absolute top-[2rem] right-[calc(var(--spacing)*4)] p-[calc(var(--spacing)*1)] bg-white/30 rounded-full hover:bg-white/50"
               >
                 <Pencil className="w-4 h-4 text-white" />
               </button>
