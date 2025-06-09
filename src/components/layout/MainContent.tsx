@@ -4,10 +4,13 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Copy, Send, Trash, RefreshCw, Funnel, Search  } from 'lucide-react';
-import { createSmartAccount, createSmartAccountWithCounter, createRandomSmartAccount, getBalance, getTokenBalance, sendTransaction } from '@/utils/walletUtils';
-import { Wallet, TransactionStatus } from '@/utils/types';
+import { createSmartAccount, createSmartAccountWithCounter, createRandomSmartAccount, getBalance, getTokenBalance, create0xGaslessWallet, // <-- ADD
+  sendBiconomyTransaction, // <-- RENAME
+  send0xGaslessTransaction, } from '@/utils/walletUtils';
+
 import { formatEther, formatUnits, parseEther } from 'viem';
 import { HoverInfoBox } from '@/components/ui/HoverInfoBox'; // Add this line
+import { Wallet, TransactionStatus, SdkType } from '@/utils/types';
 
 interface MainContentProps {
   walletAddress: string | null;
@@ -36,6 +39,16 @@ export function MainContent({ walletAddress, wallets, onWalletCreated, onWalletD
   const [selectedToken, setSelectedToken] = useState<'AVAX' | 'USDC'>('AVAX');
 
   const externalAccountNumber = walletAddress ? 1 : 0;
+
+  // Add these state variables in the MainContent component
+  const [selectedSdk, setSelectedSdk] = useState<SdkType>('biconomy');
+  const [gaslessWalletExists, setGaslessWalletExists] = useState(false);
+
+  // Add this useEffect to check for the 0xGasless wallet
+useEffect(() => {
+  const has0xGasless = wallets.some(wallet => wallet.sdk === '0xgasless');
+  setGaslessWalletExists(has0xGasless);
+}, [wallets]);
 
   // Effect to sort wallets when 'wallets' prop or 'sortType' changes.
   // For immediate updates upon wallet creation/deletion, the parent component
@@ -138,7 +151,8 @@ export function MainContent({ walletAddress, wallets, onWalletCreated, onWalletD
     }
   };
 
-  // Update handleSendCrypto to pass selectedToken
+// Replace the entire handleSendCrypto function with this new version
+
 const handleSendCrypto = async () => {
   if (!walletAddress || !selectedWallet) {
     setError('Please connect a wallet and select a wallet to send from');
@@ -146,14 +160,28 @@ const handleSendCrypto = async () => {
     return;
   }
   try {
-    const status = await sendTransaction(
-      walletAddress,
-      selectedWallet.address,
-      selectedWallet.index,
-      recipient,
-      amount,
-      selectedToken // Pass selected token
-    );
+    let status: TransactionStatus;
+
+    // Dispatch to the correct transaction function based on the wallet's SDK
+    if (selectedWallet.sdk === '0xgasless') {
+      status = await send0xGaslessTransaction(
+        walletAddress,
+        selectedWallet.address,
+        recipient,
+        amount,
+        selectedToken
+      );
+    } else { // Default to Biconomy
+      status = await sendBiconomyTransaction(
+        walletAddress,
+        selectedWallet.address,
+        selectedWallet.index,
+        recipient,
+        amount,
+        selectedToken
+      );
+    }
+
     onTransactionSent(selectedWallet, status);
     setError(null);
     setIsSendModalOpen(false);
@@ -162,6 +190,20 @@ const handleSendCrypto = async () => {
     await handleRefreshBalance(selectedWallet, true);
   } catch (err: any) {
     setError(err.message || 'Failed to send transaction');
+  }
+};;
+
+const handleCreate0xGasless = async () => {
+  if (!walletAddress) {
+    setError('Please connect a wallet first');
+    return;
+  }
+  try {
+    const wallet = await create0xGaslessWallet(walletAddress, externalAccountNumber);
+    onWalletCreated(wallet);
+    setError(null);
+  } catch (err: any) {
+    setError(err.message || 'Failed to create wallet');
   }
 };
 
@@ -255,32 +297,45 @@ const handleSendCrypto = async () => {
       {/* Top Strip */}
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold text-white">Your Temporary Wallets</h2>
-        <div className="flex items-center gap-2">
-          <Button 
-            onClick={handleSortChange} 
-            className="px-4 py-2 bg-green-500/50 text-primary-foreground rounded-[var(--radius)] hover:bg-gray-400/50 transition-colors flex items-center"
-            title={`Current sort: ${getSortButtonLabel()}`}
-          >
-            <Funnel className="w-4 h-4 mr-2" /> 
-            <span>{getSortButtonLabel()}</span>
-          </Button>
-          <Button onClick={handleCreateNewTempWallet} className="px-4 py-2 bg-green-500/50 text-primary-foreground rounded-[var(--radius)] hover:bg-gray-400/50 transition-colors">
-            + Create new temp wallet
-          </Button>
-          <Button onClick={handleCreateRandomTempWallet} className="px-4 py-2 bg-green-500/50 text-primary-foreground rounded-[var(--radius)] hover:bg-gray-400/50 transition-colors">
-            + Create new random temp wallet
-          </Button>
-          <Button
-            onClick={() => setIsCustomWalletModalOpen(true)}
-            className="px-4 py-2 bg-green-500/50 text-primary-foreground rounded-[var(--radius)] hover:bg-gray-400/50 transition-colors"
-          >
-            + Create new custom temp wallet
-          </Button>
-          <Button className="px-4 py-2 bg-green-500/50 text-primary-foreground rounded-[var(--radius)] hover:bg-gray-400/50 transition-colors">
-            Avalanche
-          </Button>
-        </div>
-      </div>
+         {/* SDK Toggler */}
+  <div className="flex items-center gap-2 p-1 bg-gray-700/50 rounded-lg">
+    <Button
+      onClick={() => setSelectedSdk('biconomy')}
+      className={`px-3 py-1 text-sm ${selectedSdk === 'biconomy' ? 'bg-green-500/80 text-white' : 'bg-transparent text-gray-300'} rounded-md transition-colors`}
+    >
+      Biconomy
+    </Button>
+    <Button
+      onClick={() => setSelectedSdk('0xgasless')}
+      className={`px-3 py-1 text-sm ${selectedSdk === '0xgasless' ? 'bg-green-500/80 text-white' : 'bg-transparent text-gray-300'} rounded-md transition-colors`}
+    >
+      0xGasless
+    </Button>
+  </div>
+
+  {/* Replace the existing creation buttons with this conditional block */}
+<div className="flex items-center gap-2">
+    {selectedSdk === 'biconomy' ? (
+        <>
+            <Button onClick={handleCreateNewTempWallet} className="px-4 py-2 bg-green-500/50 text-primary-foreground rounded-[var(--radius)] hover:bg-gray-400/50 transition-colors">
+                + Create Sequential
+            </Button>
+            <Button onClick={handleCreateRandomTempWallet} className="px-4 py-2 bg-green-500/50 text-primary-foreground rounded-[var(--radius)] hover:bg-gray-400/50 transition-colors">
+                + Create Random
+            </Button>
+            <Button onClick={() => setIsCustomWalletModalOpen(true)} className="px-4 py-2 bg-green-500/50 text-primary-foreground rounded-[var(--radius)] hover:bg-gray-400/50 transition-colors">
+                + Create Custom
+            </Button>
+        </>
+    ) : (
+        <Button onClick={handleCreate0xGasless} disabled={gaslessWalletExists} className="px-4 py-2 bg-green-500/50 text-primary-foreground rounded-[var(--radius)] hover:bg-gray-400/50 transition-colors disabled:bg-gray-500/50 disabled:cursor-not-allowed">
+            {gaslessWalletExists ? '0xGasless Wallet Exists' : '+ Create 0xGasless Wallet'}
+        </Button>
+    )}
+</div>
+  </div>
+
+        
       {/* Line Below Strip */}
       <div className="border-b border-white/20 my-4" />
       {/* Error Message & Feedback */}
@@ -307,12 +362,15 @@ const handleSendCrypto = async () => {
               >
                 <div>
                   <p className="text-sm font-medium text-white">
-                    Wallet #{wallet.walletNumber} 
-                    <span className="text-xs text-blue-400 ml-2">
-                      {wallet.walletNumber > 1000 ? '[Random]' : '[Sequential]'}
-                    </span>
-                    <br />
-                    <span className="text-xs text-gray-400">{wallet.address}</span>
+                  {wallet.sdk === '0xgasless' ? '0xGasless Wallet' : `Wallet #${wallet.walletNumber}`}
+  <span className="text-xs text-blue-400 ml-2">
+    {wallet.sdk === 'biconomy'
+      ? (wallet.walletNumber > 1000 ? '[Random]' : '[Sequential]')
+      : '[Deterministic]'
+    }
+  </span>
+  <br />
+  <span className="text-xs text-gray-400">{wallet.address}</span>
                   </p>      
                   {wallet.transactionStatus && wallet.transactionStatus.state !== 'idle' && (
                     <p className={`text-xs mt-1 ${
