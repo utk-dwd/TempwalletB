@@ -2,25 +2,25 @@
 // Dependency: typescript (^5.8.3) for type safety
 // Integration: Defines Wallet type for tempwallet data
 
-// src/utils/types.ts
+// src/types/types.ts
 
-// Define SDK types for clarity
 export type SdkType = 'biconomy' | '0xgasless';
+
 
 export interface TransactionStatus {
   state: 'idle' | 'pending' | 'success' | 'error';
   message?: string;
   txHash?: string;
-  feeQuote?: string;
+  feeQuote?: string; // Fee in AVAX (sponsored) or USDC (ERC-20)
 }
 
 export interface TokenBalance {
-  address: string;
+  address: string; // Token address (or 0xEeee... for native token)
   chainId: number;
-  amount: string;
+  amount: string; // Balance in wei/token units
   decimals: number;
-  formattedAmount: string;
-  symbol?: string;
+  formattedAmount: string; // Human-readable balance
+  symbol?: string; // Optional, from getSupportedTokens
 }
 
 export interface Wallet {
@@ -28,7 +28,7 @@ export interface Wallet {
   walletNumber: number;
   externalAccountNumber: number;
   index: number;
-  sdk: SdkType; // <-- ADD THIS LINE
+  sdk: SdkType;
   transactionStatus?: TransactionStatus;
   balance: string;
   tokenBalance: string;
