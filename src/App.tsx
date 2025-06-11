@@ -10,7 +10,7 @@ import { Wallet, UserData, TransactionStatus } from '@/utils/types';
 import { exportUserData, importUserData } from './utils/exportImport';
 import '@/index.css';
 import { Image } from 'lucide-react'; // Icon for switching backgrounds
-import { Analytics } from "@vercel/analytics/next"
+
 
 function App() {
   const [showLandingPage, setShowLandingPage] = useState<boolean>(true);
@@ -462,6 +462,5 @@ function App() {
   );
 }
 
-<Analytics />
 
 export default App;
