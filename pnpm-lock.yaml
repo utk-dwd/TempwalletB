@@ -19,7 +19,7 @@ importers:
         version: 3.1.4(bufferutil@4.0.7)(hardhat@2.24.0(bufferutil@4.0.7)(ts-node@10.9.2(@types/node@22.15.17)(typescript@5.8.3))(typescript@5.8.3)(utf-8-validate@6.0.3))(typescript@5.8.3)(utf-8-validate@6.0.3)
       '@biconomy/ethers-lib':
         specifier: ^2.0.1
-        version: 2.0.1(@ethersproject/hardware-wallets@5.8.0(bufferutil@4.0.7)(utf-8-validate@6.0.3))(bufferutil@4.0.7)(chai@4.5.0)(ethers@6.14.0(bufferutil@4.0.7)(utf-8-validate@6.0.3))(hardhat@2.24.0(bufferutil@4.0.7)(ts-node@10.9.2(@types/node@22.15.17)(typescript@5.8.3))(typescript@5.8.3)(utf-8-validate@6.0.3))(lodash@4.17.21)(ts-node@10.9.2(@types/node@22.15.17)(typescript@5.8.3))(typechain@8.3.2(typescript@5.8.3))(utf-8-validate@6.0.3)
+        version: 2.0.1(@ethersproject/hardware-wallets@5.8.0(bufferutil@4.0.7)(utf-8-validate@6.0.3))(bufferutil@4.0.7)(chai@4.5.0)(ethers@6.14.0(bufferutil@4.0.7)(utf-8-validate@6.0.3))(hardhat@2.24.0(bufferutil@4.0.7)(ts-node@10.9.2(@types/node@22.15.17)(typescript@5.8.3))(typescript@4.9.5)(utf-8-validate@6.0.3))(lodash@4.17.21)(ts-node@10.9.2(@types/node@22.15.17)(typescript@5.8.3))(typechain@8.3.2(typescript@5.8.3))(utf-8-validate@6.0.3)
       '@biconomy/modules':
         specifier: 3.1.4
         version: 3.1.4(bufferutil@4.0.7)(hardhat@2.24.0(bufferutil@4.0.7)(ts-node@10.9.2(@types/node@22.15.17)(typescript@5.8.3))(typescript@5.8.3)(utf-8-validate@6.0.3))(typescript@5.8.3)(utf-8-validate@6.0.3)
@@ -44,6 +44,9 @@ importers:
       '@tailwindcss/vite':
         specifier: ^4.1.7
         version: 4.1.7(vite@6.3.5(@types/node@22.15.17)(jiti@2.4.2)(lightningcss@1.30.1))
+      '@vercel/analytics':
+        specifier: ^1.5.0
+        version: 1.5.0(react@19.1.0)
       axios:
         specifier: ^1.9.0
         version: 1.9.0
@@ -1717,6 +1720,32 @@ packages:
   '@typescript-eslint/visitor-keys@8.32.0':
     resolution: {integrity: sha512-1rYQTCLFFzOI5Nl0c8LUpJT8HxpwVRn9E4CkMsYfuN6ctmQqExjSTzzSk0Tz2apmXy7WU6/6fyaZVVA/thPN+w==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+
+  '@vercel/analytics@1.5.0':
+    resolution: {integrity: sha512-MYsBzfPki4gthY5HnYN7jgInhAZ7Ac1cYDoRWFomwGHWEX7odTEzbtg9kf/QSo7XEsEAqlQugA6gJ2WS2DEa3g==}
+    peerDependencies:
+      '@remix-run/react': ^2
+      '@sveltejs/kit': ^1 || ^2
+      next: '>= 13'
+      react: ^18 || ^19 || ^19.0.0-rc
+      svelte: '>= 4'
+      vue: ^3
+      vue-router: ^4
+    peerDependenciesMeta:
+      '@remix-run/react':
+        optional: true
+      '@sveltejs/kit':
+        optional: true
+      next:
+        optional: true
+      react:
+        optional: true
+      svelte:
+        optional: true
+      vue:
+        optional: true
+      vue-router:
+        optional: true
 
   '@vitejs/plugin-react@4.4.1':
     resolution: {integrity: sha512-IpEm5ZmeXAP/osiBXVVP5KjFMzbWOonMs0NaQQl+xYnUAcq4oHUBsF2+p4MgKWG4YMmFYJU8A6sxRPuowllm6w==}
@@ -4860,12 +4889,12 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  '@biconomy/ethers-lib@2.0.1(@ethersproject/hardware-wallets@5.8.0(bufferutil@4.0.7)(utf-8-validate@6.0.3))(bufferutil@4.0.7)(chai@4.5.0)(ethers@6.14.0(bufferutil@4.0.7)(utf-8-validate@6.0.3))(hardhat@2.24.0(bufferutil@4.0.7)(ts-node@10.9.2(@types/node@22.15.17)(typescript@5.8.3))(typescript@5.8.3)(utf-8-validate@6.0.3))(lodash@4.17.21)(ts-node@10.9.2(@types/node@22.15.17)(typescript@5.8.3))(typechain@8.3.2(typescript@5.8.3))(utf-8-validate@6.0.3)':
+  '@biconomy/ethers-lib@2.0.1(@ethersproject/hardware-wallets@5.8.0(bufferutil@4.0.7)(utf-8-validate@6.0.3))(bufferutil@4.0.7)(chai@4.5.0)(ethers@6.14.0(bufferutil@4.0.7)(utf-8-validate@6.0.3))(hardhat@2.24.0(bufferutil@4.0.7)(ts-node@10.9.2(@types/node@22.15.17)(typescript@5.8.3))(typescript@4.9.5)(utf-8-validate@6.0.3))(lodash@4.17.21)(ts-node@10.9.2(@types/node@22.15.17)(typescript@5.8.3))(typechain@8.3.2(typescript@5.8.3))(utf-8-validate@6.0.3)':
     dependencies:
       '@account-abstraction/contracts': 0.6.0
       '@biconomy/core-types': 2.0.2(bufferutil@4.0.7)(utf-8-validate@6.0.3)
       '@gnosis.pm/safe-core-sdk-utils': 1.5.0
-      '@nomiclabs/hardhat-ethers': 2.2.3(ethers@6.14.0(bufferutil@4.0.7)(utf-8-validate@6.0.3))(hardhat@2.24.0(bufferutil@4.0.7)(ts-node@10.9.2(@types/node@22.15.17)(typescript@5.8.3))(typescript@5.8.3)(utf-8-validate@6.0.3))
+      '@nomiclabs/hardhat-ethers': 2.2.3(ethers@6.14.0(bufferutil@4.0.7)(utf-8-validate@6.0.3))(hardhat@2.24.0(bufferutil@4.0.7)(ts-node@10.9.2(@types/node@22.15.17)(typescript@5.8.3))(typescript@4.9.5)(utf-8-validate@6.0.3))
       '@openzeppelin/contracts': 4.9.6
       ethers: 6.14.0(bufferutil@4.0.7)(utf-8-validate@6.0.3)
       fallback-contracts-v1.0.0: '@biconomy/fallback-gastank-contracts@1.0.0(@ethersproject/hardware-wallets@5.8.0(bufferutil@4.0.7)(utf-8-validate@6.0.3))(bufferutil@4.0.7)(chai@4.5.0)(lodash@4.17.21)(ts-node@10.9.2(@types/node@22.15.17)(typescript@5.8.3))(typechain@8.3.2(typescript@5.8.3))(utf-8-validate@6.0.3)'
@@ -5832,7 +5861,7 @@ snapshots:
       ethers: 5.8.0(bufferutil@4.0.7)(utf-8-validate@6.0.3)
       hardhat: 2.24.0(bufferutil@4.0.7)(ts-node@10.9.2(@types/node@22.15.17)(typescript@5.8.3))(typescript@4.9.5)(utf-8-validate@6.0.3)
 
-  '@nomiclabs/hardhat-ethers@2.2.3(ethers@6.14.0(bufferutil@4.0.7)(utf-8-validate@6.0.3))(hardhat@2.24.0(bufferutil@4.0.7)(ts-node@10.9.2(@types/node@22.15.17)(typescript@5.8.3))(typescript@5.8.3)(utf-8-validate@6.0.3))':
+  '@nomiclabs/hardhat-ethers@2.2.3(ethers@6.14.0(bufferutil@4.0.7)(utf-8-validate@6.0.3))(hardhat@2.24.0(bufferutil@4.0.7)(ts-node@10.9.2(@types/node@22.15.17)(typescript@5.8.3))(typescript@4.9.5)(utf-8-validate@6.0.3))':
     dependencies:
       ethers: 6.14.0(bufferutil@4.0.7)(utf-8-validate@6.0.3)
       hardhat: 2.24.0(bufferutil@4.0.7)(ts-node@10.9.2(@types/node@22.15.17)(typescript@5.8.3))(typescript@4.9.5)(utf-8-validate@6.0.3)
@@ -6636,6 +6665,10 @@ snapshots:
     dependencies:
       '@typescript-eslint/types': 8.32.0
       eslint-visitor-keys: 4.2.0
+
+  '@vercel/analytics@1.5.0(react@19.1.0)':
+    optionalDependencies:
+      react: 19.1.0
 
   '@vitejs/plugin-react@4.4.1(vite@6.3.5(@types/node@22.15.17)(jiti@2.4.2)(lightningcss@1.30.1))':
     dependencies:
