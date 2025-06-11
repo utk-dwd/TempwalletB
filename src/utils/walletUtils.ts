@@ -1,6 +1,6 @@
 // src/utils/walletUtils.ts
 import { createSmartAccountClient, PaymasterMode } from '@biconomy/account';
-import { avalancheFuji } from 'viem/chains';
+import { avalanche } from 'viem/chains';
 import { createPublicClient, http, parseEther, isAddress, formatEther, formatUnits, parseUnits, encodeFunctionData } from 'viem';
 import { keccak256, AbiCoder } from 'ethers';
 import { getProvider } from './provider';
@@ -136,8 +136,8 @@ export const generateRandomIndex = async (): Promise<{ index: number, walletNumb
 export const getBalance = async (address: string): Promise<string> => {
   try {
     const publicClient = createPublicClient({
-      chain: avalancheFuji,
-      transport: http(import.meta.env.VITE_AVALANCHE_FUJI_RPC),
+      chain: avalanche,
+      transport: http(import.meta.env.VITE_AVALANCHE_RPC),
     });
     const balance = await publicClient.getBalance({ address: address as `0x${string}` });
     return balance.toString(); // Balance in wei
@@ -151,8 +151,8 @@ export const getBalance = async (address: string): Promise<string> => {
 export const getTokenBalance = async (address: `0x${string}`): Promise<string> => {
   try {
     const publicClient = createPublicClient({
-      chain: avalancheFuji,
-      transport: http(import.meta.env.VITE_AVALANCHE_FUJI_RPC),
+      chain: avalanche,
+      transport: http(import.meta.env.VITE_AVALANCHE_RPC),
     });
     const usdcAddress = import.meta.env.VITE_USDC_ADDRESS;
     if (!usdcAddress) {
@@ -195,8 +195,8 @@ export const getTokenBalance = async (address: `0x${string}`): Promise<string> =
 export const createSmartAccount = async (account: string, externalAccountNumber: number): Promise<Wallet> => {
   try {
     const publicClient = createPublicClient({
-      chain: avalancheFuji,
-      transport: http(import.meta.env.VITE_AVALANCHE_FUJI_RPC),
+      chain: avalanche,
+      transport: http(import.meta.env.VITE_AVALANCHE_RPC),
     });
     const blockNumber = await publicClient.getBlockNumber();
     console.log('Avalanche Fuji Block Number:', blockNumber);
@@ -211,11 +211,11 @@ export const createSmartAccount = async (account: string, externalAccountNumber:
 
     const bundlerUrl = import.meta.env.VITE_BUNDLER_URL;
     const paymasterApiKey = import.meta.env.VITE_BICONOMY_PAYMASTER_API_KEY;
-    const rpcUrl = import.meta.env.VITE_AVALANCHE_FUJI_RPC;
+    const rpcUrl = import.meta.env.VITE_AVALANCHE_RPC;
 
     if (!bundlerUrl || !paymasterApiKey || !rpcUrl) {
       throw new Error(
-        'Missing environment variables: Ensure VITE_BUNDLER_URL, VITE_BICONOMY_PAYMASTER_API_KEY, and VITE_AVALANCHE_FUJI_RPC are set in .env'
+        'Missing environment variables: Ensure VITE_BUNDLER_URL, VITE_BICONOMY_PAYMASTER_API_KEY, and VITE_AVALANCHE_RPC are set in .env'
       );
     }
 
@@ -226,7 +226,7 @@ export const createSmartAccount = async (account: string, externalAccountNumber:
       signer,
       bundlerUrl,
       biconomyPaymasterApiKey: paymasterApiKey,
-      chainId: avalancheFuji.id,
+      chainId: avalanche.id,
       index,
       rpcUrl,
     });
@@ -258,7 +258,7 @@ export const createSmartAccount = async (account: string, externalAccountNumber:
       walletNumber,
       externalAccountNumber,
       index,
-      chainId: avalancheFuji.id,
+      chainId: avalanche.id,
       signerAddress,
     });
     return wallet;
@@ -280,8 +280,8 @@ export const createSmartAccountWithCounter = async (
     }
 
     const publicClient = createPublicClient({
-      chain: avalancheFuji,
-      transport: http(import.meta.env.VITE_AVALANCHE_FUJI_RPC),
+      chain: avalanche,
+      transport: http(import.meta.env.VITE_AVALANCHE_RPC),
     });
     const blockNumber = await publicClient.getBlockNumber();
     console.log('Avalanche Fuji Block Number:', blockNumber);
@@ -296,11 +296,11 @@ export const createSmartAccountWithCounter = async (
 
     const bundlerUrl = import.meta.env.VITE_BUNDLER_URL;
     const paymasterApiKey = import.meta.env.VITE_BICONOMY_PAYMASTER_API_KEY;
-    const rpcUrl = import.meta.env.VITE_AVALANCHE_FUJI_RPC;
+    const rpcUrl = import.meta.env.VITE_AVALANCHE_RPC;
 
     if (!bundlerUrl || !paymasterApiKey || !rpcUrl) {
       throw new Error(
-        'Missing environment variables: Ensure VITE_BUNDLER_URL, VITE_BICONOMY_PAYMASTER_API_KEY, and VITE_AVALANCHE_FUJI_RPC are set in .env'
+        'Missing environment variables: Ensure VITE_BUNDLER_URL, VITE_BICONOMY_PAYMASTER_API_KEY, and VITE_AVALANCHE_RPC are set in .env'
       );
     }
 
@@ -310,7 +310,7 @@ export const createSmartAccountWithCounter = async (
       signer,
       bundlerUrl,
       biconomyPaymasterApiKey: paymasterApiKey,
-      chainId: avalancheFuji.id,
+      chainId: avalanche.id,
       index,
       rpcUrl,
     });
@@ -342,7 +342,7 @@ export const createSmartAccountWithCounter = async (
       walletNumber,
       externalAccountNumber,
       index,
-      chainId: avalancheFuji.id,
+      chainId: avalanche.id,
       signerAddress,
     });
     return wallet;
@@ -369,8 +369,8 @@ export const createRandomSmartAccount = async (account: string, externalAccountN
 
     // Create the smart account directly without calling createSmartAccountWithCounter
     const publicClient = createPublicClient({
-      chain: avalancheFuji,
-      transport: http(import.meta.env.VITE_AVALANCHE_FUJI_RPC),
+      chain: avalanche,
+      transport: http(import.meta.env.VITE_AVALANCHE_RPC),
     });
 
     const provider = await getProvider(account);
@@ -382,11 +382,11 @@ export const createRandomSmartAccount = async (account: string, externalAccountN
 
     const bundlerUrl = import.meta.env.VITE_BUNDLER_URL;
     const paymasterApiKey = import.meta.env.VITE_BICONOMY_PAYMASTER_API_KEY;
-    const rpcUrl = import.meta.env.VITE_AVALANCHE_FUJI_RPC;
+    const rpcUrl = import.meta.env.VITE_AVALANCHE_RPC;
 
     if (!bundlerUrl || !paymasterApiKey || !rpcUrl) {
       throw new Error(
-        'Missing environment variables: Ensure VITE_BUNDLER_URL, VITE_BICONOMY_PAYMASTER_API_KEY, and VITE_AVALANCHE_FUJI_RPC are set in .env'
+        'Missing environment variables: Ensure VITE_BUNDLER_URL, VITE_BICONOMY_PAYMASTER_API_KEY, and VITE_AVALANCHE_RPC are set in .env'
       );
     }
 
@@ -394,7 +394,7 @@ export const createRandomSmartAccount = async (account: string, externalAccountN
       signer,
       bundlerUrl,
       biconomyPaymasterApiKey: paymasterApiKey,
-      chainId: avalancheFuji.id,
+      chainId: avalanche.id,
       index,
       rpcUrl,
     });
@@ -425,7 +425,7 @@ export const createRandomSmartAccount = async (account: string, externalAccountN
       walletNumber,
       externalAccountNumber,
       index,
-      chainId: avalancheFuji.id,
+      chainId: avalanche.id,
       type: 'random'
     });
     return wallet;
@@ -461,12 +461,13 @@ export const sendTransaction = async (
   tokenType: 'AVAX' | 'USDC' // Token type
 ): Promise<TransactionStatus> => {
   try {
+    // ... (initial validation and client setup remains the same)
     if (!isAddress(to)) {
       throw new Error('Invalid recipient address');
     }
     const publicClient = createPublicClient({
-      chain: avalancheFuji,
-      transport: http(import.meta.env.VITE_AVALANCHE_FUJI_RPC),
+      chain: avalanche,
+      transport: http(import.meta.env.VITE_AVALANCHE_RPC),
     });
     const provider = await getProvider(account);
     const signer = await provider.getSigner();
@@ -476,22 +477,26 @@ export const sendTransaction = async (
     }
     const bundlerUrl = import.meta.env.VITE_BUNDLER_URL;
     const paymasterApiKey = import.meta.env.VITE_BICONOMY_PAYMASTER_API_KEY;
-    const rpcUrl = import.meta.env.VITE_AVALANCHE_FUJI_RPC;
+    const rpcUrl = import.meta.env.VITE_AVALANCHE_RPC;
     if (!bundlerUrl || !paymasterApiKey || !rpcUrl) {
       throw new Error(
-        'Missing environment variables: Ensure VITE_BUNDLER_URL, VITE_BICONOMY_PAYMASTER_API_KEY, and VITE_AVALANCHE_FUJI_RPC are set in .env'
+        'Missing environment variables: Ensure VITE_BUNDLER_URL, VITE_BICONOMY_PAYMASTER_API_KEY, and VITE_AVALANCHE_RPC are set in .env'
       );
     }
     const smartAccount = await createSmartAccountClient({
       signer,
       bundlerUrl,
       biconomyPaymasterApiKey: paymasterApiKey,
-      chainId: avalancheFuji.id,
+      chainId: avalanche.id,
       index,
       rpcUrl,
     });
 
+
     let tx;
+    let paymasterServiceData: any;
+    let successMessage: string;
+
     if (tokenType === 'AVAX') {
       const amountWei = parseEther(amount);
       if (amountWei <= 0) {
@@ -505,13 +510,16 @@ export const sendTransaction = async (
         to,
         value: amountWei,
       };
+      // 2. Set Paymaster mode to SPONSORED for AVAX
+      paymasterServiceData = { mode: PaymasterMode.SPONSORED };
+      successMessage = 'Transaction sponsored successfully!';
+
     } else if (tokenType === 'USDC') {
       const usdcAddress = import.meta.env.VITE_USDC_ADDRESS;
       if (!usdcAddress) {
         throw new Error('USDC address not configured in .env');
       }
-      // Convert the amount to Wei (smallest USDC unit) by assuming 6 decimal places
-      const amountWei = parseUnits(amount, 6); // USDC has 6 decimals
+      const amountWei = parseUnits(amount, 6);
       if (amountWei <= 0) {
         throw new Error('Amount must be positive');
       }
@@ -532,21 +540,30 @@ export const sendTransaction = async (
           args: [to, amountWei],
         }),
       };
+      // 3. Set Paymaster mode to ERC20 for USDC payments
+      paymasterServiceData = { 
+        mode: PaymasterMode.ERC20,
+        preferredToken: usdcAddress,
+      };
+      successMessage = 'Transaction fee paid with USDC!';
+
     } else {
       throw new Error('Unsupported token type');
     }
 
+    // 4. Pass the paymasterServiceData to the sendTransaction call
     const { waitForTxHash } = await smartAccount.sendTransaction(tx, {
-      paymasterServiceData: { mode: PaymasterMode.SPONSORED },
+      paymasterServiceData,
     });
 
     const { transactionHash } = await waitForTxHash();
     console.log('Transaction sent:', { transactionHash, walletAddress, to, amount, tokenType });
 
+    // 5. Update the return message to be more specific
     return {
       state: 'success',
       txHash: transactionHash,
-      message: `Transaction successful: https://testnet.snowtrace.io/tx/${transactionHash}`,
+      message: `${successMessage} View on Snowtrace`,
     };
   } catch (error: any) {
     console.error('Failed to send transaction:', error);
