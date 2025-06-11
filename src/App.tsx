@@ -1,5 +1,5 @@
 // src/App.tsx
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef} from 'react';
 import { ethers } from 'ethers';
 import { Header } from '@/components/layout/Header';
 import { Sidebar } from '@/components/layout/Sidebar';
@@ -45,6 +45,36 @@ function App() {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // Add this useEffect for handling clicks outside the dropdown
+useEffect(() => {
+  function handleClickOutside(event: MouseEvent) {
+    if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node) && showProfile) {
+      setShowProfile(false);
+    }
+  }
+
+  document.addEventListener('mousedown', handleClickOutside);
+  return () => {
+    document.removeEventListener('mousedown', handleClickOutside);
+  };
+}, [showProfile]);
+
+const [showCopiedPopup, setShowCopiedPopup] = useState(false);
+const dropdownRef = useRef<HTMLDivElement>(null);
+
+// Add this function for copying address
+const handleCopyAddress = async () => {
+  if (walletAddress) {
+    try {
+      await navigator.clipboard.writeText(walletAddress);
+      setShowCopiedPopup(true);
+      setTimeout(() => setShowCopiedPopup(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy address:', err);
+    }
+  }
+};
 
   useEffect(() => {
     // Load profile data
@@ -408,37 +438,57 @@ function App() {
                 onConnectWallet={handleConnectWallet}
                 onProfileClick={() => setShowProfile(!showProfile)}
                 onEditProfile={handleEditProfile}
-                onEditWalletName={handleEditWalletName}
-              />
+                onEditWalletName={handleEditWalletName} 
+                // isProfileDropdownOpen={false} onCloseProfileDropdown={function (): void {
+                //   throw new Error('Function not implemented.');
+                // } }              
+                />
               {showProfile && (
-                <div className="absolute top-[calc(100%+0.5rem)] right-4 bg-white/10 backdrop-blur-lg shadow-lg border border-white/20 rounded-xl p-4 flex flex-col gap-2 z-10">
-                  <p className="text-sm text-text-primary">
-                    Address: {walletAddress ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}` : 'Not connected'}
-                  </p>
-                  <p className="text-sm text-text-primary">Full Address: {walletAddress || 'Not connected'}</p>
-                  <button
-                    className="bg-accent-orange text-white rounded-lg hover:bg-orange-600 px-4 py-2"
-                    onClick={handleExport}
+                  <div 
+                    ref={dropdownRef}
+                    className="absolute top-[calc(100%-2.5rem)] right-4 bg-white/10 backdrop-blur-lg shadow-lg border border-white/20 rounded-xl p-4 flex flex-col gap-2 z-10"
                   >
-                    Export Wallets
-                  </button>
-                  <label className="bg-accent-orange text-white text-regular rounded-lg hover:bg-orange-600 px-4 py-2 flex items-center justify-center cursor-pointer">
-                    Import Wallets
-                    <input type="file" accept=".json" onChange={handleImport} style={{ display: 'none' }} />
-                  </label>
-                  <button
-                    className="bg-danger-red text-white rounded-lg hover:bg-red-600 px-4 py-2"
-                    onClick={handleLogout}
-                  >
-                    Logout
-                  </button>
-                  {feedback && (
-                    <p className={`text-sm ${feedback.type === 'success' ? 'text-success-green' : 'text-danger-red'}`}>
-                      {feedback.message}
-                    </p>
-                  )}
-                </div>
-              )}
+                    <div className="relative">
+                      <p 
+                        className="text-sm text-text-primary cursor-pointer hover:text-accent-orange transition-colors"
+                        onClick={handleCopyAddress}
+                        title="Click to copy full address"
+                      >
+                        Address: {walletAddress ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}` : 'Not connected'}
+                      </p>
+                      {showCopiedPopup && (
+                        <div className="absolute -top-8 left-0 bg-success-green text-white text-xs px-2 py-1 rounded shadow-lg">
+                          Copied!
+                        </div>
+                      )}
+                    </div>
+                    
+                    <button
+                      className="bg-accent-orange text-white rounded-lg hover:bg-orange-600 px-3 py-2 text-sm"
+                      onClick={handleExport}
+                    >
+                      Export Wallets
+                    </button>
+                    
+                    <label className="bg-accent-orange text-white text-sm rounded-lg hover:bg-orange-600 px-3 py-2 flex items-center justify-center cursor-pointer">
+                      Import Wallets
+                      <input type="file" accept=".json" onChange={handleImport} style={{ display: 'none' }} />
+                    </label>
+                    
+                    <button
+                      className="bg-danger-red text-white rounded-lg hover:bg-red-600 px-3 py-2 text-sm"
+                      onClick={handleLogout}
+                    >
+                      Logout
+                    </button>
+                    
+                    {feedback && (
+                      <p className={`text-sm ${feedback.type === 'success' ? 'text-success-green' : 'text-danger-red'}`}>
+                        {feedback.message}
+                      </p>
+                    )}
+                  </div>
+                )}
             </div>
             <MainContent
               walletAddress={walletAddress}

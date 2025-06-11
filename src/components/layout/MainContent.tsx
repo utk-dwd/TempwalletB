@@ -32,6 +32,21 @@ export function MainContent({ walletAddress, wallets, onWalletCreated, onWalletD
   const [sortType, setSortType] = useState<SortType>('original');
   const [displayedWallets, setDisplayedWallets] = useState<Wallet[]>(wallets);
 
+  const [showCopiedPopup, setShowCopiedPopup] = useState(false);
+
+  const handleCopySelectedWalletAddress = async () => {
+    if (selectedWallet?.address) {
+      try {
+        await navigator.clipboard.writeText(selectedWallet.address);
+        setShowCopiedPopup(true);
+        setTimeout(() => setShowCopiedPopup(false), 2000);
+      } catch (err) {
+        console.error('Failed to copy address:', err);
+        setError('Failed to copy address');
+      }
+    }
+  };
+
   // Add state for token selection
   const [selectedToken, setSelectedToken] = useState<'AVAX' | 'USDC'>('AVAX');
 
@@ -300,7 +315,7 @@ const handleSendCrypto = async () => {
                 key={`${wallet.address}-${wallet.walletNumber}`} 
                 className={`bg-[var(--overlay)] backdrop-blur-[var(--blur)] rounded-xl p-4 flex items-center justify-between border border-white/20 cursor-pointer transition-all duration-200 hover:border-white/40 ${
                   selectedWallet?.address === wallet.address && selectedWallet?.walletNumber === wallet.walletNumber
-                    ? 'shadow-[0_0_15px_rgba(var(--accent-rgb),0.5)] border-[var(--accent)]' 
+                    ? 'shadow-[0_0_15px_rgba(34,197,94,0.5)] border-3 border-green-500'
                     : ''
                 }`}
                 onClick={() => setSelectedWallet(wallet)}
@@ -422,7 +437,20 @@ const handleSendCrypto = async () => {
             <>
               <div className="border-b border-white/20 my-4" />
               <h3 className="text-lg font-semibold text-white">Selected Wallet #{selectedWallet.walletNumber}</h3>
-              <p className="text-xs text-gray-400 break-all mb-1">{selectedWallet.address}</p>
+
+              <p
+                className="text-regular text-gray-400 cursor-pointer hover:text-accent-orange transition-colors"
+                onClick={handleCopySelectedWalletAddress}
+                title="Click to copy full address"
+              >
+                {selectedWallet.address.slice(0, 6)}.....{selectedWallet.address.slice(-8)}
+              </p>
+              {showCopiedPopup && (
+                <div className="absolute -top-8 left-0 bg-success-green text-white text-xs px-2 py-1 rounded shadow-lg">
+                  Copied!
+                </div>
+              )}
+
               <p className="text-sm text-white mt-2">
                 AVAX: {selectedWallet.balance ? formatEther(BigInt(selectedWallet.balance)) : '0'}
               </p>
@@ -436,7 +464,13 @@ const handleSendCrypto = async () => {
                 Select a wallet to see its details.
             </div>
            )}
+           <div className="mt-auto">
+              <p className="text-xs text-gray-400">
+                TempWallet is currently tested and supported only for <b>AVAX</b> and <b>USDC</b> tokens in Avalanche Network C-Chain. <br/><br/>  Please do not use TempWallet with any other tokens, as we cannot guarantee compatibility or security at this time.<br/>  Support for additional ERC-20 tokens will be added soon. Use TempWallet at your own risk, and we are not responsible for any loss or issues arising from unsupported token usage.
+              </p>
+           </div>
         </div>
+        
       </div>
 
       {/* Custom Wallet Modal */}

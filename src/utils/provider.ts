@@ -1,17 +1,17 @@
 // src/utils/provider.ts
 import { ethers } from 'ethers';
 
-// Avalanche Fuji Testnet network configuration
-const AVALANCHE_FUJI_PARAMS = {
-  chainId: '0xA869', // 43113 in hexadecimal
-  chainName: 'Avalanche Fuji C-Chain',
+// Avalanche Mainnet network configuration
+const AVALANCHE_MAINNET_PARAMS = {
+  chainId: '0xA86A', // 43114 in hexadecimal
+  chainName: 'Avalanche Network C-Chain',
   nativeCurrency: { name: 'Avalanche', symbol: 'AVAX', decimals: 18 },
-  rpcUrls: ['https://avax-fuji.g.alchemy.com/v2/fL4M2zOw4TUa-kEXC-ITju7MRMqVK3uH'],
-  blockExplorerUrls: ['https://testnet.snowtrace.io/'],
+  rpcUrls: ['https://avax-mainnet.g.alchemy.com/v2/quPU3ryAXcLpXf5oXVK4O'],
+  blockExplorerUrls: ['https://snowtrace.io/'],
 };
 
-// Adds Avalanche Fuji Testnet to MetaMask
-const addAvalancheFujiNetwork = async (): Promise<boolean> => {
+// Adds Avalanche Mainnet to MetaMask
+const addAvalancheMainnetNetwork = async (): Promise<boolean> => {
   if (!window.ethereum) {
     console.error('MetaMask is not installed!');
     return false;
@@ -19,17 +19,17 @@ const addAvalancheFujiNetwork = async (): Promise<boolean> => {
   try {
     await window.ethereum.request({
       method: 'wallet_addEthereumChain',
-      params: [AVALANCHE_FUJI_PARAMS],
+      params: [AVALANCHE_MAINNET_PARAMS],
     });
     return true;
   } catch (error) {
-    console.error('Error adding Avalanche Fuji network to MetaMask:', error);
+    console.error('Error adding Avalanche Mainnet network to MetaMask:', error);
     return false;
   }
 };
 
-// Switch to or adds Avalanche Fuji Testnet in MetaMask
-const switchToAvalancheFuji = async (): Promise<boolean> => {
+// Switch to or adds Avalanche Mainnet in MetaMask
+const switchToAvalancheMainnet = async (): Promise<boolean> => {
   if (!window.ethereum) {
     console.error('MetaMask is not installed!');
     return false;
@@ -37,37 +37,37 @@ const switchToAvalancheFuji = async (): Promise<boolean> => {
   try {
     await window.ethereum.request({
       method: 'wallet_switchEthereumChain',
-      params: [{ chainId: AVALANCHE_FUJI_PARAMS.chainId }],
+      params: [{ chainId: AVALANCHE_MAINNET_PARAMS.chainId }],
     });
     return true;
   } catch (error: any) {
     if (error.code === 4902) {
-      const added = await addAvalancheFujiNetwork();
+      const added = await addAvalancheMainnetNetwork();
       if (added) {
-        return await switchToAvalancheFuji(); // Retry switching
+        return await switchToAvalancheMainnet(); // Retry switching
       }
       return false;
     }
-    console.error('Error switching to Avalanche Fuji network:', error);
+    console.error('Error switching to Avalanche Mainnet network:', error);
     return false;
   }
 };
 
-// Get the MetaMask provider and ensure Avalanche Fuji Testnet
+// Get the MetaMask provider and ensure Avalanche Mainnet
 export const getProvider = async (desiredAccount?: string): Promise<ethers.BrowserProvider> => {
   if (!window.ethereum) {
     throw new Error('MetaMask not installed. Please install the MetaMask browser extension.');
   }
   try {
     const provider = new ethers.BrowserProvider(window.ethereum);
-    const switched = await switchToAvalancheFuji();
+    const switched = await switchToAvalancheMainnet();
     if (!switched) {
-      throw new Error('Failed to switch to Avalanche Fuji Testnet.');
+      throw new Error('Failed to switch to Avalanche Mainnet.');
     }
     const { chainId } = await provider.getNetwork();
-    const fujiChainId = 43113n;
-    if (chainId !== fujiChainId) {
-      throw new Error('Incorrect network. Please ensure MetaMask is on Avalanche Fuji Testnet.');
+    const mainnetChainId = 43114n;
+    if (chainId !== mainnetChainId) {
+      throw new Error('Incorrect network. Please ensure MetaMask is on Avalanche Mainnet.');
     }
     // Get current account
     const accounts = await window.ethereum.request({ method: 'eth_accounts' });

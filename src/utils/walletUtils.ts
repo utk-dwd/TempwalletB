@@ -7,7 +7,7 @@ import { getProvider } from './provider';
 import { Wallet, UserData, WalletAccount, TransactionStatus } from './types';
 
 // Fixed message for deterministic signing
-const CONSTANT_MESSAGE = 'TempWalletCreation';
+const CONSTANT_MESSAGE = 'You are creating a new tempwallet, this will not cost you anything';
 
 // Function to sign a fixed message with MetaMask
 export const signMessage = async (): Promise<string> => {
