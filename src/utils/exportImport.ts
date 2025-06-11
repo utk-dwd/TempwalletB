@@ -160,7 +160,7 @@ export const importUserData = async (file: File): Promise<{ success: boolean; me
           name: importedAccount.name,
           externalAccountNumber: importedAccount.externalAccountNumber,
           wallets: importedAccount.wallets.map((wallet) => ({
-            address: wallet.address,
+            address: wallet.address as `0x${string}`,
             walletNumber: wallet.walletNumber,
             externalAccountNumber: wallet.externalAccountNumber,
             index: wallet.index,
@@ -181,7 +181,7 @@ export const importUserData = async (file: File): Promise<{ success: boolean; me
           );
           if (!walletExists) {
             existingAccount.wallets.push({
-              address: importedWallet.address,
+              address: importedWallet.address as `0x${string}`,
               walletNumber: importedWallet.walletNumber,
               externalAccountNumber: importedWallet.externalAccountNumber,
               index: importedWallet.index,
