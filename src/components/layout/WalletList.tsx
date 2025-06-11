@@ -1,6 +1,6 @@
 // src/components/layout/WalletList.tsx
 import { Wallet, TransactionStatus } from '@/utils/types';
-import SendTransactionForm from '@/components/SendTransactionForm';
+// import SendTransactionForm from '@/components/SendTransactionForm';
 import { formatEther, formatUnits } from 'viem';
 import { Button } from '@/components/ui/button';
 import { Copy, Trash } from 'lucide-react';
@@ -79,7 +79,7 @@ export function WalletList({ wallets, activeAccount, onSend, onCopy, onDelete, s
               )}
             </p>
           )}
-          {sendWallet && sendWallet.address === wallet.address && sendWallet.walletNumber === wallet.walletNumber && (
+          {/* {sendWallet && sendWallet.address === wallet.address && sendWallet.walletNumber === wallet.walletNumber && (
             <SendTransactionForm
               account={activeAccount || ''}
               walletAddress={wallet.address}
@@ -88,7 +88,7 @@ export function WalletList({ wallets, activeAccount, onSend, onCopy, onDelete, s
               onClose={() => setSendWallet(null)}
               balance={wallet.balance || '0'}
             />
-          )}
+          )} */}
         </div>
       ))}
     </div>
