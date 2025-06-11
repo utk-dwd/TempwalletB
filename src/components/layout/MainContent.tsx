@@ -324,7 +324,7 @@ const handleSendCrypto = async () => {
                   <p className="text-sm font-medium text-white">
                     Wallet #{wallet.walletNumber} 
                     <span className="text-xs text-blue-400 ml-2">
-                      {wallet.walletNumber > 1000 ? '[Random]' : '[Sequential]'}
+                      {wallet.walletNumber > 1000 ? '[Random]' : ' '}
                     </span>
                     <br />
                     <span className="text-xs text-gray-400">{wallet.address}</span>
