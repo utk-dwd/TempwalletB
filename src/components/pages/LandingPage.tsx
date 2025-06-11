@@ -31,7 +31,7 @@ const DispersionText = () => (
     style={{ filter: 'blur(0px)' }}
     onAnimationComplete={() => {}}
   >
-    tempwallet
+    TempWallets
   </motion.h1>
 );
 

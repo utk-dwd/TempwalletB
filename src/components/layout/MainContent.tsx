@@ -280,16 +280,16 @@ const handleSendCrypto = async () => {
             <span>{getSortButtonLabel()}</span>
           </Button>
           <Button onClick={handleCreateNewTempWallet} className="px-4 py-2 bg-green-500/50 text-primary-foreground rounded-[var(--radius)] hover:bg-gray-400/50 transition-colors">
-            + Create new temp wallet
+            + New Temp Wallet
           </Button>
           <Button onClick={handleCreateRandomTempWallet} className="px-4 py-2 bg-green-500/50 text-primary-foreground rounded-[var(--radius)] hover:bg-gray-400/50 transition-colors">
-            + Create new random temp wallet
+            + New Random Temp Wallet
           </Button>
           <Button
             onClick={() => setIsCustomWalletModalOpen(true)}
             className="px-4 py-2 bg-green-500/50 text-primary-foreground rounded-[var(--radius)] hover:bg-gray-400/50 transition-colors"
           >
-            + Create new custom temp wallet
+            + New Custom Temp Wallet
           </Button>
           <Button className="px-4 py-2 bg-green-500/50 text-primary-foreground rounded-[var(--radius)] hover:bg-gray-400/50 transition-colors">
             Avalanche
@@ -468,7 +468,7 @@ const handleSendCrypto = async () => {
               <p className="text-xs text-gray-400">
                 TempWallet is currently tested and supported only for <b>AVAX</b> and <b>USDC</b> tokens in Avalanche Network C-Chain. <br/><br/>  Please do not use TempWallet with any other tokens, as we cannot guarantee compatibility or security at this time.<br/>  Support for additional ERC-20 tokens will be added soon. Use TempWallet at your own risk, and we are not responsible for any loss or issues arising from unsupported token usage.
               </p>
-           </div>
+           </div> 
         </div>
         
       </div>

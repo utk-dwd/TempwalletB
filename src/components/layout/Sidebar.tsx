@@ -52,7 +52,7 @@ export function Sidebar({ activeItem, onNavClick }: SidebarProps) {
       <div className="sidebar w-[280px] h-auto p-4 flex flex-col rounded-xl mb-5 mt-5 ml-5 border border-white/20">
         {/* Temp Wallet Logo */}
         <div className="mb-6">
-          <h2 className="text-2xl font-semibold text-sidebar-foreground">tempwallets.com</h2>
+          <h2 className="text-2xl font-semibold text-sidebar-foreground">TempWallets.com</h2>
         </div>
 
         {/* Navigation Items - Step 3.1: Set to flex-grow */}
