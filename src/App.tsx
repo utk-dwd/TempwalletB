@@ -12,6 +12,358 @@ import '@/index.css';
 import { Image } from 'lucide-react'; // Icon for switching backgrounds
 import { HoverInfoBox } from '@/components/ui/HoverInfoBox';
 import * as Tooltip from "@radix-ui/react-tooltip";
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { BlogListing } from '@/components/pages/BlogListing';
+import React from 'react';
+
+
+//component definition:
+interface LayoutProps {
+  children: React.ReactNode;
+  activeItem: string;
+  onNavClick: (item: string) => void;
+  walletAddress: string | null;
+  walletName: string;
+  name: string;
+  profilePicture: string | null;
+  onConnectWallet: () => void;
+  showProfile: boolean;
+  onProfileClick: () => void;
+  onEditProfile: (name: string, picture: string | null) => void;
+  onEditWalletName: (name: string) => void;
+  dropdownRef: React.RefObject<HTMLDivElement>;
+  handleCopyAddress: () => void;
+  showCopiedPopup: boolean;
+  handleExport: () => void;
+  handleImport: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  handleLogout: () => void;
+  feedback: { type: 'success' | 'error'; message: string } | null;
+  bgIndex: number;
+  backgroundImages: string[];
+  handleSwitchBackground: () => void;
+}
+
+function AppLayout({
+  
+  children,
+  activeItem,
+  onNavClick,
+  walletAddress,
+  walletName,
+  name,
+  profilePicture,
+  onConnectWallet,
+  showProfile,
+  onProfileClick,
+  onEditProfile,
+  onEditWalletName,
+  dropdownRef,
+  handleCopyAddress,
+  showCopiedPopup,
+  handleExport,
+  handleImport,
+  handleLogout,
+  feedback,
+  bgIndex,
+  backgroundImages,
+  handleSwitchBackground
+}: LayoutProps) 
+{
+  const location = useLocation();
+const hideHeader = location.pathname === '/blogs';
+  return (
+    <>
+      {/* Background wrapper with dynamic image */}
+      <div className="app-background" style={{ backgroundImage: `url(${backgroundImages[bgIndex]})` }} />
+      {/* Main app content */}
+      <div className="relative h-screen flex flex-col p-6 overflow-hidden">
+        <div className="grid grid-cols-[280px_1fr] gap-6 flex-1 min-h-0">
+          <Sidebar activeItem={activeItem} onNavClick={onNavClick} />
+          <div className="space-y-4 flex flex-col h-full min-h-0">
+            <div className="relative">
+            {!hideHeader && (
+              <Header
+                walletAddress={walletAddress}
+                walletName={walletName}
+                name={name}
+                profilePicture={profilePicture}
+                onConnectWallet={onConnectWallet}
+                onProfileClick={onProfileClick}
+                onEditProfile={onEditProfile}
+                onEditWalletName={onEditWalletName}
+              />
+            )}
+              {showProfile && (
+                <div 
+                  ref={dropdownRef}
+                  className="absolute top-[calc(100%-2.5rem)] right-4 bg-white/10 backdrop-blur-lg shadow-lg border border-white/20 rounded-xl p-4 flex flex-col gap-2 z-10"
+                >
+                  <div className="relative">
+                    <p 
+                      className="text-sm text-text-primary cursor-pointer hover:text-accent-orange transition-colors"
+                      onClick={handleCopyAddress}
+                      title="Click to copy full address"
+                    >
+                      Address: {walletAddress ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}` : 'Not connected'}
+                    </p>
+                    {showCopiedPopup && (
+                      <div className="absolute -top-8 left-0 bg-success-green text-white text-xs px-2 py-1 rounded shadow-lg">
+                        Copied!
+                      </div>
+                    )}
+                  </div>
+                 
+                  <Tooltip.Provider>
+                        <Tooltip.Root>
+                          <Tooltip.Trigger asChild>
+                          <button
+                    className="bg-accent-orange text-white rounded-lg hover:bg-orange-600 px-3 py-2 text-sm w-36"
+                    onClick={handleExport}
+                  >
+                    Export Profile
+                  </button>
+                          </Tooltip.Trigger>
+                          <Tooltip.Portal>
+                            <Tooltip.Content
+                              className="bg-gray-800/50 backdrop-blur-sm text-white p-2 rounded-md shadow-lg text-sm"
+                              sideOffset={30}
+                              side="left"
+                            >
+                              <p>This will export your profile settings. <br/> Private keys or seedphrases are not exported. <br/> Your temporary wallets are linked to your metamask <br/> and follow a deterministic algorithm that does not require <br/> you to save your tempwallets seedphrases.</p>
+                              <Tooltip.Arrow className="fill-white" />
+                            </Tooltip.Content>
+                          </Tooltip.Portal>
+                        </Tooltip.Root>
+                      </Tooltip.Provider>
+
+                      <Tooltip.Provider>
+                        <Tooltip.Root>
+                          <Tooltip.Trigger asChild>
+                          <label className="bg-accent-orange text-white text-sm rounded-lg hover:bg-orange-600 px-3 py-2 flex items-center justify-center cursor-pointer">
+                    Import Profile
+                    <input type="file" accept=".json" onChange={handleImport} style={{ display: 'none' }} />
+                  </label>
+                          </Tooltip.Trigger>
+                          <Tooltip.Portal>
+                            <Tooltip.Content
+                              className="bg-gray-800/40 backdrop-blur-sm text-white p-2 rounded-md shadow-lg text-sm"
+                              sideOffset={30}
+                              side="left"
+                            >
+                              <p>You can import your saved settings in <br/> JSON format and restore your settings.
+                              </p>
+                              <Tooltip.Arrow className="fill-white" />
+                            </Tooltip.Content>
+                          </Tooltip.Portal>
+                        </Tooltip.Root>
+                      </Tooltip.Provider>
+
+                  <Tooltip.Provider>
+                        <Tooltip.Root>
+                          <Tooltip.Trigger asChild>
+                          <button
+                    className="bg-danger-red text-white rounded-lg hover:bg-red-600 px-3 py-2 text-sm w-36"
+                    onClick={handleLogout}
+                  >
+                    Logout
+                  </button>
+                          </Tooltip.Trigger>
+                          <Tooltip.Portal>
+                            <Tooltip.Content
+                              className="bg-gray-800/40 backdrop-blur-sm text-white p-2 rounded-md shadow-lg text-sm"
+                              sideOffset={30}
+                              side="left"
+                            >
+                              <p>This will log you out from tempwallet. <br/> Remember your metamask wallet to login again.
+                              </p>
+                              <Tooltip.Arrow className="fill-white" />
+                            </Tooltip.Content>
+                          </Tooltip.Portal>
+                        </Tooltip.Root>
+                      </Tooltip.Provider>
+
+                  {feedback && (
+                    <p className={`text-sm ${feedback.type === 'success' ? 'text-success-green' : 'text-danger-red'}`}>
+                      {feedback.message}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+            {children}
+          </div>
+        </div>
+        {/* Background switcher button */}
+        <button
+          className="fixed bottom-4 right-4 p-2 bg-primary text-primary-foreground rounded-full shadow-md hover:bg-[#3C3AB4] z-10"
+          onClick={handleSwitchBackground}
+          aria-label="Switch background image"
+        >
+          <Image className="w-6 h-6" />
+        </button>
+      </div>
+    </>
+  );
+}
+
+function AppRoutes({
+  walletAddress,
+  currentAccountWallets,
+  onWalletCreated,
+  onWalletDeleted,
+  onTransactionSent
+}: {
+  walletAddress: string | null;
+  currentAccountWallets: Wallet[];
+  onWalletCreated: (wallet: Wallet) => void;
+  onWalletDeleted: (wallet: Wallet) => void;
+  onTransactionSent: (wallet: Wallet, status: TransactionStatus) => void;
+}) {
+  const location = useLocation();
+
+  // Determine active item based on route
+  const getActiveItemFromPath = (pathname: string): string => {
+    switch (pathname) {
+      case '/':
+      case '/dashboard':
+        return 'Dashboard';
+      case '/blogs':
+        return 'Blogs';
+      default:
+        return 'Dashboard';
+    }
+  };
+
+  return (
+    <Routes>
+      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      <Route 
+        path="/dashboard" 
+        element={
+          <MainContent
+            walletAddress={walletAddress}
+            wallets={currentAccountWallets}
+            onWalletCreated={onWalletCreated}
+            onWalletDeleted={onWalletDeleted}
+            onTransactionSent={onTransactionSent}
+          />
+        } 
+      />
+      <Route path="/blogs" element={<BlogListing />} />
+      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+    </Routes>
+  );
+}
+
+function AppRouterContent(props: any) {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Update active item based on route
+  React.useEffect(() => {
+    const path = location.pathname;
+    switch (path) {
+      case '/':
+      case '/dashboard':
+        // Don't call handleNavClick to avoid loop, just update activeItem if needed
+        break;
+      case '/blogs':
+        // Don't call handleNavClick to avoid loop, just update activeItem if needed
+        break;
+    }
+  }, [location.pathname]);
+
+  // Enhanced navigation handler
+  const enhancedHandleNavClick = (item: string) => {
+    switch (item) {
+      case 'Dashboard':
+        navigate('/dashboard');
+        break;
+      case 'Blogs':
+        navigate('/blogs');
+        break;
+      default:
+        props.handleNavClick(item);
+        break;
+    }
+  };
+
+  if (!props.hasSubmittedName) {
+    return (
+      <>
+        {/* Background wrapper with dynamic image */}
+        <div className="app-background" style={{ backgroundImage: `url(${props.backgroundImages[props.bgIndex]})` }} />
+        <div className="relative min-h-screen flex items-center justify-center">
+          <div className="name-form bg-[var(--overlay)] backdrop-blur-[var(--blur)] rounded-xl p-6 shadow-lg max-w-md w-full">
+            <h1 className="text-4xl font-bold text-white mb-4">Temp Wallet dApp</h1>
+            <form onSubmit={props.handleNameSubmit} className="space-y-4">
+              <label htmlFor="name-input" className="text-lg font-medium text-white">
+                Enter Your Name
+              </label>
+              <input
+                id="name-input"
+                type="text"
+                value={props.name}
+                onChange={(e) => props.setName(e.target.value)}
+                placeholder="Your Name"
+                autoFocus
+                className="w-full px-3 py-2 bg-transparent text-white placeholder-white/50 border border-white/20 rounded-[var(--radius)] focus:outline-none focus:ring-2 focus:ring-white"
+              />
+              <button
+                type="submit"
+                className="w-full px-4 py-2 bg-primary text-primary-foreground rounded-[var(--radius)] hover:bg-gray-400/50 hover:scale-105 hover:shadow-md transition-all duration-200"
+              >
+                Submit
+              </button>
+            </form>
+          </div>
+          {/* Background switcher button */}
+          <button
+            className="fixed bottom-4 right-4 p-2 bg-primary text-primary-foreground rounded-full shadow-md hover:bg-[#3C3AB4] z-10"
+            onClick={props.handleSwitchBackground}
+            aria-label="Switch background image"
+          >
+            <Image className="w-6 h-6" />
+          </button>
+        </div>
+      </>
+    );
+  }
+
+  return (
+    <AppLayout
+      activeItem={props.activeItem}
+      onNavClick={enhancedHandleNavClick}
+      walletAddress={props.walletAddress}
+      walletName={props.walletName}
+      name={props.name}
+      profilePicture={props.profilePicture}
+      onConnectWallet={props.handleConnectWallet}
+      showProfile={props.showProfile}
+      onProfileClick={() => props.setShowProfile(!props.showProfile)}
+      onEditProfile={props.handleEditProfile}
+      onEditWalletName={props.handleEditWalletName}
+      dropdownRef={props.dropdownRef}
+      handleCopyAddress={props.handleCopyAddress}
+      showCopiedPopup={props.showCopiedPopup}
+      handleExport={props.handleExport}
+      handleImport={props.handleImport}
+      handleLogout={props.handleLogout}
+      feedback={props.feedback}
+      bgIndex={props.bgIndex}
+      backgroundImages={props.backgroundImages}
+      handleSwitchBackground={props.handleSwitchBackground}
+    >
+      <AppRoutes
+        walletAddress={props.walletAddress}
+        currentAccountWallets={props.currentAccountWallets}
+        onWalletCreated={props.handleWalletCreated}
+        onWalletDeleted={props.handleWalletDeleted}
+        onTransactionSent={props.handleTransactionSent}
+      />
+    </AppLayout>
+  );
+}
 
 function App() {
   const [showLandingPage, setShowLandingPage] = useState<boolean>(true);
@@ -243,6 +595,20 @@ const handleCopyAddress = async () => {
 
   const handleNavClick = (item: string) => {
     setActiveItem(item);
+    
+    // Add navigation logic for routing
+    if (typeof window !== 'undefined') {
+      switch (item) {
+        case 'Dashboard':
+          window.history.pushState({}, '', '/dashboard');
+          break;
+        case 'Blogs':
+          window.history.pushState({}, '', '/blogs');
+          break;
+        default:
+          break;
+      }
+    }
     console.log(`Navigating to ${item}`);
   };
 
@@ -421,147 +787,40 @@ const handleCopyAddress = async () => {
 
   const currentAccountWallets = userData.accounts.find((acc) => acc.account === walletAddress)?.wallets || [];
 
-  return (
-    <>
-      {/* Background wrapper with dynamic image */}
-      <div className="app-background" style={{ backgroundImage: `url(${backgroundImages[bgIndex]})` }} />
-      {/* Main app content */}
-      <div className="relative h-screen flex flex-col p-6 overflow-hidden">
-        <div className="grid grid-cols-[280px_1fr] gap-6 flex-1 min-h-0">
-          <Sidebar activeItem={activeItem} onNavClick={handleNavClick} />
-          <div className="space-y-4 flex flex-col h-full min-h-0">
-            <div className="relative">
-              <Header
-                walletAddress={walletAddress}
-                walletName={walletName}
-                name={name}
-                profilePicture={profilePicture}
-                onConnectWallet={handleConnectWallet}
-                onProfileClick={() => setShowProfile(!showProfile)}
-                onEditProfile={handleEditProfile}
-                onEditWalletName={handleEditWalletName} 
-                // isProfileDropdownOpen={false} onCloseProfileDropdown={function (): void {
-                //   throw new Error('Function not implemented.');
-                // } }              
-                />
-              {showProfile && (
-                  <div 
-                    ref={dropdownRef}
-                    className="absolute top-[calc(100%-2.5rem)] right-4 bg-white/10 backdrop-blur-lg shadow-lg border border-white/20 rounded-xl p-4 flex flex-col gap-2 z-10"
-                  >
-                    <div className="relative">
-                      <p 
-                        className="text-sm text-text-primary cursor-pointer hover:text-accent-orange transition-colors"
-                        onClick={handleCopyAddress}
-                        title="Click to copy full address"
-                      >
-                        Address: {walletAddress ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}` : 'Not connected'}
-                      </p>
-                      {showCopiedPopup && (
-                        <div className="absolute -top-8 left-0 bg-success-green text-white text-xs px-2 py-1 rounded shadow-lg">
-                          Copied!
-                        </div>
-                      )}
-                    </div>
-                   
-                    <Tooltip.Provider>
-                          <Tooltip.Root>
-                            <Tooltip.Trigger asChild>
-                            <button
-                      className="bg-accent-orange text-white rounded-lg hover:bg-orange-600 px-3 py-2 text-sm w-36"
-                      onClick={handleExport}
-                    >
-                      Export Profile
-                    </button>
-                            </Tooltip.Trigger>
-                            <Tooltip.Portal>
-                              <Tooltip.Content
-                                className="bg-gray-800/50 backdrop-blur-sm text-white p-2 rounded-md shadow-lg text-sm"
-                                sideOffset={30}
-                                side="left"
-                              >
-                                <p>This will export your profile settings. <br/> Private keys or seedphrases are not exported. <br/> Your temporary wallets are linked to your metamask <br/> and follow a deterministic algorithm that does not require <br/> you to save your tempwallets seedphrases.</p>
-                                <Tooltip.Arrow className="fill-white" />
-                              </Tooltip.Content>
-                            </Tooltip.Portal>
-                          </Tooltip.Root>
-                        </Tooltip.Provider>
-
-
-                        <Tooltip.Provider>
-                          <Tooltip.Root>
-                            <Tooltip.Trigger asChild>
-                            <label className="bg-accent-orange text-white text-sm rounded-lg hover:bg-orange-600 px-3 py-2 flex items-center justify-center cursor-pointer">
-                      Import Profile
-                      <input type="file" accept=".json" onChange={handleImport} style={{ display: 'none' }} />
-                    </label>
-                            </Tooltip.Trigger>
-                            <Tooltip.Portal>
-                              <Tooltip.Content
-                                className="bg-gray-800/40 backdrop-blur-sm text-white p-2 rounded-md shadow-lg text-sm"
-                                sideOffset={30}
-                                side="left"
-                              >
-                                <p>You can import your saved settings in <br/> JSON format and restore your settings.
-                                </p>
-                                <Tooltip.Arrow className="fill-white" />
-                              </Tooltip.Content>
-                            </Tooltip.Portal>
-                          </Tooltip.Root>
-                        </Tooltip.Provider>
-
-                    <Tooltip.Provider>
-                          <Tooltip.Root>
-                            <Tooltip.Trigger asChild>
-                            <button
-                      className="bg-danger-red text-white rounded-lg hover:bg-red-600 px-3 py-2 text-sm w-36"
-                      onClick={handleLogout}
-                    >
-                      Logout
-                    </button>
-                            </Tooltip.Trigger>
-                            <Tooltip.Portal>
-                              <Tooltip.Content
-                                className="bg-gray-800/40 backdrop-blur-sm text-white p-2 rounded-md shadow-lg text-sm"
-                                sideOffset={30}
-                                side="left"
-                              >
-                                <p>This will log you out from tempwallet. <br/> Remember your metamask wallet to login again.
-                                </p>
-                                <Tooltip.Arrow className="fill-white" />
-                              </Tooltip.Content>
-                            </Tooltip.Portal>
-                          </Tooltip.Root>
-                        </Tooltip.Provider>
-
-                    {feedback && (
-                      <p className={`text-sm ${feedback.type === 'success' ? 'text-success-green' : 'text-danger-red'}`}>
-                        {feedback.message}
-                      </p>
-                    )}
-                  </div>
-                )}
-            </div>
-            <MainContent
-              walletAddress={walletAddress}
-              wallets={currentAccountWallets}
-              onWalletCreated={handleWalletCreated}
-              onWalletDeleted={handleWalletDeleted}
-              onTransactionSent={handleTransactionSent}
-            />
-          </div>
-        </div>
-        {/* Background switcher button */}
-        <button
-          className="fixed bottom-4 right-4 p-2 bg-primary text-primary-foreground rounded-full shadow-md hover:bg-[#3C3AB4] z-10"
-          onClick={handleSwitchBackground}
-          aria-label="Switch background image"
-        >
-          <Image className="w-6 h-6" />
-        </button>
-      </div>
-    </>
-  );
+return (
+  <Router>
+    <AppRouterContent 
+      hasSubmittedName={hasSubmittedName}
+      name={name}
+      setName={setName}
+      handleNameSubmit={handleNameSubmit}
+      backgroundImages={backgroundImages}
+      bgIndex={bgIndex}
+      handleSwitchBackground={handleSwitchBackground}
+      activeItem={activeItem}
+      handleNavClick={handleNavClick}
+      walletAddress={walletAddress}
+      walletName={walletName}
+      profilePicture={profilePicture}
+      handleConnectWallet={handleConnectWallet}
+      showProfile={showProfile}
+      setShowProfile={setShowProfile}
+      handleEditProfile={handleEditProfile}
+      handleEditWalletName={handleEditWalletName}
+      dropdownRef={dropdownRef}
+      handleCopyAddress={handleCopyAddress}
+      showCopiedPopup={showCopiedPopup}
+      handleExport={handleExport}
+      handleImport={handleImport}
+      handleLogout={handleLogout}
+      feedback={feedback}
+      currentAccountWallets={currentAccountWallets}
+      handleWalletCreated={handleWalletCreated}
+      handleWalletDeleted={handleWalletDeleted}
+      handleTransactionSent={handleTransactionSent}
+    />
+  </Router>
+);
 }
 
 
