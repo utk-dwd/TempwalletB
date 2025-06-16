@@ -7,7 +7,18 @@ import { Copy, Send, Trash, RefreshCw, Funnel, Search  } from 'lucide-react';
 import { createSmartAccount, createSmartAccountWithCounter, createRandomSmartAccount, getBalance, getTokenBalance, sendTransaction } from '@/utils/walletUtils';
 import { Wallet, TransactionStatus } from '@/utils/types';
 import { formatEther, formatUnits, parseEther } from 'viem';
-import { HoverInfoBox } from '@/components/ui/HoverInfoBox'; // Add this line
+import { HoverInfoBox } from '@/components/ui/HoverInfoBox'; 
+import * as Tooltip from "@radix-ui/react-tooltip";
+
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ChevronDown } from "lucide-react";
+
+
 
 interface MainContentProps {
   walletAddress: string | null;
@@ -28,6 +39,58 @@ export function MainContent({ walletAddress, wallets, onWalletCreated, onWalletD
   const [amount, setAmount] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
+
+// Define a type for blockchains
+type Blockchain = "Ethereum" | "Solana" | "Arbitrum" | "Base";
+
+// State for blockchain text
+const [blockchainStates, setBlockchainStates] = useState<Record<Blockchain, string>>({
+  Ethereum: "Ethereum",
+  Solana: "Solana",
+  Arbitrum: "Arbitrum",
+  Base: "Base",
+});
+
+// List of blockchains
+const blockchains: Blockchain[] = ["Ethereum", "Solana", "Arbitrum", "Base"];
+
+// Handle click on a blockchain item
+const handleItemClick = (blockchain: Blockchain, event: React.MouseEvent) => {
+  event.preventDefault();
+  setBlockchainStates((prev) => ({
+    ...prev,
+    [blockchain]: "Coming Soon",
+  }));
+  setTimeout(() => {
+    setBlockchainStates((prev) => ({
+      ...prev,
+      [blockchain]: blockchain,
+    }));
+  }, 3000);
+};
+
+// New state for Biconomy options
+type BiconomyOption = '0xGasless' | 'Pimlico';
+const [biconomyStates, setBiconomyStates] = useState<Record<BiconomyOption, string>>({
+  '0xGasless': '0xGasless',
+  Pimlico: 'Pimlico',
+});
+const biconomyOptions: BiconomyOption[] = ['0xGasless', 'Pimlico'];
+
+ // New handleBiconomyClick for Biconomy options
+ const handleBiconomyClick = (option: BiconomyOption, event: React.MouseEvent) => {
+  event.preventDefault();
+  setBiconomyStates((prev) => ({
+    ...prev,
+    [option]: 'Coming Soon',
+  }));
+  setTimeout(() => {
+    setBiconomyStates((prev) => ({
+      ...prev,
+      [option]: option,
+    }));
+  }, 3000);
+};
 
   const [sortType, setSortType] = useState<SortType>('original');
   const [displayedWallets, setDisplayedWallets] = useState<Wallet[]>(wallets);
@@ -153,6 +216,9 @@ export function MainContent({ walletAddress, wallets, onWalletCreated, onWalletD
     }
   };
 
+
+  
+
   // Update handleSendCrypto to pass selectedToken
 const handleSendCrypto = async () => {
   if (!walletAddress || !selectedWallet) {
@@ -269,31 +335,187 @@ const handleSendCrypto = async () => {
     <div className="bg-[var(--overlay)] border border-white/20 backdrop-blur-[var(--blur)] rounded-xl p-4 flex-1 flex flex-col h-full min-h-0 mb-5 ml-5 mr-5">
       {/* Top Strip */}
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-white">Your Temporary Wallets</h2>
+      <Tooltip.Provider>
+      <Tooltip.Root>
+        <Tooltip.Trigger asChild>
+          <h2 className="text-xl font-semibold text-white cursor-pointer">
+            Your Temporary Wallets (Gasless)
+          </h2>
+        </Tooltip.Trigger>
+        <Tooltip.Portal>
+          <Tooltip.Content
+            className="bg-white/10 backdrop-blur-sm text-white p-2 rounded-md shadow-lg box-shadow: 0 4px 6px rgba(0, 0, 0, 1) text-sm"
+            sideOffset={5}
+          >
+            <p>This is a temporary wallet <br/>that requires no gas fees.</p>
+            <Tooltip.Arrow className="fill-white" />
+          </Tooltip.Content>
+        </Tooltip.Portal>
+      </Tooltip.Root>
+    </Tooltip.Provider>
+
         <div className="flex items-center gap-2">
-          <Button 
+          <Tooltip.Provider>
+      <Tooltip.Root>
+        <Tooltip.Trigger asChild>
+        <Button 
             onClick={handleSortChange} 
-            className="px-4 py-2 bg-green-500/50 text-primary-foreground rounded-[var(--radius)] hover:bg-gray-400/50 transition-colors flex items-center"
-            title={`Current sort: ${getSortButtonLabel()}`}
+            className="px-4 py-2 bg-green-500/50 text-primary-foreground rounded-[var(--radius)] hover:bg-gray-400/50 transition-colors flex items-center w-[8rem]"
           >
             <Funnel className="w-4 h-4 mr-2" /> 
             <span>{getSortButtonLabel()}</span>
           </Button>
-          <Button onClick={handleCreateNewTempWallet} className="px-4 py-2 bg-green-500/50 text-primary-foreground rounded-[var(--radius)] hover:bg-gray-400/50 transition-colors">
-            + New Temp Wallet
+        </Tooltip.Trigger>
+        <Tooltip.Portal>
+          <Tooltip.Content
+            className="bg-white/10 backdrop-blur-sm text-white p-2 rounded-md shadow-lg text-sm"
+            sideOffset={5}
+          >
+            <p>Sort your wallets below {getSortButtonLabel()}</p>
+            <Tooltip.Arrow className="fill-white" />
+          </Tooltip.Content>
+        </Tooltip.Portal>
+      </Tooltip.Root>
+    </Tooltip.Provider>
+
+
+          <Tooltip.Provider>
+      <Tooltip.Root>
+        <Tooltip.Trigger asChild>
+        <Button onClick={handleCreateNewTempWallet} className="px-4 py-2 bg-green-500/50 text-primary-foreground rounded-[var(--radius)] hover:bg-gray-400/50 transition-colors">
+            + TempWallet
           </Button>
-          <Button onClick={handleCreateRandomTempWallet} className="px-4 py-2 bg-green-500/50 text-primary-foreground rounded-[var(--radius)] hover:bg-gray-400/50 transition-colors">
-            + New Random Temp Wallet
+        </Tooltip.Trigger>
+        <Tooltip.Portal>
+          <Tooltip.Content
+            className="bg-white/10 backdrop-blur-sm text-white p-2 rounded-md shadow-lg text-sm"
+            sideOffset={5}
+          >
+            <p>This button will create a new smart wallet <br/>using your metamask signature and an index number.</p>
+            <Tooltip.Arrow className="fill-white" />
+          </Tooltip.Content>
+        </Tooltip.Portal>
+      </Tooltip.Root>
+    </Tooltip.Provider>
+
+          <Tooltip.Provider>
+      <Tooltip.Root>
+        <Tooltip.Trigger asChild>
+        <Button onClick={handleCreateRandomTempWallet} className="px-4 py-2 bg-green-500/50 text-primary-foreground rounded-[var(--radius)] hover:bg-gray-400/50 transition-colors">
+            + Random TempWallet
           </Button>
-          <Button
+        </Tooltip.Trigger>
+        <Tooltip.Portal>
+          <Tooltip.Content
+            className="bg-white/20 backdrop-blur-sm text-white p-2 rounded-md shadow-lg text-sm"
+            sideOffset={5}
+          >
+            <p>This button will create a new smart wallet using your <br/> metamask signature and a random index number.</p>
+            <Tooltip.Arrow className="fill-white" />
+          </Tooltip.Content>
+        </Tooltip.Portal>
+      </Tooltip.Root>
+    </Tooltip.Provider>
+
+          <Tooltip.Provider>
+      <Tooltip.Root>
+        <Tooltip.Trigger asChild>
+        <Button
             onClick={() => setIsCustomWalletModalOpen(true)}
             className="px-4 py-2 bg-green-500/50 text-primary-foreground rounded-[var(--radius)] hover:bg-gray-400/50 transition-colors"
           >
-            + New Custom Temp Wallet
+            + Custom TempWallet
           </Button>
-          <Button className="px-4 py-2 bg-green-500/50 text-primary-foreground rounded-[var(--radius)] hover:bg-gray-400/50 transition-colors">
-            Avalanche
+        </Tooltip.Trigger>
+        <Tooltip.Portal>
+          <Tooltip.Content
+            className="bg-white/20 backdrop-blur-sm text-white p-2 rounded-md shadow-lg text-sm"
+            sideOffset={5}
+          >
+            <p>This button will create a new smart wallet using your <br/> metamask signature and a custom index number.</p>
+            <Tooltip.Arrow className="fill-white" />
+          </Tooltip.Content>
+        </Tooltip.Portal>
+      </Tooltip.Root>
+    </Tooltip.Provider>
+
+      <Tooltip.Provider>
+      <Tooltip.Root>
+        <Tooltip.Trigger>
+        <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            className="px-4 py-2 bg-green-500/50 text-primary-foreground rounded-[var(--radius)] hover:bg-gray-400/50 transition-colors flex items-center gap-2"
+          >
+            Avalanche <ChevronDown className="h-4 w-4" />
           </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent
+          className="backdrop-blur-sm bg-gray-500/30 text-primary-foreground rounded-[var(--radius)] border-none"
+        >
+          {blockchains.map((blockchain) => (
+            <DropdownMenuItem
+              key={blockchain}
+              className="px-4 py-2 hover:bg-gray-400/50 focus:bg-gray-400/50 transition-colors cursor-pointer"
+              onClick={(event) => handleItemClick(blockchain, event)}
+            >
+              {blockchainStates[blockchain]}
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+        </Tooltip.Trigger>
+        <Tooltip.Portal>
+          <Tooltip.Content
+            className="bg-white/20 backdrop-blur-sm text-white p-2 rounded-md shadow-lg text-sm"
+            sideOffset={5}
+          >
+            <p> Select a blockchain Network</p>
+            <Tooltip.Arrow className="fill-white" />
+          </Tooltip.Content>
+        </Tooltip.Portal>
+      </Tooltip.Root>
+    </Tooltip.Provider>
+
+
+    <Tooltip.Provider>
+      <Tooltip.Root>
+        <Tooltip.Trigger>
+        <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  className="px-4 py-2 bg-green-500/50 text-primary-foreground rounded-[var(--radius)] hover:bg-gray-400/50 transition-colors flex items-center gap-2"
+                >
+                  Biconomy <ChevronDown className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                className="bg-gray-500/50 text-primary-foreground rounded-[var(--radius)] border-none"
+              >
+                {biconomyOptions.map((option) => (
+                  <DropdownMenuItem
+                    key={option}
+                    className="px-4 py-2 hover:bg-gray-400/50 focus:bg-gray-400/50 transition-colors cursor-pointer"
+                    onClick={(event) => handleBiconomyClick(option, event)}
+                  >
+                    {biconomyStates[option] ?? option}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+        </Tooltip.Trigger>
+        <Tooltip.Portal>
+          <Tooltip.Content
+            className="bg-white/20 backdrop-blur-sm text-white p-2 rounded-md shadow-lg text-sm"
+            sideOffset={5}
+          >
+            <p> Select SDK to create TempWallets</p>
+            <Tooltip.Arrow className="fill-white" />
+          </Tooltip.Content>
+        </Tooltip.Portal>
+      </Tooltip.Root>
+    </Tooltip.Provider>
+
         </div>
       </div>
       {/* Line Below Strip */}
@@ -315,7 +537,7 @@ const handleSendCrypto = async () => {
                 key={`${wallet.address}-${wallet.walletNumber}`} 
                 className={`bg-[var(--overlay)] backdrop-blur-[var(--blur)] rounded-xl p-4 flex items-center justify-between border border-white/20 cursor-pointer transition-all duration-200 hover:border-white/40 ${
                   selectedWallet?.address === wallet.address && selectedWallet?.walletNumber === wallet.walletNumber
-                    ? 'shadow-[0_0_15px_rgba(34,197,94,0.5)] border-3 border-green-500'
+                    ? 'shadow-[0_0_15px_rgba(34,197,94,0.5)] border-green-500'
                     : ''
                 }`}
                 onClick={() => setSelectedWallet(wallet)}
@@ -391,7 +613,7 @@ const handleSendCrypto = async () => {
                   </Button>
                   </HoverInfoBox>
 
-                  <HoverInfoBox infoText="View on Snowtrace" position="bottom">
+                  <HoverInfoBox infoText="View on Explorer" position="bottom">
                   <Button
                     variant="ghost"
                     size="icon"
@@ -465,12 +687,14 @@ const handleSendCrypto = async () => {
             </div>
            )}
            <div className="mt-auto">
-              <p className="text-xs text-gray-400">
-                TempWallet is currently tested and supported only for <b>AVAX</b> and <b>USDC</b> tokens in Avalanche Network C-Chain. <br/><br/>  Please do not use TempWallet with any other tokens, as we cannot guarantee compatibility or security at this time.<br/>  Support for additional ERC-20 tokens will be added soon. Use TempWallet at your own risk, and we are not responsible for any loss or issues arising from unsupported token usage.
-              </p>
+           <p className="text-xs text-gray-400">
+              TempWallets.com is tested for Avalanche blockchain network with <b>$AVAX</b> and <b>$USDC</b> (while other tokens should be possible as well, but untested). We are in process of enabling other EVM chains and testing more ERC20 tokens in coming days.<br />
+              Check <a href="https://bit.ly/pitchdeck-tempwallets" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">Project Deck here</a>.<br />
+              Talk to us on <a href="https://t.me/+jGONCu_VLqgwZTVl" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">Telegram here</a>.<br />
+              Explore and test this DApp responsibly.
+          </p>
            </div> 
         </div>
-        
       </div>
 
       {/* Custom Wallet Modal */}

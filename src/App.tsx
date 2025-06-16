@@ -10,7 +10,8 @@ import { Wallet, UserData, TransactionStatus } from '@/utils/types';
 import { exportUserData, importUserData } from './utils/exportImport';
 import '@/index.css';
 import { Image } from 'lucide-react'; // Icon for switching backgrounds
-
+import { HoverInfoBox } from '@/components/ui/HoverInfoBox';
+import * as Tooltip from "@radix-ui/react-tooltip";
 
 function App() {
   const [showLandingPage, setShowLandingPage] = useState<boolean>(true);
@@ -462,26 +463,77 @@ const handleCopyAddress = async () => {
                         </div>
                       )}
                     </div>
-                    
-                    <button
-                      className="bg-accent-orange text-white rounded-lg hover:bg-orange-600 px-3 py-2 text-sm"
+                   
+                    <Tooltip.Provider>
+                          <Tooltip.Root>
+                            <Tooltip.Trigger asChild>
+                            <button
+                      className="bg-accent-orange text-white rounded-lg hover:bg-orange-600 px-3 py-2 text-sm w-36"
                       onClick={handleExport}
                     >
-                      Export Wallets
+                      Export Profile
                     </button>
-                    
-                    <label className="bg-accent-orange text-white text-sm rounded-lg hover:bg-orange-600 px-3 py-2 flex items-center justify-center cursor-pointer">
-                      Import Wallets
+                            </Tooltip.Trigger>
+                            <Tooltip.Portal>
+                              <Tooltip.Content
+                                className="bg-gray-800/50 backdrop-blur-sm text-white p-2 rounded-md shadow-lg text-sm"
+                                sideOffset={30}
+                                side="left"
+                              >
+                                <p>This will export your profile settings. <br/> Private keys or seedphrases are not exported. <br/> Your temporary wallets are linked to your metamask <br/> and follow a deterministic algorithm that does not require <br/> you to save your tempwallets seedphrases.</p>
+                                <Tooltip.Arrow className="fill-white" />
+                              </Tooltip.Content>
+                            </Tooltip.Portal>
+                          </Tooltip.Root>
+                        </Tooltip.Provider>
+
+
+                        <Tooltip.Provider>
+                          <Tooltip.Root>
+                            <Tooltip.Trigger asChild>
+                            <label className="bg-accent-orange text-white text-sm rounded-lg hover:bg-orange-600 px-3 py-2 flex items-center justify-center cursor-pointer">
+                      Import Profile
                       <input type="file" accept=".json" onChange={handleImport} style={{ display: 'none' }} />
                     </label>
-                    
-                    <button
-                      className="bg-danger-red text-white rounded-lg hover:bg-red-600 px-3 py-2 text-sm"
+                            </Tooltip.Trigger>
+                            <Tooltip.Portal>
+                              <Tooltip.Content
+                                className="bg-gray-800/40 backdrop-blur-sm text-white p-2 rounded-md shadow-lg text-sm"
+                                sideOffset={30}
+                                side="left"
+                              >
+                                <p>You can import your saved settings in <br/> JSON format and restore your settings.
+                                </p>
+                                <Tooltip.Arrow className="fill-white" />
+                              </Tooltip.Content>
+                            </Tooltip.Portal>
+                          </Tooltip.Root>
+                        </Tooltip.Provider>
+
+                    <Tooltip.Provider>
+                          <Tooltip.Root>
+                            <Tooltip.Trigger asChild>
+                            <button
+                      className="bg-danger-red text-white rounded-lg hover:bg-red-600 px-3 py-2 text-sm w-36"
                       onClick={handleLogout}
                     >
                       Logout
                     </button>
-                    
+                            </Tooltip.Trigger>
+                            <Tooltip.Portal>
+                              <Tooltip.Content
+                                className="bg-gray-800/40 backdrop-blur-sm text-white p-2 rounded-md shadow-lg text-sm"
+                                sideOffset={30}
+                                side="left"
+                              >
+                                <p>This will log you out from tempwallet. <br/> Remember your metamask wallet to login again.
+                                </p>
+                                <Tooltip.Arrow className="fill-white" />
+                              </Tooltip.Content>
+                            </Tooltip.Portal>
+                          </Tooltip.Root>
+                        </Tooltip.Provider>
+
                     {feedback && (
                       <p className={`text-sm ${feedback.type === 'success' ? 'text-success-green' : 'text-danger-red'}`}>
                         {feedback.message}

@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Pencil } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { getAnimeAvatarUrl } from '@/server/animeAvatarService'; // Using the updated service
+import { HoverInfoBox } from '@/components/ui/HoverInfoBox';
+import * as Tooltip from '@radix-ui/react-tooltip';
 
 interface HeaderProps {
   walletAddress: string | null;
@@ -85,7 +87,7 @@ export function Header({
 
 
   return (
-    <header className="h-28 bg-[var(--overlay)] backdrop-blur-[var(--blur)] rounded-xl px-8 py-6 flex items-center justify-between ml-5 mr-5 mt-5 mb-3 ">
+    <header className="h-28 bg-[var(--overlay)] backdrop-blur-[var(--blur)] rounded-xl px-8 py-6 flex items-center justify-between ml-5 mr-5 mt-5 mb-3 border border-white/30">
     {/* Left Side: Avatar and Name */}
     <div className="flex items-center gap-3">
       {isEditingProfile ? (
@@ -119,12 +121,29 @@ export function Header({
             )}
           </Avatar>
           <p className="text-xl font-medium text-white">Welcome {name}</p>
-          <button
+
+          <Tooltip.Provider>
+      <Tooltip.Root>
+        <Tooltip.Trigger asChild>
+        <button
             onClick={handleEditProfile}
             className="absolute top-[1.3rem] -right-8 p-1 bg-white/30 rounded-full hover:bg-white/50"
           >
             <Pencil className="w-4 h-4 text-white" />
           </button>
+        </Tooltip.Trigger>
+        <Tooltip.Portal>
+          <Tooltip.Content
+            className="bg-white/10 backdrop-blur-sm text-white p-2 rounded-md shadow-lg text-sm"
+            sideOffset={5}
+          >
+            <p>Edit</p>
+            <Tooltip.Arrow className="fill-white" />
+          </Tooltip.Content>
+        </Tooltip.Portal>
+      </Tooltip.Root>
+    </Tooltip.Provider>
+         
         </div>
       )}
     </div>
@@ -156,12 +175,31 @@ export function Header({
                 </p>
                 <p className="text-xs text-white">{walletName || 'wallet-name'}</p>
               </div>
-              <button
+              
+
+              <Tooltip.Provider>
+      <Tooltip.Root>
+        <Tooltip.Trigger asChild>
+        <button
                 onClick={handleEditWalletName}
                 className="absolute top-[2rem] right-[calc(var(--spacing)*4)] p-[calc(var(--spacing)*1)] bg-white/30 rounded-full hover:bg-white/50"
               >
                 <Pencil className="w-4 h-4 text-white" />
               </button>
+        </Tooltip.Trigger>
+        <Tooltip.Portal>
+          <Tooltip.Content
+            className="bg-white/10 backdrop-blur-sm text-white p-2 rounded-md shadow-lg text-sm"
+            sideOffset={5}
+            side="bottom"
+          >
+            <p>Edit</p>
+            <Tooltip.Arrow className="fill-white" />
+          </Tooltip.Content>
+        </Tooltip.Portal>
+      </Tooltip.Root>
+    </Tooltip.Provider>
+
             </div>
           )
         ) : (

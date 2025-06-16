@@ -1,5 +1,6 @@
 // src/components/layout/Sidebar.tsx
 import { Button } from '@/components/ui/button';
+import * as Tooltip from '@radix-ui/react-tooltip';
 import { useState } from 'react';
 
 interface SidebarProps {
@@ -9,7 +10,7 @@ interface SidebarProps {
 
 export function Sidebar({ activeItem, onNavClick }: SidebarProps) {
   // Step 1.2: Remove 'Terms of Use' from navItems array
-  const navItems = ['Dashboard', 'Address Book', 'History', 'Settings'];
+  const navItems = ['Dashboard', 'Blogs' , 'Address Book', 'History', 'Settings'];
   
   // Step 2.1: Add state for "Coming Soon" popup
   const [showComingSoonPopup, setShowComingSoonPopup] = useState<string | null>(null);
@@ -50,10 +51,33 @@ export function Sidebar({ activeItem, onNavClick }: SidebarProps) {
     <>
       {/* Step 3.1: Wrap Sidebar content in a Flex container */}
       <div className="sidebar w-[280px] h-auto p-4 flex flex-col rounded-xl mb-5 mt-5 ml-5 border border-white/20">
-        {/* Temp Wallet Logo */}
-        <div className="mb-6">
-          <h2 className="text-2xl font-semibold text-sidebar-foreground">TempWallets.com</h2>
-        </div>
+        
+
+        <Tooltip.Provider>
+          <Tooltip.Root>
+            <Tooltip.Trigger asChild>
+              {/* Temp Wallet Logo */}
+              <div className="mb-4">
+                <img  
+                  src="/White 2000x500.png"
+                  alt="TempWallets Logo"
+                  className="h-13 object-contain mx-auto"
+                  />
+              </div>
+            </Tooltip.Trigger>
+            <Tooltip.Portal>
+              <Tooltip.Content
+                className="bg-gray-800/70 backdrop-blur-sm text-white p-2 rounded-md shadow-lg text-sm"
+                sideOffset={30}
+                side="left"
+              >
+                <p>This DApp creates temporary deterministic smart wallets <br/> using your metamask signature and an index (number).<br/> All wallets created on this DApp are at user's custody <br/>and there is no way for the tempwallet team to recover funds. <br/>Tempwallets does not have a backend and does not store user data. <br/>The intention of this DApp is to enable users to create <br/>temporary wallets to receive funds without exposing their main <br/>metamask accounts.
+                </p>
+                <Tooltip.Arrow className="fill-white" />
+              </Tooltip.Content>
+            </Tooltip.Portal>
+          </Tooltip.Root>
+        </Tooltip.Provider>
 
         {/* Navigation Items - Step 3.1: Set to flex-grow */}
         <nav className="space-y-2 flex-1 flex-grow">
@@ -72,7 +96,7 @@ export function Sidebar({ activeItem, onNavClick }: SidebarProps) {
         </nav>
 
         {/* Step 3: Add Footer Section */}
-        <footer className="border-t border-gray-500 p-4 mt-4">
+        <footer className="border-t border-gray-500 p-2 mt-4">
           {/* Step 4.1: Add Terms and Privacy Links */}
           <div className="flex justify-center space-x-4 text-sm text-gray-400">
             <div 
@@ -88,6 +112,13 @@ export function Sidebar({ activeItem, onNavClick }: SidebarProps) {
               Privacy Policy
             </div>
           </div>
+          {/* Version Text */}
+          <div className="flex justify-center mt-1">
+            <div className="text-sm text-gray-400 hover:text-white transition-colors">
+              Version 0.0.1
+            </div>
+          </div>
+
         </footer>
       </div>
 
@@ -103,7 +134,7 @@ export function Sidebar({ activeItem, onNavClick }: SidebarProps) {
         >
           <div className="bg-gray-800 text-white px-3 py-2 rounded-lg shadow-lg text-sm whitespace-nowrap border border-gray-600">
             <div className="flex items-center space-x-2">
-              <span className="text-yellow-400">⏳</span>
+              <span className="text-yellow-400"> </span>
               <span>Coming Soon</span>
             </div>
             {/* Small arrow pointing to the element */}
