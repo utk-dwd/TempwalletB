@@ -4,8 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Copy, Send, Trash, RefreshCw, Funnel, Search  } from 'lucide-react';
-import { createSmartAccount, createSmartAccountWithCounter, createRandomSmartAccount, getBalance, getTokenBalance, sendTransaction } from '@/utils/walletUtils';
-import { Wallet, TransactionStatus } from '@/utils/types';
+import { createSmartAccount, createSmartAccountWithCounter, createRandomSmartAccount, sendTransaction, fetchWalletAllBalances } from '@/utils/walletUtils';
+import { Wallet, TransactionStatus, TokenDetails } from '@/utils/types';
 import { formatEther, formatUnits, parseEther } from 'viem';
 import { HoverInfoBox } from '@/components/ui/HoverInfoBox'; 
 import * as Tooltip from "@radix-ui/react-tooltip";
@@ -111,7 +111,7 @@ const biconomyOptions: BiconomyOption[] = ['0xGasless', 'Pimlico'];
   };
 
   // Add state for token selection
-  const [selectedToken, setSelectedToken] = useState<'AVAX' | 'USDC'>('AVAX');
+  const [selectedToken, setSelectedToken] = useState<TokenDetails | null>(null);
 
   const externalAccountNumber = walletAddress ? 1 : 0;
 
@@ -227,13 +227,18 @@ const handleSendCrypto = async () => {
     return;
   }
   try {
+
+    if (!selectedToken) {
+      setError("Please select a token to send");
+      return;
+    }
     const status = await sendTransaction(
       walletAddress,
       selectedWallet.address,
       selectedWallet.index,
       recipient,
       amount,
-      selectedToken // Pass selected token
+      selectedToken // Pass the entire token object
     );
     onTransactionSent(selectedWallet, status);
     setError(null);
@@ -248,9 +253,8 @@ const handleSendCrypto = async () => {
 
   const handleRefreshBalance = async (wallet: Wallet, isPostTransaction: boolean = false) => {
     try {
-      const updatedBalance = await getBalance(wallet.address);
-      const updatedTokenBalance = await getTokenBalance(wallet.address);
-      let updatedWallet = { ...wallet, balance: updatedBalance, tokenBalance: updatedTokenBalance };
+      const updatedBalances = await fetchWalletAllBalances(wallet.address);
+      let updatedWallet = { ...wallet, allTokenBalances: updatedBalances };
       
       if (isPostTransaction && wallet.transactionStatus) {
           updatedWallet.transactionStatus = wallet.transactionStatus;
@@ -295,13 +299,17 @@ const handleSendCrypto = async () => {
     }
   };
 
-  const totalAvaxBalance = wallets.reduce((sum, wallet) => {
-    return sum + (wallet.balance ? BigInt(wallet.balance) : BigInt(0));
-  }, BigInt(0));
-
-  const totalUsdcBalance = wallets.reduce((sum, wallet) => {
-    return sum + (wallet.tokenBalance ? BigInt(wallet.tokenBalance) : BigInt(0));
-  }, BigInt(0));
+  const totalBalances = wallets.reduce((acc, wallet) => {
+    wallet.allTokenBalances.forEach(token => {
+      const existing = acc.get(token.symbol || 'Unknown');
+      if (existing) {
+        acc.set(token.symbol || 'Unknown', { ...existing, amount: existing.amount + BigInt(token.amount) });
+      } else {
+        acc.set(token.symbol || 'Unknown', { amount: BigInt(token.amount), decimals: token.decimals });
+      }
+    });
+    return acc;
+  }, new Map<string, { amount: bigint; decimals: number }>());
 
   return (
     <>
@@ -559,7 +567,7 @@ const handleSendCrypto = async () => {
                       }`}>
                       {wallet.transactionStatus.state === 'success' && wallet.transactionStatus.txHash ? (
                         <a
-                          href={`https://testnet.snowtrace.io/tx/${wallet.transactionStatus.txHash}`}
+                          href={`https://snowtrace.io/tx/${wallet.transactionStatus.txHash}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="underline hover:text-green-300"
@@ -620,7 +628,7 @@ const handleSendCrypto = async () => {
                     className="bg-white/10 text-white rounded-md hover:bg-white/20 p-2"
                     onClick={(e) => { 
                       e.stopPropagation(); 
-                      window.open(`https://testnet.snowtrace.io/address/${wallet.address}`, '_blank');
+                      window.open(`https://snowtrace.io/address/${wallet.address}`, '_blank');
                     }}
                     title="View on Snowtrace"
                   >
@@ -647,13 +655,12 @@ const handleSendCrypto = async () => {
         {/* Balance Column */}
         <div className="w-[300px] bg-[var(--overlay)] backdrop-blur-[var(--blur)] rounded-xl p-4 flex flex-col">
           <div>
-            <h3 className="text-lg font-semibold text-white">Total Portfolio</h3>
-            <p className="text-sm text-white mt-2">
-              AVAX: {formatEther(totalAvaxBalance)}
+          <h3 className="text-lg font-semibold text-white">Total Portfolio</h3>
+        {Array.from(totalBalances.entries()).map(([symbol, tokenData]) => (
+            <p key={symbol} className="text-sm text-white mt-2">
+                {symbol}: {formatUnits(tokenData.amount, tokenData.decimals)}
             </p>
-            <p className="text-sm text-white">
-              USDC: {formatUnits(totalUsdcBalance, 6)}
-            </p>
+        ))}
           </div>
           {selectedWallet && (
             <>
@@ -673,12 +680,12 @@ const handleSendCrypto = async () => {
                 </div>
               )}
 
-              <p className="text-sm text-white mt-2">
-                AVAX: {selectedWallet.balance ? formatEther(BigInt(selectedWallet.balance)) : '0'}
-              </p>
-              <p className="text-sm text-white">
-                USDC: {selectedWallet.tokenBalance ? formatUnits(BigInt(selectedWallet.tokenBalance), 6) : '0'}
-              </p>
+              {selectedWallet.allTokenBalances.map(token => (
+              <p key={token.address} className="text-sm text-white mt-2 flex items-center">
+              {token.iconUrl && <img src={token.iconUrl} alt={token.symbol} className="w-4 h-4 mr-2 rounded-full" />}
+              {token.symbol}: {token.formattedAmount}
+            </p>
+          ))}
             </>
           )}
            {!selectedWallet && wallets.length > 0 && (
@@ -742,9 +749,9 @@ const handleSendCrypto = async () => {
       <Dialog open={isSendModalOpen} onOpenChange={(isOpen) => { setIsSendModalOpen(isOpen); if (!isOpen) setError(null); }}>
         <DialogContent className="bg-[var(--overlay)] backdrop-blur-[var(--blur)] rounded-xl p-6 bg-gray-800/50 border border-white/20">
           <DialogHeader>
-            <DialogTitle className="text-xl font-semibold text-white">
-              Send {selectedToken} from Wallet #{selectedWallet?.walletNumber}
-            </DialogTitle>
+          <DialogTitle className="text-xl font-semibold text-white">
+            Send {selectedToken?.symbol || 'Crypto'} from Wallet #{selectedWallet?.walletNumber}
+          </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div>
@@ -753,12 +760,19 @@ const handleSendCrypto = async () => {
               </label>
               <select
                 id="token"
-                value={selectedToken}
-                onChange={(e) => setSelectedToken(e.target.value as 'AVAX' | 'USDC')}
+                value={selectedToken?.address || ''}
+                onChange={(e) => {
+                  const token = selectedWallet?.allTokenBalances.find(t => t.address === e.target.value) || null;
+                  setSelectedToken(token);
+                }}
                 className="mt-1 px-3 py-2 bg-transparent text-white border border-white/20 rounded-[var(--radius)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)] w-full"
               >
-                <option value="AVAX" className="bg-gray-800 text-white">AVAX</option>
-                <option value="USDC" className="bg-gray-800 text-white">USDC</option>
+                <option value="" disabled>Select a token</option>
+                {selectedWallet?.allTokenBalances.map(token => (
+                  <option key={token.address} value={token.address} className="bg-gray-800 text-white">
+                    {token.symbol}
+                  </option>
+                ))}
               </select>
             </div>
             <div>
@@ -775,26 +789,25 @@ const handleSendCrypto = async () => {
               />
             </div>
             <div>
-              <label htmlFor="amount" className="text-sm font-medium text-white block mb-1">
-                Crypto ({selectedToken})
-              </label>
-              <Input
-                id="amount"
-                type="number"
-                step={selectedToken === 'AVAX' ? '0.000000000000000001' : '0.000001'} // 18 decimals for AVAX, 6 for USDC
-                min="0"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                className="mt-1 px-3 py-2 bg-transparent text-white placeholder-white/50 border border-white/20 rounded-[var(--radius)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)] w-full"
-                placeholder="0.0"
-              />
-              {selectedWallet && (
-                <p className="text-xs text-gray-400 mt-1">
-                  Available: {selectedToken === 'AVAX' 
-                    ? selectedWallet.balance ? formatEther(BigInt(selectedWallet.balance)) : '0'
-                    : selectedWallet.tokenBalance ? formatUnits(BigInt(selectedWallet.tokenBalance), 6) : '0'} {selectedToken}
-                </p>
-              )}
+            <label htmlFor="amount" className="text-sm font-medium text-white block mb-1">
+              Crypto ({selectedToken?.symbol})
+            </label>
+            <Input
+              id="amount"
+              type="number"
+              step={selectedToken ? 1 / (10 ** selectedToken.decimals) : '0.000001'}
+              min="0"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              className="mt-1 px-3 py-2 bg-transparent text-white placeholder-white/50 border border-white/20 rounded-[var(--radius)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)] w-full"
+              placeholder="0.0"
+              disabled={!selectedToken}
+            />
+                {selectedToken && (
+                  <p className="text-xs text-gray-400 mt-1">
+                    Available: {selectedToken.formattedAmount} {selectedToken.symbol}
+                  </p>
+                )}
             </div>
             {error && <p className="text-sm text-red-400">{error}</p>}
           </div>

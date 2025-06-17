@@ -4,7 +4,7 @@ import { avalanche } from 'viem/chains';
 import { createPublicClient, http, parseEther, isAddress, formatEther, formatUnits, parseUnits, encodeFunctionData } from 'viem';
 import { keccak256, AbiCoder } from 'ethers';
 import { getProvider } from './provider';
-import { Wallet, UserData, WalletAccount, TransactionStatus } from './types';
+import { Wallet, UserData, WalletAccount, TransactionStatus, TokenDetails } from './types';
 
 // Fixed message for deterministic signing
 const CONSTANT_MESSAGE = 'You are creating a new tempwallet, this will not cost you anything';
@@ -132,62 +132,37 @@ export const generateRandomIndex = async (): Promise<{ index: number, walletNumb
   }
 };
 
-// Function to get AVAX balance
-export const getBalance = async (address: string): Promise<string> => {
-  try {
-    const publicClient = createPublicClient({
-      chain: avalanche,
-      transport: http(import.meta.env.VITE_AVALANCHE_RPC),
-    });
-    const balance = await publicClient.getBalance({ address: address as `0x${string}` });
-    return balance.toString(); // Balance in wei
-  } catch (error) {
-    console.error('Failed to get AVAX balance:', error);
-    return '0';
-  }
-};
+// Import the API key from environment variables
+const ZERION_API_KEY = import.meta.env.VITE_ZERION_API_KEY;
 
-// Function to get USDC balance
-export const getTokenBalance = async (address: `0x${string}`): Promise<string> => {
+export const fetchWalletAllBalances = async (address: string): Promise<TokenDetails[]> => {
   try {
-    const publicClient = createPublicClient({
-      chain: avalanche,
-      transport: http(import.meta.env.VITE_AVALANCHE_RPC),
+    const response = await fetch(`https://api.zerion.io/v1/wallets/${address}/positions/?filter[chain_ids]=avalanche&sort=value`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Basic ${btoa(ZERION_API_KEY + ':')}`
+      }
     });
-    const usdcAddress = import.meta.env.VITE_USDC_ADDRESS;
-    if (!usdcAddress) {
-      throw new Error('USDC address not configured in .env');
+
+    if (!response.ok) {
+      throw new Error(`Zerion API request failed with status ${response.status}`);
     }
-    const balance = await publicClient.readContract({
-      address: usdcAddress,
-      abi: [
-        {
-          inputs: [
-            {
-              internalType: 'address',
-              name: 'account',
-              type: 'address',
-            },
-          ],
-          name: 'balanceOf',
-          outputs: [
-            {
-              internalType: 'uint256',
-              name: '',
-              type: 'uint256',
-            },
-          ],
-          stateMutability: 'view',
-          type: 'function',
-        },
-      ],
-      functionName: 'balanceOf',
-      args: [address],
-    }) as bigint;
-    return balance.toString(); // Balance in token units (6 decimals for USDC)
+
+    const { data } = await response.json();
+
+    return data.map((position: any) => ({
+      address: position.attributes.fungible_info?.implementations[0]?.address ?? '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+      chainId: position.attributes.chain_id === 'avalanche' ? 43114 : 0, // fuji testnet
+      amount: position.attributes.quantity.int,
+      decimals: position.attributes.quantity.decimals,
+      formattedAmount: formatUnits(BigInt(position.attributes.quantity.int), position.attributes.quantity.decimals),
+      symbol: position.attributes.fungible_info.symbol,
+      iconUrl: position.attributes.fungible_info.icon?.url
+    }));
+
   } catch (error) {
-    console.error('Failed to get USDC balance:', error);
-    return '0';
+    console.error('Failed to fetch token balances from Zerion:', error);
+    return []; // Return an empty array on failure
   }
 };
 
@@ -246,8 +221,8 @@ export const createSmartAccount = async (account: string, externalAccountNumber:
       externalAccountNumber,
       index,
       transactionStatus: { state: 'idle' },
-      balance: await getBalance(accountAddress),
-      tokenBalance: await getTokenBalance(accountAddress),
+      allTokenBalances: await fetchWalletAllBalances(accountAddress),
+      balance: ''
     };
 
     accountData.wallets.push(wallet);
@@ -330,8 +305,8 @@ export const createSmartAccountWithCounter = async (
       externalAccountNumber,
       index,
       transactionStatus: { state: 'idle' },
-      balance: await getBalance(accountAddress),
-      tokenBalance: await getTokenBalance(accountAddress),
+      allTokenBalances: await fetchWalletAllBalances(accountAddress),
+      balance: ''
     };
 
     accountData.wallets.push(wallet);
@@ -413,8 +388,8 @@ export const createRandomSmartAccount = async (account: string, externalAccountN
       externalAccountNumber,
       index,
       transactionStatus: { state: 'idle' },
-      balance: await getBalance(accountAddress),
-      tokenBalance: await getTokenBalance(accountAddress),
+      allTokenBalances: await fetchWalletAllBalances(accountAddress),
+      balance: ''
     };
 
     updatedAccountData.wallets.push(wallet);
@@ -458,23 +433,29 @@ export const sendTransaction = async (
   index: number, // Index for reinitializing smart account
   to: string, // Recipient address
   amount: string, // Amount in token units
-  tokenType: 'AVAX' | 'USDC' // Token type
+  tokenDetails: TokenDetails // Pass the full token object
 ): Promise<TransactionStatus> => {
   try {
-    // ... (initial validation and client setup remains the same)
+    // Validate recipient address
     if (!isAddress(to)) {
       throw new Error('Invalid recipient address');
     }
+
+    // Set up public client
     const publicClient = createPublicClient({
       chain: avalanche,
       transport: http(import.meta.env.VITE_AVALANCHE_RPC),
     });
+
+    // Set up signer
     const provider = await getProvider(account);
     const signer = await provider.getSigner();
     const signerAddress = await signer.getAddress();
     if (signerAddress.toLowerCase() !== account.toLowerCase()) {
       throw new Error('Signer address does not match the provided account');
     }
+
+    // Validate environment variables
     const bundlerUrl = import.meta.env.VITE_BUNDLER_URL;
     const paymasterApiKey = import.meta.env.VITE_BICONOMY_PAYMASTER_API_KEY;
     const rpcUrl = import.meta.env.VITE_AVALANCHE_RPC;
@@ -483,6 +464,8 @@ export const sendTransaction = async (
         'Missing environment variables: Ensure VITE_BUNDLER_URL, VITE_BICONOMY_PAYMASTER_API_KEY, and VITE_AVALANCHE_RPC are set in .env'
       );
     }
+
+    // Initialize smart account client
     const smartAccount = await createSmartAccountClient({
       signer,
       bundlerUrl,
@@ -492,74 +475,53 @@ export const sendTransaction = async (
       rpcUrl,
     });
 
-
+    // New logic for handling native and ERC-20 tokens
     let tx;
     let paymasterServiceData: any;
     let successMessage: string;
+    const isNativeToken = tokenDetails.address.toLowerCase() === '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee';
 
-    if (tokenType === 'AVAX') {
-      const amountWei = parseEther(amount);
-      if (amountWei <= 0) {
-        throw new Error('Amount must be positive');
-      }
-      const balance = await publicClient.getBalance({ address: walletAddress as `0x${string}` });
-      if (balance < amountWei) {
-        throw new Error('Insufficient AVAX balance in smart account');
-      }
+    const amountWei = parseUnits(amount, tokenDetails.decimals);
+    if (amountWei <= 0) {
+      throw new Error('Amount must be positive');
+    }
+
+    // Note: Balance check should ideally happen in the UI before calling this function.
+    // The UI has fresher balance data from the Zerion fetch.
+
+    if (isNativeToken) {
       tx = {
         to,
         value: amountWei,
       };
-      // 2. Set Paymaster mode to SPONSORED for AVAX
       paymasterServiceData = { mode: PaymasterMode.SPONSORED };
-      successMessage = 'Transaction sponsored successfully!';
-
-    } else if (tokenType === 'USDC') {
-      const usdcAddress = import.meta.env.VITE_USDC_ADDRESS;
-      if (!usdcAddress) {
-        throw new Error('USDC address not configured in .env');
-      }
-      const amountWei = parseUnits(amount, 6);
-      if (amountWei <= 0) {
-        throw new Error('Amount must be positive');
-      }
-      const balance = await publicClient.readContract({
-        address: usdcAddress,
-        abi: USDC_ABI,
-        functionName: 'balanceOf',
-        args: [walletAddress],
-      }) as bigint;
-      if (balance < amountWei) {
-        throw new Error('Insufficient USDC balance in smart account');
-      }
+      successMessage = 'AVAX transaction sponsored successfully!';
+    } else {
+      // This is a generic ERC-20 transfer
       tx = {
-        to: usdcAddress,
+        to: tokenDetails.address, // The token contract address
         data: encodeFunctionData({
-          abi: USDC_ABI,
+          abi: USDC_ABI, // A generic ABI for transfer is sufficient
           functionName: 'transfer',
           args: [to, amountWei],
         }),
       };
-      // 3. Set Paymaster mode to ERC20 for USDC payments
-      paymasterServiceData = { 
+      paymasterServiceData = {
         mode: PaymasterMode.ERC20,
-        preferredToken: usdcAddress,
+        preferredToken: tokenDetails.address, // The contract address of the token to be used for fees
       };
-      successMessage = 'Transaction fee paid with USDC!';
-
-    } else {
-      throw new Error('Unsupported token type');
+      successMessage = `Transaction fee paid with ${tokenDetails.symbol}!`;
     }
 
-    // 4. Pass the paymasterServiceData to the sendTransaction call
+    // Send the transaction
     const { waitForTxHash } = await smartAccount.sendTransaction(tx, {
       paymasterServiceData,
     });
 
     const { transactionHash } = await waitForTxHash();
-    console.log('Transaction sent:', { transactionHash, walletAddress, to, amount, tokenType });
+    console.log('Transaction sent:', { transactionHash, walletAddress, to, amount, tokenDetails });
 
-    // 5. Update the return message to be more specific
+    // Return success status
     return {
       state: 'success',
       txHash: transactionHash,
