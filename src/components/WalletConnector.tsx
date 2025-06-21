@@ -1,6 +1,7 @@
 // src/components/WalletConnector.tsx
 import { useState } from 'react';
 import { getProvider } from '../utils/provider';
+import { NETWORKS } from '../utils/networks';
 import { UserData } from '../utils/types';
 
 interface WalletConnectorProps {
@@ -21,7 +22,7 @@ function WalletConnector({ userData, setUserData, setError, name }: WalletConnec
         params: [{ eth_accounts: {} }],
       });
       const address = accounts[0].caveats[0].value[0];
-      const provider = await getProvider();
+      const provider = await getProvider(NETWORKS.Avalanche);
       const signer = await provider.getSigner();
       const signerAddress = await signer.getAddress();
       if (signerAddress.toLowerCase() !== address.toLowerCase()) {

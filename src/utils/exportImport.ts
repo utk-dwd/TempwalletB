@@ -1,5 +1,6 @@
 // src/utils/exportImport.ts
 import { UserData, WalletAccount, Wallet } from '../utils/types';
+import { NETWORKS } from './networks';
 import { getProvider } from './provider';
 import { getUserData } from './walletUtils';
 
@@ -14,6 +15,7 @@ interface ExportData {
       walletNumber: number;
       externalAccountNumber: number;
       index: number;
+      
     }[];
   }[];
   activeAccount: string | null;
@@ -126,7 +128,7 @@ export const importUserData = async (file: File): Promise<{ success: boolean; me
     }
 
     // Get current MetaMask account
-    const provider = await getProvider();
+    const provider = await getProvider(NETWORKS.Avalanche);
     const accounts = await provider.send('eth_accounts', []);
     const currentAccount = accounts[0]?.toLowerCase();
     if (!currentAccount) {
@@ -166,7 +168,8 @@ export const importUserData = async (file: File): Promise<{ success: boolean; me
             index: wallet.index,
             transactionStatus: { state: 'idle' },
             balance: '0',
-            tokenBalance: '0',
+            networkKey: 'Avalanche', // Add default networkKey
+            allTokenBalances: [], // Replace tokenBalance with allTokenBalances
           })),
         });
       } else {
@@ -187,7 +190,8 @@ export const importUserData = async (file: File): Promise<{ success: boolean; me
               index: importedWallet.index,
               transactionStatus: { state: 'idle' },
               balance: '0',
-              tokenBalance: '0',
+              networkKey: 'Avalanche', // Add default networkKey
+              allTokenBalances: [], // Replace tokenBalance with allTokenBalances
             });
           }
         }
