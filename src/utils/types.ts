@@ -1,23 +1,23 @@
-// Type definitions for the dApp
-// Dependency: typescript (^5.8.3) for type safety
-// Integration: Defines Wallet type for tempwallet data
-
 // src/types/types.ts
+import { NETWORKS } from './networks';
+
+export type SupportedNetwork = keyof typeof NETWORKS;
+
 export interface TransactionStatus {
   state: 'idle' | 'pending' | 'success' | 'error';
   message?: string;
   txHash?: string;
-  feeQuote?: string; // Fee in AVAX (sponsored) or USDC (ERC-20)
+  feeQuote?: string; 
 }
 
 export interface TokenDetails {
-  address: string; // Token address (or 0xEeee... for native token)
+  address: string; 
   chainId: number;
-  amount: string; // Balance in wei/token units
+  amount: string; 
   decimals: number;
-  formattedAmount: string; // Human-readable balance
+  formattedAmount: string; 
   symbol?: string;
-  iconUrl?: string; // Optional: for displaying token icon
+  iconUrl?: string;
 }
 
 export interface Wallet {
@@ -26,8 +26,9 @@ export interface Wallet {
   walletNumber: number;
   externalAccountNumber: number;
   index: number;
+  networkKey: SupportedNetwork; // Keep track of the wallet's network
   transactionStatus?: TransactionStatus;
-  allTokenBalances: TokenDetails[]; // Updated to hold all token balances
+  allTokenBalances: TokenDetails[];
 }
 
 export interface WalletAccount {
