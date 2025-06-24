@@ -107,54 +107,15 @@ export const fetchWalletAllBalances = async (address: string, network: NetworkCo
   try {
 
     const originalUrl = `https://api.zerion.io/v1/wallets/${address}/positions/?filter[chain_ids]=${network.zerionChainId}&sort=value`;
+    const proxyUrl = `/api/cors-proxy?url=${encodeURIComponent(originalUrl)}&authorization=${encodeURIComponent(`Basic ${btoa(ZERION_API_KEY + ':')}`)}`;
     
-    const proxies = [
-      `https://corsproxy.io/?${encodeURIComponent(originalUrl)}`,
-      `https://api.allorigins.win/get?url=${encodeURIComponent(originalUrl)}`,
-      `https://cors.bridged.cc/${originalUrl}`
-    ];
+    const response = await fetch(proxyUrl);
 
-    let response;
-    let lastError;
-
-    for (const proxyUrl of proxies) {
-      try {
-        response = await fetch(proxyUrl, {
-          method: 'GET',
-          headers: { 
-            'Authorization': `Basic ${btoa(ZERION_API_KEY + ':')}`,
-            'Content-Type': 'application/json'
-          }
-        });
-
-        if (response.ok) {
-          break; // Success, exit loop
-        }
-      } catch (error) {
-        lastError = error;
-        continue; // Try next proxy
-      }
+    if (!response.ok) {
+      throw new Error(`Zerion API request failed with status ${response.status}`);
     }
 
-    if (!response || !response.ok) {
-      throw lastError || new Error(`All proxy services failed`);
-    }
-
-    // Handle different proxy response formats
-    let data;
-    const responseText = await response.text();
-    
-    try {
-      const parsed = JSON.parse(responseText);
-      // Handle allorigins format
-      if (parsed.contents) {
-        data = JSON.parse(parsed.contents).data;
-      } else {
-        data = parsed.data;
-      }
-    } catch {
-      throw new Error('Invalid response format');
-    }
+    const { data } = await response.json();
 
     return data.map((position: any): TokenDetails | null => {
       // Ensure we are dealing with a fungible token with implementations
