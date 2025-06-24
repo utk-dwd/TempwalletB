@@ -108,19 +108,53 @@ export const fetchWalletAllBalances = async (address: string, network: NetworkCo
 
     const originalUrl = `https://api.zerion.io/v1/wallets/${address}/positions/?filter[chain_ids]=${network.zerionChainId}&sort=value`;
     
-    // Add CORS proxy
-    const proxyUrl = `https://cors-anywhere.herokuapp.com/${originalUrl}`;
+    const proxies = [
+      `https://corsproxy.io/?${encodeURIComponent(originalUrl)}`,
+      `https://api.allorigins.win/get?url=${encodeURIComponent(originalUrl)}`,
+      `https://cors.bridged.cc/${originalUrl}`
+    ];
 
-    const response = await fetch(proxyUrl, {
-      method: 'GET',
-      headers: { 'Authorization': `Basic ${btoa(ZERION_API_KEY + ':')}` }
-    });
+    let response;
+    let lastError;
 
-    if (!response.ok) {
-      throw new Error(`Zerion API request failed with status ${response.status}`);
+    for (const proxyUrl of proxies) {
+      try {
+        response = await fetch(proxyUrl, {
+          method: 'GET',
+          headers: { 
+            'Authorization': `Basic ${btoa(ZERION_API_KEY + ':')}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (response.ok) {
+          break; // Success, exit loop
+        }
+      } catch (error) {
+        lastError = error;
+        continue; // Try next proxy
+      }
     }
 
-    const { data } = await response.json();
+    if (!response || !response.ok) {
+      throw lastError || new Error(`All proxy services failed`);
+    }
+
+    // Handle different proxy response formats
+    let data;
+    const responseText = await response.text();
+    
+    try {
+      const parsed = JSON.parse(responseText);
+      // Handle allorigins format
+      if (parsed.contents) {
+        data = JSON.parse(parsed.contents).data;
+      } else {
+        data = parsed.data;
+      }
+    } catch {
+      throw new Error('Invalid response format');
+    }
 
     return data.map((position: any): TokenDetails | null => {
       // Ensure we are dealing with a fungible token with implementations
