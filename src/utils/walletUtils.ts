@@ -31,7 +31,7 @@ export const getUserData = (): UserData => {
 };
 
 
-// Add this helper function to estimate gas fees
+//This function estimates gas fees
 const estimateGasFeeInToken = async (
   smartAccount: any,
   tx: any,
@@ -105,7 +105,13 @@ const ZERION_API_KEY = import.meta.env.VITE_ZERION_API_KEY;
 
 export const fetchWalletAllBalances = async (address: string, network: NetworkConfig): Promise<TokenDetails[]> => {
   try {
-    const response = await fetch(`https://api.zerion.io/v1/wallets/${address}/positions/?filter[chain_ids]=${network.zerionChainId}&sort=value`, {
+
+    const originalUrl = `https://api.zerion.io/v1/wallets/${address}/positions/?filter[chain_ids]=${network.zerionChainId}&sort=value`;
+    
+    // Add CORS proxy
+    const proxyUrl = `https://cors-anywhere.herokuapp.com/${originalUrl}`;
+
+    const response = await fetch(proxyUrl, {
       method: 'GET',
       headers: { 'Authorization': `Basic ${btoa(ZERION_API_KEY + ':')}` }
     });
@@ -124,18 +130,17 @@ export const fetchWalletAllBalances = async (address: string, network: NetworkCo
       
       const implementations = position.attributes.fungible_info.implementations;
 
-      // --- Start of a Modified Logic (Step 2.3) ---
-      // Find the implementation that matches the network's zerionChainId.
+      // Finding the implementation that matches the network's zerionChainId.
       const correctImplementation = implementations.find(
         (impl: any) => impl.chain_id === network.zerionChainId
       );
       
-      // Derive the token address, falling back if not found.
+      // Deriving the token address, falling back if not found.
       const tokenAddress = correctImplementation?.address ?? '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee';
-      // --- End of Modified Logic ---
+      
 
       return {
-        // --- (Step 2.4) Update the address field with the correctly derived tokenAddress ---
+        // Updated the address field with the correctly derived tokenAddress
         address: tokenAddress,
         chainId: network.chainId,
         amount: position.attributes.quantity.int,
