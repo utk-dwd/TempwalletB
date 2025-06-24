@@ -6,6 +6,8 @@ import { useState, useEffect } from 'react';
 import { getAnimeAvatarUrl } from '@/server/animeAvatarService'; // Using the updated service
 import { HoverInfoBox } from '@/components/ui/HoverInfoBox';
 import * as Tooltip from '@radix-ui/react-tooltip';
+import analyticsService from '@/services/analytics';
+import { EventName } from '@/utils/types';
 
 interface HeaderProps {
   walletAddress: string | null;
@@ -36,19 +38,32 @@ export function Header({
 
   const handleEditProfile = () => {
     setIsEditingProfile(true);
+    analyticsService.trackEvent(EventName.PROFILE_EDIT_STARTED);
   };
 
   const handleSaveProfile = () => {
     onEditProfile(tempName, tempProfilePicture);
+    analyticsService.trackEvent(EventName.PROFILE_EDIT_SAVED);
+      if (tempName !== name) {
+        analyticsService.trackEvent(EventName.PROFILE_NAME_CHANGED, { characterCount: tempName.length });
+      }
+      if (tempProfilePicture !== profilePicture) {
+        analyticsService.trackEvent(EventName.PROFILE_PICTURE_CHANGED);
+      }
     setIsEditingProfile(false);
   };
 
   const handleEditWalletName = () => {
     setIsEditingWalletName(true);
+    analyticsService.trackEvent(EventName.WALLET_NAME_EDIT_STARTED, { walletAddress });
   };
 
   const handleSaveWalletName = () => {
     onEditWalletName(tempWalletName);
+    analyticsService.trackEvent(EventName.WALLET_NAME_EDIT_SAVED);
+    if (tempWalletName !== walletName) {
+      analyticsService.trackEvent(EventName.WALLET_NAME_CHANGED, { characterCount: tempWalletName.length });
+    }
     setIsEditingWalletName(false);
   };
 

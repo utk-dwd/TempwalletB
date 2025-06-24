@@ -5,6 +5,8 @@ import { keccak256, AbiCoder } from 'ethers';
 import { getProvider } from './provider';
 import { Wallet, UserData, TransactionStatus, TokenDetails } from './types';
 import { NetworkConfig } from './networks';
+import analyticsService from '../services/analytics';
+import { EventName } from './types'; 
 
 const CONSTANT_MESSAGE = 'You are creating a new tempwallet, this will not cost you anything';
 
@@ -152,71 +154,92 @@ export const fetchWalletAllBalances = async (address: string, network: NetworkCo
 
 
 const createSmartAccountBase = async (
-    account: string,
-    walletNumber: number,
-    externalAccountNumber: number,
-    network: NetworkConfig,
-    isRandom: boolean = false
+  account: string,
+  walletNumber: number,
+  externalAccountNumber: number,
+  network: NetworkConfig,
+  isRandom: boolean = false
 ): Promise<Wallet> => {
-    try {
-        if (!Number.isInteger(walletNumber) || walletNumber < 0) {
-            throw new Error('Wallet number must be a non-negative integer');
-        }
+  try {
+      // Track WALLET_CREATION_STARTED
+      analyticsService.trackEvent(EventName.WALLET_CREATION_STARTED, {
+          creationType: isRandom ? 'random' : 'deterministic',
+          walletNumber,
+          networkName: network.name,
+      });
 
-        const provider = await getProvider(network, account);
-        const signer = await provider.getSigner();
-        const signerAddress = await signer.getAddress();
-        if (signerAddress.toLowerCase() !== account.toLowerCase()) {
-            throw new Error('Signer address does not match the provided account');
-        }
+      if (!Number.isInteger(walletNumber) || walletNumber < 0) {
+          throw new Error('Wallet number must be a non-negative integer');
+      }
 
-        const bundlerUrl = import.meta.env.VITE_BUNDLER_URL;
-        if (!bundlerUrl || !network.paymasterApiKey || !network.rpcUrl) {
-            throw new Error(`Missing environment variables for ${network.name}`);
-        }
-        
-        const { index } = isRandom 
-            ? await generateRandomIndex(network) 
-            : { index: await generateDeterministicIndex(walletNumber, network) };
+      const provider = await getProvider(network, account);
+      const signer = await provider.getSigner();
+      const signerAddress = await signer.getAddress();
+      if (signerAddress.toLowerCase() !== account.toLowerCase()) {
+          throw new Error('Signer address does not match the provided account');
+      }
 
-        const smartAccount = await createSmartAccountClient({
-            signer,
-            bundlerUrl,
-            biconomyPaymasterApiKey: network.paymasterApiKey,
-            chainId: network.chainId,
-            index,
-            rpcUrl: network.rpcUrl,
-        });
+      const bundlerUrl = import.meta.env.VITE_BUNDLER_URL;
+      if (!bundlerUrl || !network.paymasterApiKey || !network.rpcUrl) {
+          throw new Error(`Missing environment variables for ${network.name}`);
+      }
+      
+      const { index } = isRandom 
+          ? await generateRandomIndex(network) 
+          : { index: await generateDeterministicIndex(walletNumber, network) };
 
-        const accountAddress = await smartAccount.getAccountAddress();
-        
-        const userData = getUserData();
-        let accountData = userData.accounts.find((acc) => acc.account.toLowerCase() === account.toLowerCase());
-        if (!accountData) {
-            accountData = { account, name: '', externalAccountNumber, wallets: [] };
-            userData.accounts.push(accountData);
-        }
+      const smartAccount = await createSmartAccountClient({
+          signer,
+          bundlerUrl,
+          biconomyPaymasterApiKey: network.paymasterApiKey,
+          chainId: network.chainId,
+          index,
+          rpcUrl: network.rpcUrl,
+      });
 
-        const wallet: Wallet = {
-            address: accountAddress,
-            walletNumber,
-            externalAccountNumber,
-            index,
-            networkKey: network.name as keyof typeof import('../utils/networks').NETWORKS,
-            transactionStatus: { state: 'idle' },
-            allTokenBalances: await fetchWalletAllBalances(accountAddress, network),
-            balance: '' 
-        };
+      const accountAddress = await smartAccount.getAccountAddress();
+      
+      const userData = getUserData();
+      let accountData = userData.accounts.find((acc) => acc.account.toLowerCase() === account.toLowerCase());
+      if (!accountData) {
+          accountData = { account, name: '', externalAccountNumber, wallets: [] };
+          userData.accounts.push(accountData);
+      }
 
-        accountData.wallets.push(wallet);
-        saveUserData(userData);
+      const wallet: Wallet = {
+          address: accountAddress,
+          walletNumber,
+          externalAccountNumber,
+          index,
+          networkKey: network.name as keyof typeof import('../utils/networks').NETWORKS,
+          transactionStatus: { state: 'idle' },
+          allTokenBalances: await fetchWalletAllBalances(accountAddress, network),
+          balance: '' 
+      };
 
-        console.log(`Created smart account on ${network.name}:`, { address: accountAddress, walletNumber });
-        return wallet;
-    } catch (error) {
-        console.error('Failed to create smart account:', error);
-        throw new Error(`Smart account creation failed: ${error}`);
-    }
+      accountData.wallets.push(wallet);
+      saveUserData(userData);
+
+      // Track WALLET_CREATION_SUCCESS
+      analyticsService.trackEvent(EventName.WALLET_CREATION_SUCCESS, {
+          walletAddress: accountAddress,
+          walletNumber,
+          index,
+          networkName: network.name,
+      });
+
+      console.log(`Created smart account on ${network.name}:`, { address: accountAddress, walletNumber });
+      return wallet;
+  } catch (error) {
+      // Track WALLET_CREATION_FAILED
+      analyticsService.trackEvent(EventName.WALLET_CREATION_FAILED, {
+          errorMessage: String(error),
+          creationType: isRandom ? 'random' : 'deterministic',
+      });
+
+      console.error('Failed to create smart account:', error);
+      throw new Error(`Smart account creation failed: ${error}`);
+  }
 };
 
 export const createSmartAccount = async (account: string, externalAccountNumber: number, network: NetworkConfig): Promise<Wallet> => {
@@ -248,8 +271,19 @@ export const sendTransaction = async (
   network: NetworkConfig
 ): Promise<TransactionStatus> => {
   try {
+    // Track TRANSACTION_INITIATED
+    analyticsService.trackEvent(EventName.TRANSACTION_INITIATED, {
+      fromWalletAddress: wallet.address,
+      tokenSymbol: tokenDetails.symbol,
+      tokenAddress: tokenDetails.address,
+      networkName: network.name,
+    });
+
     // Validate recipient address
     if (!isAddress(to)) throw new Error('Invalid recipient address');
+
+    // Track TRANSACTION_VALIDATION_STARTED
+    analyticsService.trackEvent(EventName.TRANSACTION_VALIDATION_STARTED);
 
     // Set up provider and signer
     const provider = await getProvider(network, account);
@@ -270,7 +304,7 @@ export const sendTransaction = async (
       );
     }
 
-    // Create public client for balance checks - FIXED: Use network's viem chain
+    // Create public client for balance checks
     const publicClient = createPublicClient({
       chain: network.viemChain,
       transport: http(rpcUrl),
@@ -296,7 +330,6 @@ export const sendTransaction = async (
     if (amountWei <= 0) throw new Error('Amount must be positive');
 
     if (isNativeToken) {
-      // Native token logic remains the same
       const balance = await publicClient.getBalance({ address: wallet.address as `0x${string}` });
       if (balance < amountWei) {
         throw new Error(`Insufficient ${network.currencySymbol} balance in smart account`);
@@ -305,7 +338,6 @@ export const sendTransaction = async (
       paymasterServiceData = { mode: PaymasterMode.SPONSORED };
       successMessage = `${network.currencySymbol} transaction sponsored successfully!`;
     } else {
-      // ERC-20 token transaction with improved gas handling
       console.log('🔍 Token Details:', {
         address: tokenDetails.address,
         symbol: tokenDetails.symbol,
@@ -360,7 +392,6 @@ export const sendTransaction = async (
       if (balance < totalNeeded) {
         console.log('❌ Insufficient balance for ERC20 gas payment, falling back to SPONSORED mode');
         
-        // Fallback to sponsored mode if not enough tokens for gas
         tx = {
           to: tokenDetails.address as `0x${string}`,
           data: encodeFunctionData({
@@ -372,7 +403,6 @@ export const sendTransaction = async (
         paymasterServiceData = { mode: PaymasterMode.SPONSORED };
         successMessage = `${tokenDetails.symbol} transaction sponsored successfully!`;
       } else {
-        // Use ERC20 paymaster mode if we have enough tokens
         tx = {
           to: tokenDetails.address as `0x${string}`,
           data: encodeFunctionData({
@@ -395,10 +425,24 @@ export const sendTransaction = async (
       network: network.name
     });
 
+    // Track TRANSACTION_MODE_SELECTED
+    analyticsService.trackEvent(EventName.TRANSACTION_MODE_SELECTED, {
+      paymasterMode: paymasterServiceData.mode,
+      preferredToken: paymasterServiceData.preferredToken,
+    });
+
     // Send transaction
     const { waitForTxHash } = await smartAccount.sendTransaction(tx, { paymasterServiceData });
     const { transactionHash } = await waitForTxHash();
     
+    // Track TRANSACTION_SUCCESS
+    analyticsService.trackEvent(EventName.TRANSACTION_SUCCESS, {
+      transactionHash,
+      fromWalletAddress: wallet.address,
+      tokenSymbol: tokenDetails.symbol,
+      networkName: network.name,
+    });
+
     console.log('✅ Transaction Success:', {
       hash: transactionHash,
       wallet: wallet.address,
@@ -413,6 +457,13 @@ export const sendTransaction = async (
       message: successMessage,
     };
   } catch (error: any) {
+    // Track TRANSACTION_FAILED
+    analyticsService.trackEvent(EventName.TRANSACTION_FAILED, {
+      errorMessage: error.message || 'Failed to send transaction',
+      fromWalletAddress: wallet.address,
+      tokenSymbol: tokenDetails.symbol,
+    });
+
     console.error('❌ Transaction Failed:', error);
     
     // Provide better error messages

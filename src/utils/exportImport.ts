@@ -3,6 +3,8 @@ import { UserData, WalletAccount, Wallet } from '../utils/types';
 import { NETWORKS } from './networks';
 import { getProvider } from './provider';
 import { getUserData } from './walletUtils';
+import analyticsService from '@/services/analytics';
+import { EventName } from '@/utils/types';
 
 // Sanitized export data interface
 interface ExportData {

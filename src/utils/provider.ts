@@ -1,6 +1,8 @@
 // src/utils/provider.ts
 import { ethers } from 'ethers';
-import { NetworkConfig } from './networks'; // Import the NetworkConfig type
+import analyticsService from '../services/analytics';
+import { EventName } from '../utils/types';
+import { NetworkConfig } from './networks';
 
 /**
  * Prompts the user to add a network to MetaMask.
@@ -17,7 +19,7 @@ const addNetwork = async (network: NetworkConfig): Promise<boolean> => {
     await window.ethereum.request({
       method: 'wallet_addEthereumChain',
       params: [{
-        chainId: `0x${network.chainId.toString(16)}`, // Convert chainId to hexadecimal
+        chainId: `0x${network.chainId.toString(16)}`,
         chainName: network.name,
         nativeCurrency: {
           name: network.viemChain.nativeCurrency.name,
@@ -27,6 +29,10 @@ const addNetwork = async (network: NetworkConfig): Promise<boolean> => {
         rpcUrls: [network.rpcUrl],
         blockExplorerUrls: [network.explorerUrl],
       }],
+    });
+    analyticsService.trackEvent(EventName.NETWORK_ADDED, {
+      networkName: network.name,
+      chainId: network.chainId,
     });
     return true;
   } catch (error) {
@@ -48,17 +54,19 @@ const switchToNetwork = async (network: NetworkConfig): Promise<boolean> => {
   }
 
   try {
+    analyticsService.trackEvent(EventName.NETWORK_SWITCH_REQUESTED, {
+      targetNetworkName: network.name,
+      targetChainId: network.chainId,
+    });
     await window.ethereum.request({
       method: 'wallet_switchEthereumChain',
       params: [{ chainId: `0x${network.chainId.toString(16)}` }],
     });
     return true;
   } catch (error: any) {
-    // Error code 4902 indicates that the chain has not been added to MetaMask.
     if (error.code === 4902) {
       const added = await addNetwork(network);
       if (added) {
-        // Retry switching after adding the network
         return await switchToNetwork(network);
       }
       return false;
@@ -80,25 +88,26 @@ export const getProvider = async (network: NetworkConfig, desiredAccount?: strin
   }
 
   try {
+    analyticsService.trackEvent(EventName.WALLET_CONNECTION_ATTEMPTED, {
+      networkName: network.name,
+      desiredAccount: desiredAccount || 'none',
+    });
+
     const provider = new ethers.BrowserProvider(window.ethereum);
 
-    // Switch to the desired network.
     const switched = await switchToNetwork(network);
     if (!switched) {
       throw new Error(`Failed to switch to ${network.name}.`);
     }
 
-    // Verify the network chainId after switching.
     const { chainId } = await provider.getNetwork();
     if (chainId !== BigInt(network.chainId)) {
       throw new Error(`Incorrect network. Please ensure MetaMask is on ${network.name}.`);
     }
 
-    // Get the current account from MetaMask.
     const accounts = await window.ethereum.request({ method: 'eth_accounts' });
     const currentAccount = accounts[0]?.toLowerCase();
 
-    // If a specific account is required and it's not the active one, request a switch.
     if (desiredAccount && currentAccount !== desiredAccount.toLowerCase()) {
       try {
         const newAccounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
@@ -110,10 +119,23 @@ export const getProvider = async (network: NetworkConfig, desiredAccount?: strin
         throw new Error('Failed to switch accounts. Please manually select the correct account in MetaMask.');
       }
     }
+    analyticsService.identify(currentAccount);
+    analyticsService.setPeople({
+      $name: `User_${currentAccount.slice(0, 6)}`, // Example: User_0x1234
+      $email: null, // Add if available
+      currentAccount,
+      signupDate: new Date().toISOString(),
+    });
+    analyticsService.trackEvent(EventName.WALLET_CONNECTION_SUCCESS, {
+      connectedAccount: currentAccount || 'none',
+    });
+
     return provider;
   } catch (error: any) {
+    analyticsService.trackEvent(EventName.WALLET_CONNECTION_FAILED, {
+      errorMessage: error.message || 'Unknown error',
+    });
     console.error('Failed to connect MetaMask:', error);
-    // Pass along the specific error message from the nested functions.
     throw new Error(`MetaMask connection failed: ${error.message || error}`);
   }
 };
