@@ -19,7 +19,7 @@ importers:
         version: 3.1.4(bufferutil@4.0.7)(hardhat@2.24.0(bufferutil@4.0.7)(ts-node@10.9.2(@types/node@22.15.17)(typescript@5.8.3))(typescript@5.8.3)(utf-8-validate@6.0.3))(typescript@5.8.3)(utf-8-validate@6.0.3)
       '@biconomy/ethers-lib':
         specifier: ^2.0.1
-        version: 2.0.1(@ethersproject/hardware-wallets@5.8.0(bufferutil@4.0.7)(utf-8-validate@6.0.3))(bufferutil@4.0.7)(chai@4.5.0)(ethers@6.14.0(bufferutil@4.0.7)(utf-8-validate@6.0.3))(hardhat@2.24.0(bufferutil@4.0.7)(ts-node@10.9.2(@types/node@22.15.17)(typescript@5.8.3))(typescript@4.9.5)(utf-8-validate@6.0.3))(lodash@4.17.21)(ts-node@10.9.2(@types/node@22.15.17)(typescript@5.8.3))(typechain@8.3.2(typescript@5.8.3))(utf-8-validate@6.0.3)
+        version: 2.0.1(@ethersproject/hardware-wallets@5.8.0(bufferutil@4.0.7)(utf-8-validate@6.0.3))(bufferutil@4.0.7)(chai@4.5.0)(ethers@6.14.0(bufferutil@4.0.7)(utf-8-validate@6.0.3))(hardhat@2.24.0(bufferutil@4.0.7)(ts-node@10.9.2(@types/node@22.15.17)(typescript@5.8.3))(typescript@5.8.3)(utf-8-validate@6.0.3))(lodash@4.17.21)(ts-node@10.9.2(@types/node@22.15.17)(typescript@5.8.3))(typechain@8.3.2(typescript@5.8.3))(utf-8-validate@6.0.3)
       '@biconomy/modules':
         specifier: 3.1.4
         version: 3.1.4(bufferutil@4.0.7)(hardhat@2.24.0(bufferutil@4.0.7)(ts-node@10.9.2(@types/node@22.15.17)(typescript@5.8.3))(typescript@5.8.3)(utf-8-validate@6.0.3))(typescript@5.8.3)(utf-8-validate@6.0.3)
@@ -95,6 +95,9 @@ importers:
       react-hook-form:
         specifier: ^7.56.4
         version: 7.56.4(react@19.1.0)
+      react-icons:
+        specifier: ^5.5.0
+        version: 5.5.0(react@19.1.0)
       react-router-dom:
         specifier: ^7.6.2
         version: 7.6.2(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
@@ -4093,6 +4096,11 @@ packages:
     peerDependencies:
       react: ^16.8.0 || ^17 || ^18 || ^19
 
+  react-icons@5.5.0:
+    resolution: {integrity: sha512-MEFcXdkP3dLo8uumGI5xN3lDFNsRtrjbOEKDLD7yv76v4wpnEq2Lt2qeHaQOr34I/wPN3s3+N08WkQ+CW37Xiw==}
+    peerDependencies:
+      react: '*'
+
   react-refresh@0.17.0:
     resolution: {integrity: sha512-z6F7K9bV85EfseRCp2bzrpyQ0Gkw1uLoCel9XBVWPg/TjRj94SkJzUTGfOa4bs7iJvBWtQG0Wq7wnI0syw3EBQ==}
     engines: {node: '>=0.10.0'}
@@ -5365,7 +5373,7 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  '@biconomy/ethers-lib@2.0.1(@ethersproject/hardware-wallets@5.8.0(bufferutil@4.0.7)(utf-8-validate@6.0.3))(bufferutil@4.0.7)(chai@4.5.0)(ethers@6.14.0(bufferutil@4.0.7)(utf-8-validate@6.0.3))(hardhat@2.24.0(bufferutil@4.0.7)(ts-node@10.9.2(@types/node@22.15.17)(typescript@5.8.3))(typescript@4.9.5)(utf-8-validate@6.0.3))(lodash@4.17.21)(ts-node@10.9.2(@types/node@22.15.17)(typescript@5.8.3))(typechain@8.3.2(typescript@5.8.3))(utf-8-validate@6.0.3)':
+  '@biconomy/ethers-lib@2.0.1(@ethersproject/hardware-wallets@5.8.0(bufferutil@4.0.7)(utf-8-validate@6.0.3))(bufferutil@4.0.7)(chai@4.5.0)(ethers@6.14.0(bufferutil@4.0.7)(utf-8-validate@6.0.3))(hardhat@2.24.0(bufferutil@4.0.7)(ts-node@10.9.2(@types/node@22.15.17)(typescript@5.8.3))(typescript@5.8.3)(utf-8-validate@6.0.3))(lodash@4.17.21)(ts-node@10.9.2(@types/node@22.15.17)(typescript@5.8.3))(typechain@8.3.2(typescript@5.8.3))(utf-8-validate@6.0.3)':
     dependencies:
       '@account-abstraction/contracts': 0.6.0
       '@biconomy/core-types': 2.0.2(bufferutil@4.0.7)(utf-8-validate@6.0.3)
@@ -9713,6 +9721,10 @@ snapshots:
       scheduler: 0.26.0
 
   react-hook-form@7.56.4(react@19.1.0):
+    dependencies:
+      react: 19.1.0
+
+  react-icons@5.5.0(react@19.1.0):
     dependencies:
       react: 19.1.0
 

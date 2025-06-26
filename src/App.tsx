@@ -4,7 +4,8 @@ import { ethers } from 'ethers';
 import { Header } from '@/components/layout/Header';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { MainContent } from '@/components/layout/MainContent';
-import { LandingPage } from '@/components/pages/LandingPage';
+// --- CHANGE: Import the new animated landing page ---
+import { AnimatedLandingPage } from '@/components/pages/AnimatedLandingPage';
 import { UnsupportedDevice } from '@/components/pages/UnsupportedDevice';
 import { Wallet, UserData, TransactionStatus } from '@/utils/types';
 import { exportUserData, importUserData } from './utils/exportImport';
@@ -67,7 +68,7 @@ function AppLayout({
   bgIndex,
   backgroundImages,
   handleSwitchBackground
-}: LayoutProps) 
+}: LayoutProps)
 {
   const location = useLocation();
 const hideHeader = location.pathname === '/blogs';
@@ -94,12 +95,12 @@ const hideHeader = location.pathname === '/blogs';
               />
             )}
               {showProfile && (
-                <div 
+                <div
                   ref={dropdownRef}
                   className="absolute top-[calc(100%-2.5rem)] right-4 bg-white/10 backdrop-blur-lg shadow-lg border border-white/20 rounded-xl p-4 flex flex-col gap-2 z-10"
                 >
                   <div className="relative">
-                    <p 
+                    <p
                       className="text-sm text-text-primary cursor-pointer hover:text-accent-orange transition-colors"
                       onClick={handleCopyAddress}
                       title="Click to copy full address"
@@ -237,8 +238,8 @@ function AppRoutes({
   return (
     <Routes>
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
-      <Route 
-        path="/dashboard" 
+      <Route
+        path="/dashboard"
         element={
           <MainContent
             walletAddress={walletAddress}
@@ -247,7 +248,7 @@ function AppRoutes({
             onWalletDeleted={onWalletDeleted}
             onTransactionSent={onTransactionSent}
           />
-        } 
+        }
       />
       <Route path="/blogs" element={<BlogListing />} />
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
@@ -438,7 +439,7 @@ const handleCopyAddress = async () => {
       setProfilePicture(storedPicture || null);
       setHasSubmittedName(true);
     }
-  
+
     // Load user data
     const storedUserData = localStorage.getItem('tempWalletUserData');
     if (storedUserData) {
@@ -450,7 +451,7 @@ const handleCopyAddress = async () => {
         }
       }
     }
-  
+
     // MetaMask account changes listener
     if (window.ethereum) {
       const handleAccountsChanged = (accounts: string[]) => {
@@ -477,9 +478,9 @@ const handleCopyAddress = async () => {
           localStorage.setItem('tempWalletUserData', JSON.stringify(emptyUserData));
         }
       };
-  
+
       window.ethereum.on('accountsChanged', handleAccountsChanged);
-      
+
       // Cleanup listener on unmount
       return () => {
         if (window.ethereum?.removeListener) {
@@ -488,7 +489,7 @@ const handleCopyAddress = async () => {
       };
     }
   }, []); // Empty dependency array - only run once on mount
-  
+
   // Separate effect for handling wallet name updates when walletAddress changes
   useEffect(() => {
     if (walletAddress) {
@@ -595,7 +596,7 @@ const handleCopyAddress = async () => {
 
   const handleNavClick = (item: string) => {
     setActiveItem(item);
-    
+
     // Add navigation logic for routing
     if (typeof window !== 'undefined') {
       switch (item) {
@@ -643,16 +644,16 @@ const handleCopyAddress = async () => {
       if (!newUserData.accounts) {
         newUserData.accounts = [];
       }
-      
+
       // Find or create account
       let accountIndex = newUserData.accounts.findIndex((acc) => acc.account === walletAddress);
       if (accountIndex === -1) {
         // Create new account
-        const newAccount = { 
-          account: walletAddress!, 
-          name: walletName, 
-          externalAccountNumber: 1, 
-          wallets: [wallet] 
+        const newAccount = {
+          account: walletAddress!,
+          name: walletName,
+          externalAccountNumber: 1,
+          wallets: [wallet]
         };
         newUserData.accounts = [...newUserData.accounts, newAccount];
       } else {
@@ -661,23 +662,23 @@ const handleCopyAddress = async () => {
         const existingWalletIndex = account.wallets.findIndex(
           (w) => w.address === wallet.address && w.walletNumber === wallet.walletNumber
         );
-        
+
         if (existingWalletIndex !== -1) {
           // Update existing wallet
-          account.wallets = account.wallets.map((w, index) => 
+          account.wallets = account.wallets.map((w, index) =>
             index === existingWalletIndex ? wallet : w
           );
         } else {
           // Add new wallet
           account.wallets = [...account.wallets, wallet];
         }
-        
+
         // Update accounts array immutably
-        newUserData.accounts = newUserData.accounts.map((acc, index) => 
+        newUserData.accounts = newUserData.accounts.map((acc, index) =>
           index === accountIndex ? account : acc
         );
       }
-      
+
       localStorage.setItem('tempWalletUserData', JSON.stringify(newUserData));
       return newUserData;
     });
@@ -687,21 +688,21 @@ const handleCopyAddress = async () => {
     setUserData(prevUserData => {
       const newUserData = { ...prevUserData };
       const accountIndex = newUserData.accounts.findIndex((acc) => acc.account === walletAddress);
-      
+
       if (accountIndex !== -1) {
         const account = { ...newUserData.accounts[accountIndex] };
         account.wallets = account.wallets.filter(
           (w) => !(w.address === wallet.address && w.walletNumber === wallet.walletNumber)
         );
-        
+
         // Update accounts array immutably
-        newUserData.accounts = newUserData.accounts.map((acc, index) => 
+        newUserData.accounts = newUserData.accounts.map((acc, index) =>
           index === accountIndex ? account : acc
         );
-        
+
         localStorage.setItem('tempWalletUserData', JSON.stringify(newUserData));
       }
-      
+
       return newUserData;
     });
   };
@@ -710,33 +711,34 @@ const handleCopyAddress = async () => {
     setUserData(prevUserData => {
       const newUserData = { ...prevUserData };
       const accountIndex = newUserData.accounts.findIndex((acc) => acc.account === walletAddress);
-      
+
       if (accountIndex !== -1) {
         const account = { ...newUserData.accounts[accountIndex] };
         const walletIndex = account.wallets.findIndex(
           (w) => w.address === wallet.address && w.walletNumber === wallet.walletNumber
         );
-        
+
         if (walletIndex !== -1) {
-          account.wallets = account.wallets.map((w, index) => 
+          account.wallets = account.wallets.map((w, index) =>
             index === walletIndex ? { ...w, transactionStatus: status } : w
           );
-          
+
           // Update accounts array immutably
-          newUserData.accounts = newUserData.accounts.map((acc, index) => 
+          newUserData.accounts = newUserData.accounts.map((acc, index) =>
             index === accountIndex ? account : acc
           );
-          
+
           localStorage.setItem('tempWalletUserData', JSON.stringify(newUserData));
         }
       }
-      
+
       return newUserData;
     });
   };
 
+  // --- CHANGE: Render the new animated landing page ---
   if (showLandingPage) {
-    return <LandingPage onComplete={() => setShowLandingPage(false)} />;
+    return <AnimatedLandingPage onComplete={() => setShowLandingPage(false)} />;
   }
 
   if (!isDesktop) {
@@ -789,7 +791,7 @@ const handleCopyAddress = async () => {
 
 return (
   <Router>
-    <AppRouterContent 
+    <AppRouterContent
       hasSubmittedName={hasSubmittedName}
       name={name}
       setName={setName}

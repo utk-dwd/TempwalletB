@@ -179,6 +179,59 @@ profile-dropdown {
     text-align: center;
 }
 
+.flipper-container {
+    position: relative;
+    width: 300px;
+    height: 200px;
+    transform-style: preserve-3d;
+  }
+  
+  .flipper-face {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden; /* Crucial for the flip effect */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .flipper-back {
+    transform: rotateY(180deg); /* Start with the back face rotated away */
+  }
+  
+  .logo-3d-effect {
+    /* FIX: Increased Z-axis translation for better layer separation */
+    transform: translateZ(20px); 
+    filter: drop-shadow(0px 10px 15px rgba(0, 0, 0, 0.3));
+  }
+  
+  .static-glossy-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(
+      circle at 40% 30%,
+      rgba(255, 255, 255, 0.3),
+      transparent 50%
+    );
+    mix-blend-mode: overlay;
+    pointer-events: none;
+    border-radius: 50%;
+    /* FIX: Place just in front of the logo with more separation */
+    transform: translateZ(21px); 
+  }
+  
+  .logo-text-3d {
+    /* FIX: Give the text its own depth on the back face */
+    transform: translateZ(20px);
+    font-size: 2.5rem; /* 40px */
+    font-weight: bold;
+    color: rgba(255, 255, 255, 0.85);
+    text-shadow: 0px 2px 15px rgba(0, 0, 0, 0.5);
+  }
 /* Light mode adjustments */
 @media (prefers-color-scheme: light) {
     profile-dropdown import-button:hover {
