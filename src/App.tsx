@@ -4,18 +4,18 @@ import { ethers } from 'ethers';
 import { Header } from '@/components/layout/Header';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { MainContent } from '@/components/layout/MainContent';
-// --- CHANGE: Import the new animated landing page ---
 import { AnimatedLandingPage } from '@/components/pages/AnimatedLandingPage';
 import { UnsupportedDevice } from '@/components/pages/UnsupportedDevice';
 import { Wallet, UserData, TransactionStatus } from '@/utils/types';
 import { exportUserData, importUserData } from './utils/exportImport';
 import '@/index.css';
-import { Image } from 'lucide-react'; // Icon for switching backgrounds
+import { Image } from 'lucide-react'; 
 import { HoverInfoBox } from '@/components/ui/HoverInfoBox';
 import * as Tooltip from "@radix-ui/react-tooltip";
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { BlogListing } from '@/components/pages/BlogListing';
 import React from 'react';
+import PresalePage from './components/pages/PresalePage';
 
 
 //component definition:
@@ -71,7 +71,7 @@ function AppLayout({
 }: LayoutProps)
 {
   const location = useLocation();
-const hideHeader = location.pathname === '/blogs';
+  const hideHeader = location.pathname === '/blogs' || location.pathname === '/presale';
   return (
     <>
       {/* Background wrapper with dynamic image */}
@@ -230,6 +230,8 @@ function AppRoutes({
         return 'Dashboard';
       case '/blogs':
         return 'Blogs';
+      case '/presale':
+        return 'Presale';
       default:
         return 'Dashboard';
     }
@@ -251,6 +253,7 @@ function AppRoutes({
         }
       />
       <Route path="/blogs" element={<BlogListing />} />
+      <Route path="/presale" element={<PresalePage />} />
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   );
@@ -271,7 +274,10 @@ function AppRouterContent(props: any) {
       case '/blogs':
         // Don't call handleNavClick to avoid loop, just update activeItem if needed
         break;
-    }
+      case '/presale':
+        // Don't call handleNavClick to avoid loop, just update activeItem if needed
+        break;
+      }
   }, [location.pathname]);
 
   // Enhanced navigation handler
@@ -282,6 +288,9 @@ function AppRouterContent(props: any) {
         break;
       case 'Blogs':
         navigate('/blogs');
+        break;
+      case 'Presale':
+        navigate('/presale');
         break;
       default:
         props.handleNavClick(item);

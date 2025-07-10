@@ -1,105 +1,56 @@
 // src/components/pages/LandingPage.tsx
-import { motion, useAnimation, useMotionValue, useTransform } from 'framer-motion';
-import { useEffect, useState } from 'react';
-import { FiEyeOff } from 'react-icons/fi'; // Using a popular icon library for the logo
+import { motion } from 'framer-motion';
+import { useEffect } from 'react';
 
-interface AnimatedLandingPageProps {
+interface LandingPageProps {
   onComplete: () => void;
 }
 
-export function AnimatedLandingPage({ onComplete }: AnimatedLandingPageProps) {
-  const [animationState, setAnimationState] = useState('intro');
-  const controls = useAnimation();
+const LightningBackground = () => (
+  <motion.div
+    className="absolute inset-0"
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1, transition: { duration: 1, repeat: Infinity, repeatType: 'reverse' } }}
+    style={{
+      background: 'linear-gradient(45deg, #F8F9FA, #E5E7EB)',
+    }}
+  >
+    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-accent-orange/20 to-transparent animate-pulse" />
+  </motion.div>
+);
 
-  // Mouse tracking for light reflection
-  const mouseX = useMotionValue(Infinity);
-  const mouseY = useMotionValue(Infinity);
+const DispersionText = () => (
+  <motion.h1
+    className="text-6xl font-bold text-text-primary"
+    initial={{ opacity: 1, scale: 1 }}
+    animate={{
+      opacity: 0,
+      scale: 1.2,
+      transition: { duration: 1, delay: 1.5 },
+    }}
+    style={{ filter: 'blur(0px)' }}
+    onAnimationComplete={() => {}}
+  >
+    TempWallets
+  </motion.h1>
+);
 
-  const gradientX = useTransform(mouseX, (val) => `${val}px`);
-  const gradientY = useTransform(mouseY, (val) => `${val}px`);
-
-  // Animation sequence
-  useEffect(() => {
-    const sequence = async () => {
-      await controls.start('visible');
-      await controls.start('flip');
-      setAnimationState('text');
-      await controls.start('textVisible');
-    };
-    sequence();
-  }, [controls]);
-
-  // Timeout and scroll listener to end the animation
+export function LandingPage({ onComplete }: LandingPageProps) {
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (animationState === 'text') {
-        onComplete();
-      }
-    }, 6000);
-
-    const handleScroll = () => {
       onComplete();
-    };
-
-    window.addEventListener('scroll', handleScroll);
-
-    return () => {
-      clearTimeout(timer);
-      window.removeEventListener('scroll', handleScroll);
-    };
-  }, [animationState, onComplete]);
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [onComplete]);
 
   return (
     <motion.div
-      className="min-h-screen flex items-center justify-center bg-gray-900 relative overflow-hidden"
-      onMouseMove={(e) => {
-        mouseX.set(e.clientX);
-        mouseY.set(e.clientY);
-      }}
+      className="min-h-screen flex items-center justify-center bg-primary-bg relative overflow-hidden"
       initial={{ opacity: 1 }}
-      animate={{ opacity: animationState === 'done' ? 0 : 1 }}
-      transition={{ duration: 0.5 }}
+      animate={{ opacity: 0, transition: { duration: 0.5, delay: 2.5 } }}
     >
-      <motion.div
-        style={{
-          // @ts-ignore
-          '--gradient-x': gradientX,
-          '--gradient-y': gradientY,
-        }}
-        className="relative"
-      >
-        {/* Incognito Logo */}
-        <motion.div
-          style={{ perspective: '1000px' }}
-          animate={controls}
-          initial={{ opacity: 0, scale: 0.8 }}
-          variants={{
-            visible: { opacity: 1, scale: 1, transition: { duration: 1 } },
-            flip: { rotateY: 90, transition: { duration: 0.5, delay: 2 } },
-            hidden: { opacity: 0 },
-          }}
-        >
-          <div className="relative text-gray-400 icon-glow-container">
-            <FiEyeOff size={128} />
-          </div>
-        </motion.div>
-
-        {/* TempWallets Text */}
-        {animationState === 'text' && (
-          <motion.h1
-            className="text-6xl font-bold text-white absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full text-center"
-            style={{ rotateY: -90 }}
-            initial={{ opacity: 0 }}
-            animate={{
-              opacity: 1,
-              rotateY: 0,
-              transition: { duration: 0.5 },
-            }}
-          >
-            <span className="gradient-text">TempWallets</span>
-          </motion.h1>
-        )}
-      </motion.div>
+      <LightningBackground />
+      <DispersionText />
     </motion.div>
   );
 }
