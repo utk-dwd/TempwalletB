@@ -6,6 +6,15 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import analyticsService from '@/services/analytics';
 import { EventName } from '@/utils/types';
 import React from 'react';
+import {
+  LayoutDashboard,
+  BookText,
+  Contact,
+  History,
+  Settings,
+  Star,
+} from 'lucide-react';
+import { FaTwitter, FaLinkedin, FaTelegramPlane, FaDiscord } from 'react-icons/fa';
 
 
 const StarBorderButton: React.FC<{ onClick: (e: React.MouseEvent) => void; children: React.ReactNode; className?: string; }> = ({ onClick, children, className }) => {
@@ -35,6 +44,15 @@ export function Sidebar({ activeItem: propActiveItem, onNavClick }: SidebarProps
   const [showPolicyPopup, setShowPolicyPopup] = useState<string | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
+
+  const navIcons: { [key: string]: React.ReactNode } = {
+      Dashboard: <LayoutDashboard size={20} className="mr-2" />,
+      Blogs: <BookText size={20} className="mr-2" />,
+      'Address Book': <Contact size={20} className="mr-2" />,
+      History: <History size={20} className="mr-2" />,
+      Settings: <Settings size={20} className="mr-2" />,
+      '$TEMP Token Pre-Sale': <Star size={20} className="mr-2" />,
+  };
   
   const routeMap: { [key: string]: string } = {
     Dashboard: '/dashboard',
@@ -118,7 +136,7 @@ export function Sidebar({ activeItem: propActiveItem, onNavClick }: SidebarProps
   justify-content: flex-start; /* Aligns content to the left */
   gap: 0.5rem;
   padding: 0.5rem 0.75rem;
-  font-size: 0.875rem;
+  font-size: 0.83rem;
   height: 100%;
 }
 
@@ -236,14 +254,15 @@ export function Sidebar({ activeItem: propActiveItem, onNavClick }: SidebarProps
         </Tooltip.Provider>
         
         <nav className="space-y-2 flex-1 flex-grow">
-          {navItems.map((item) => (
+          {navItems.map((item) =>
             item === '$TEMP Token Pre-Sale' ? (
               <StarBorderButton
                 key={item}
                 className={activeItem === item ? 'active' : ''}
                 onClick={(e) => handleNavClick(item, e)}
               >
-                ⭐ {item}
+                {navIcons[item]}
+                {item}
               </StarBorderButton>
             ) : (
               <Button
@@ -252,10 +271,11 @@ export function Sidebar({ activeItem: propActiveItem, onNavClick }: SidebarProps
                 className={`sidebar-item w-full justify-start h-10 px-3 py-2 text-sidebar-foreground ${activeItem === item ? 'active' : ''}`}
                 onClick={(e) => handleNavClick(item, e)}
               >
+                {navIcons[item]}
                 {item}
               </Button>
             )
-          ))}
+          )}
         </nav>
 
         <footer className="border-t border-gray-500 p-2 mt-4">
@@ -277,6 +297,20 @@ export function Sidebar({ activeItem: propActiveItem, onNavClick }: SidebarProps
             <div className="text-sm text-gray-400 hover:text-white transition-colors">
               Version 0.0.1
             </div>
+          </div>
+          <div className="flex justify-center space-x-6 mt-4">
+            <a href="https://x.com/tempwallets" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors">
+                <FaTwitter size={20} />
+            </a>
+            <a href="https://www.linkedin.com/showcase/tempwallets" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors">
+                <FaLinkedin size={20} />
+            </a>
+            <a href="https://t.me/+jGONCu_VLqgwZTVl" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors">
+                <FaTelegramPlane size={20} />
+            </a>
+            <a href="https://discord.gg/tempwallets" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors">
+                <FaDiscord size={20} />
+            </a>
           </div>
         </footer>
       </div>

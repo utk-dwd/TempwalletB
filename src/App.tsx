@@ -392,7 +392,7 @@ function App() {
     walletNames: {},
   });
   // State for background image
-  const backgroundImages: string[] = ['/bg2.jpg', '/bg7.jpg','/bg1.jpg', '/bg3.jpg', '/bg4.jpg','/bg5.jpg','/bg6.jpg'];
+  const backgroundImages: string[] = ['/bg7.jpg','/bg2.jpg','/bg1.jpg', '/bg3.jpg', '/bg4.jpg','/bg5.jpg','/bg6.jpg'];
   const [bgIndex, setBgIndex] = useState<number>(0);
 
   // Function to cycle background images

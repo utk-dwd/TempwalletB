@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { gsap } from 'gsap';
-import { Copy, Wallet, Send, Award, DollarSign,CircleDollarSign } from 'lucide-react';
-import Leaderboard from '@/components/leaderboard/Leaderboard'; // Import the Leaderboard component
+import { Copy, Wallet, Send, Award, CircleDollarSign, AlertTriangle, X, Presentation } from 'lucide-react';
+import Leaderboard from '@/components/leaderboard/Leaderboard';
 
 // --- ShadCN UI Components ---
 import { Button } from '@/components/ui/button';
@@ -26,7 +26,9 @@ const PRICE_TIERS = [
   { minAmount: 5000, maxAmount: '∞', pricePerToken: 0.01 }
 ];
 
+
 // --- Reusable Components ---
+
 const Toast = ({ message, show }: { message: string; show: boolean }) => {
   if (!show) return null;
   return (
@@ -72,6 +74,139 @@ const ProcessDiagram = () => {
   );
 };
 
+const CautionToggle = () => {
+  const [isOpen, setIsOpen] = useState(true);
+  const boxRef = useRef(null);
+
+  useEffect(() => {
+      if (isOpen) {
+          gsap.fromTo(boxRef.current, 
+              { autoAlpha: 0, y: -20, display: 'none' }, 
+              { autoAlpha: 1, y: 0, display: 'block', duration: 0.4, ease: 'power3.out' }
+          );
+      } else {
+          if (boxRef.current && (boxRef.current as HTMLElement).style.display === 'block') {
+              gsap.to(boxRef.current, { 
+                  autoAlpha: 0, 
+                  y: -20, 
+                  duration: 0.3, 
+                  ease: 'power3.in', 
+                  onComplete: () => {
+                      if (boxRef.current) {
+                          (boxRef.current as HTMLElement).style.display = 'none';
+                      }
+                  }
+              });
+          }
+      }
+  }, [isOpen]);
+
+  return (
+      <div className="fixed top-6 right-6 z-50 flex flex-col items-end">
+          <button
+              onClick={() => setIsOpen(!isOpen)}
+              className="relative z-10 p-2 rounded-full bg-yellow-500/20 backdrop-blur-md border border-yellow-500/40 text-yellow-300 hover:bg-yellow-500/30 transition-all shadow-lg"
+              aria-label="Toggle caution notice"
+          >
+              <AlertTriangle className="h-6 w-6" />
+          </button>
+          <div 
+              ref={boxRef} 
+              style={{ 
+                  display: 'none',
+                  WebkitMaskImage: 'radial-gradient(circle 30px at top right, transparent 100%, black 100%)',
+                  maskImage: 'radial-gradient(circle 30px at top right, transparent 100%, black 100%)',
+              }} 
+              className="absolute top-0 right-0 mt-2 w-[20rem] pt-3 p-4 rounded-lg bg-yellow-500/10 backdrop-blur-md border border-yellow-500/30 shadow-lg"
+          >
+              <button onClick={() => setIsOpen(false)} className="absolute top-2 right-2 text-yellow-300/70 hover:text-white transition-colors">
+                  <X size={18} />
+              </button>
+              <div>
+                  <p className="text-sm font-semibold text-yellow-200">Important Notice</p>
+                  <p className="text-xs text-yellow-200/80 mt-1">
+                        This is the presale <strong className="text-yellow-100/90">allocation</strong> of TEMP token. It will go live when we hit the soft-cap of <strong className="text-yellow-100/90">50,000 TEMP</strong>.
+                    </p>
+                    <p className="text-xs text-yellow-200/80 mt-2">
+                        You can only participate by sending <strong className="text-yellow-100/90">USDT</strong> over the
+                        <span className="inline-flex items-center ml-1">
+                            <img src="/ethereum-eth-logo.png" alt="Ethereum" className="h-3 w-3 mr-1" />
+                            <strong className="text-yellow-100/90">Ethereum mainnet.</strong>
+                        </span>
+                         We do not accept funds from other networks or other tokens.
+                    </p>
+              </div>
+          </div>
+      </div>
+  );
+};
+
+const DeckViewerToggle = () => {
+    const [isOpen, setIsOpen] = useState(false);
+    const viewerRef = useRef(null);
+    const backdropRef = useRef(null);
+
+    useEffect(() => {
+        if (isOpen) {
+            gsap.to(backdropRef.current, { autoAlpha: 1, duration: 0.3 });
+            gsap.fromTo(viewerRef.current,
+                { autoAlpha: 0, scale: 0.95, y: 20 },
+                { autoAlpha: 1, scale: 1, y: 0, duration: 0.4, ease: 'power3.out' }
+            );
+        }
+    }, [isOpen]);
+
+    const handleClose = () => {
+        gsap.to(viewerRef.current, {
+            autoAlpha: 0, scale: 0.95, y: 20, duration: 0.3, ease: 'power3.in',
+            onComplete: () => setIsOpen(false)
+        });
+        gsap.to(backdropRef.current, { autoAlpha: 0, duration: 0.3 });
+    };
+
+    return (
+        <>
+            {/* The persistent icon button */}
+            <button
+                onClick={() => setIsOpen(true)}
+                className="fixed top-20 right-6 z-1 p-2 rounded-full bg-green-500/20 backdrop-blur-md border border-green-500/40 text-green-300 hover:bg-green-500/30 transition-all shadow-lg"
+                aria-label="View project deck"
+            >
+                <Presentation className="h-6 w-6" />
+            </button>
+
+            {/* The Modal */}
+            {isOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    {/* Backdrop */}
+                    <div ref={backdropRef} className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={handleClose}></div>
+                    
+                    {/* Viewer Content */}
+                    <div ref={viewerRef} className="relative w-full h-full max-w-6xl flex flex-col rounded-lg bg-black/50 border border-green-500/30 shadow-2xl overflow-hidden">
+                        <div className="flex items-center justify-between p-3 bg-black/20 border-b border-green-500/20 flex-shrink-0">
+                            <h3 className="text-lg font-semibold text-green-200 flex items-center gap-2">
+                                <Presentation className="h-5 w-5" />
+                                Project Deck
+                            </h3>
+                            <button onClick={handleClose} className="text-green-300/70 hover:text-white transition-colors">
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <iframe
+                            className="flex-1 w-full h-full bg-white"
+                            src="https://www.canva.com/design/DAGozVMA5f0/XFamNzsA24ppP2FaVRtIhA/view?embed"
+                            allowFullScreen
+                            allow="fullscreen"
+                            title="Project Deck"
+                        ></iframe>
+                    </div>
+                </div>
+            )}
+        </>
+    );
+};
+
+
 // --- Main Presale Page Component ---
 const PresalePage = () => {
   const [showToast, setShowToast] = useState(false);
@@ -80,13 +215,12 @@ const PresalePage = () => {
   const headerRef = useRef(null);
   const leaderboardRef = useRef(null);
   const rightColumnRef = useRef(null);
+  
   useEffect(() => {
     const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
   
-    // Set initial state for all elements
     gsap.set([headerRef.current, leaderboardRef.current, rightColumnRef.current], { autoAlpha: 0, y: 20 });
   
-    // Animate elements into view
     tl.to(headerRef.current, { autoAlpha: 1, y: 0, duration: 1 })
       .to([leaderboardRef.current, rightColumnRef.current], {
         autoAlpha: 1,
@@ -106,16 +240,26 @@ const PresalePage = () => {
     <>
       <style>{`.custom-scrollbar::-webkit-scrollbar{width:8px;}.custom-scrollbar::-webkit-scrollbar-track{background:rgba(255,255,255,0.05);border-radius:4px;}.custom-scrollbar::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.2);border-radius:4px;transition:background .3s;}.custom-scrollbar::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,0.3);}.custom-scrollbar{scrollbar-width:thin;scrollbar-color:rgba(255,255,255,0.2) rgba(255,255,255,0.05);}`}</style>
       
+      <CautionToggle />
+      <DeckViewerToggle />
+
       <div className="flex-1 p-6 flex flex-col overflow-hidden text-white">
         <div className="max-w-7xl mx-auto w-full flex flex-col flex-1 min-h-0">
           
           <div ref={headerRef} className="mb-8">
             <div className="flex items-center mb-4">
               <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-              <h1 className="px-6 text-3xl font-bold text-white">$TEMP Token Pre-Sale</h1>
+               <h1 className="px-4 text-3xl font-bold text-white flex items-center justify-center gap-2">
+                <img 
+                  src="/TEMP Token Logo.svg" 
+                  alt="TEMP Token" 
+                  className="h-12 w-12" 
+                />
+                <span>TEMP Token Pre-Sale</span>
+              </h1>
               <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
             </div>
-            <p className="text-center text-gray-400 text-sm">Your participation helps us build and maintain the TempWallets platform.</p>
+            <p className="text-center text-gray-400 text-sm">TEMP Tokens will go live when we hit the soft-cap of 50,000 TEMP.</p>
           </div>
 
           <div className="flex-1 flex flex-col lg:flex-row gap-8 min-h-0">
@@ -149,7 +293,14 @@ const PresalePage = () => {
 
               <Card className="bg-white/5 backdrop-blur-sm border border-white/10">
                 <CardHeader>
-                  <CardTitle className="text-white flex items-center gap-2"><DollarSign size={24}/> TEMP Token Pricing Tiers</CardTitle>
+                   <CardTitle className="text-white flex items-center gap-2 mb-[-25px]">
+                    <img 
+                      src="/TEMP Token Logo.svg" 
+                      alt="TEMP Token" 
+                      className="h-8 w-8" 
+                    />
+                    <span>TEMP Token Pricing Tiers</span>
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <Table>

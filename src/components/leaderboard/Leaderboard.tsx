@@ -12,6 +12,49 @@ import { Button } from '@/components/ui/button';
 import { Crown, RefreshCw, CircleDollarSign } from 'lucide-react';
 import { CardTitle } from '@/components/ui/card';
 
+// --- NEW: Progress Bar Component ---
+const AllocationProgressBar = ({ currentValue, goal }: { currentValue: number; goal: number }) => {
+  // Calculate the percentage, ensuring it doesn't exceed 100%
+  const percentage = Math.min((currentValue / goal) * 100, 100);
+
+  return (
+    <div className="mt-1 px-2">
+      <div className="flex justify-between items-center text-xs text-gray-300 mb-1.5">
+        <span className="font-semibold">Allocation Progress</span>
+        <span className="font-mono">
+          {currentValue.toLocaleString(undefined, {maximumFractionDigits: 0})} / {goal.toLocaleString()} TEMP
+        </span>
+      </div>
+      <div className="w-full bg-white/10 rounded-full h-2 overflow-hidden border border-white/20 shadow-inner">
+        <div
+          className="bg-white h-full rounded-full transition-all duration-1000 ease-out animate-pulse-glow"
+          style={{ width: `${percentage}%` }}
+        ></div>
+      </div>
+    </div>
+  );
+};
+
+// --- NEW: Component to display wallet address in a stylized way ---
+const ObfuscatedAddress = ({ address }: { address: string }) => {
+  // Return the full address if it's too short to be obfuscated
+  if (!address || address.length < 9) {
+    return <span className="font-mono text-gray-300">{address}</span>;
+  }
+
+  const start = address.substring(0, 5);
+  const end = address.substring(address.length - 5);
+  
+  return (
+    <div className="inline-flex items-center font-mono text-sm text-gray-300">
+      <span>{start}</span>
+      <span className="mx-1 blur-[1.5px] select-none text-gray-500">••••••••••••••••••••••••••••</span>
+      <span>{end}</span>
+    </div>
+  );
+};
+
+
 // Define the structure of our leaderboard data
 interface LeaderboardEntry {
   participant_address: string;
@@ -25,6 +68,10 @@ const Leaderboard = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [countdown, setCountdown] = useState(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // --- NEW: State for total allocation and the goal ---
+  const [totalAllocation, setTotalAllocation] = useState(0);
+  const ALLOCATION_GOAL = 50000;
 
   // This function fetches and processes the data from Supabase
   const fetchLeaderboard = async () => {
@@ -38,6 +85,11 @@ const Leaderboard = () => {
       setLoading(false);
       return;
     }
+
+    // --- NEW: Calculate total allocated tokens from all participations ---
+    const total = data.reduce((acc, item) => acc + Number(item.temp_tokens_assigned || 0), 0);
+    setTotalAllocation(total);
+    // ---
 
     const participants = new Map<string, { usdt: number; temp: number }>();
     data.forEach(item => {
@@ -58,14 +110,12 @@ const Leaderboard = () => {
     setLoading(false);
   };
   
-  // This function handles the refresh button click
   const handleRefresh = async () => {
     if (isRefreshing) return;
 
     setIsRefreshing(true);
     setCountdown(60);
 
-    // Invoke the backend function to scan for new transactions
     const { error } = await supabase.functions.invoke('scan-presale-participation');
 
     if (error) {
@@ -76,10 +126,8 @@ const Leaderboard = () => {
       return;
     }
     
-    // After the function is invoked, fetch the updated leaderboard data
     await fetchLeaderboard();
 
-    // Start the countdown timer
     timerRef.current = setInterval(() => {
       setCountdown(prev => {
         if (prev <= 1) {
@@ -93,10 +141,7 @@ const Leaderboard = () => {
   };
 
   useEffect(() => {
-    // Fetch initial data on component mount
     fetchLeaderboard();
-
-    // Cleanup timer on component unmount
     return () => {
       if (timerRef.current) {
         clearInterval(timerRef.current);
@@ -111,63 +156,85 @@ const Leaderboard = () => {
   };
 
   return (
-    <div className="w-full h-full flex flex-col gap-2">
-      <div className="flex justify-between items-center mb-2">
-          <CardTitle className="text-white text-lg">Presale Participants</CardTitle>
-          <Button
-              onClick={handleRefresh}
-              disabled={isRefreshing}
-              variant="ghost"
-              className="text-white hover:text-gray-300 hover:bg-white/10 transition-all duration-200 group disabled:opacity-50"
-          >
-              <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-              {isRefreshing ? `Next refresh in ${formatTime(countdown)}` : 'Refresh'}
-          </Button>
-      </div>
-  
-      <div className="flex-1 overflow-y-auto custom-scrollbar pr-2">
-        {loading && leaderboardData.length === 0 ? (
-          <p className="text-center text-gray-400 py-8">Loading Top Participants...</p>
-        ) : leaderboardData.length === 0 ? (
-          <p className="text-center text-gray-400 py-8">No participants yet. Be the first!</p>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow className="border-white/20 hover:bg-transparent">
-                <TableHead className="w-[100px] text-white font-semibold">Rank</TableHead>
-                <TableHead className="text-white font-semibold">Participant</TableHead>
-                <TableHead className="text-right text-white font-semibold">$TEMP Tokens</TableHead>
-                <TableHead className="text-right text-white font-semibold">Amount</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {leaderboardData.map((entry, index) => (
-                <TableRow key={entry.participant_address} className="border-white/10 hover:bg-white/5">
-                  <TableCell className="font-medium text-lg">
-                    <div className="flex items-center gap-2">
-                      {index === 0 && <Crown className="h-5 w-5 text-yellow-400" />}
-                      {index === 1 && <Crown className="h-5 w-5 text-gray-400" />}
-                      {index === 2 && <Crown className="h-5 w-5 text-yellow-600" />}
-                      <span>{index + 1}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="font-mono text-gray-300">{entry.participant_address}</TableCell>
-                  <TableCell className="text-right font-semibold text-lg text-cyan-400">
-                    {(entry.total_temp_tokens_assigned || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </TableCell>
-                  <TableCell className="text-right font-semibold text-white">
-                    <div className="flex items-center justify-end gap-2">
-                        <CircleDollarSign className="h-4 w-4 text-green-400" />
-                        <span>{(entry.total_usdt_amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                    </div>
-                  </TableCell>
+    <>
+      {/* --- NEW: CSS for the glow animation --- */}
+      <style>{`
+        @keyframes pulse-glow {
+          0%, 100% {
+            box-shadow: 0 0 3px rgba(255, 255, 255, 0.6), 0 0 5px rgba(255, 255, 255, 0.4);
+          }
+          50% {
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.9), 0 0 15px rgba(255, 255, 255, 0.6);
+          }
+        }
+        .animate-pulse-glow {
+          animation: pulse-glow 2.5s infinite ease-in-out;
+        }
+      `}</style>
+      <div className="w-full h-full flex flex-col gap-2">
+        <div className="flex justify-between items-center mb-2">
+            <CardTitle className="text-white text-lg">Presale Participants</CardTitle>
+            <Button
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                variant="ghost"
+                className="text-white hover:text-gray-300 hover:bg-white/10 transition-all duration-200 group disabled:opacity-50"
+            >
+                <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                {isRefreshing ? `Next refresh in ${formatTime(countdown)}` : 'Refresh'}
+            </Button>
+        </div>
+    
+        <div className="flex-1 overflow-y-auto custom-scrollbar pr-2">
+          {loading && leaderboardData.length === 0 ? (
+            <p className="text-center text-gray-400 py-8">Loading Top Participants...</p>
+          ) : leaderboardData.length === 0 ? (
+            <p className="text-center text-gray-400 py-8">No participants yet. Be the first!</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow className="border-white/20 hover:bg-transparent">
+                  <TableHead className="w-[100px] text-white font-semibold">Rank</TableHead>
+                  <TableHead className="text-white font-semibold">Participant</TableHead>
+                  <TableHead className="text-right text-white font-semibold">$TEMP Tokens Assigned</TableHead>
+                  <TableHead className="text-right text-white font-semibold">USDT Amount</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
+              </TableHeader>
+              <TableBody>
+                {leaderboardData.map((entry, index) => (
+                  <TableRow key={entry.participant_address} className="border-white/10 hover:bg-white/5">
+                    <TableCell className="font-medium text-lg">
+                      <div className="flex items-center gap-2">
+                        {index === 0 && <Crown className="h-5 w-5 text-yellow-400" />}
+                        {index === 1 && <Crown className="h-5 w-5 text-gray-400" />}
+                        {index === 2 && <Crown className="h-5 w-5 text-yellow-600" />}
+                        <span>{index + 1}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <ObfuscatedAddress address={entry.participant_address} />
+                    </TableCell>
+                    <TableCell className="text-right font-semibold text-lg text-cyan-400 pr-[4rem]">
+                      {(entry.total_temp_tokens_assigned || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </TableCell>
+                    <TableCell className="text-right font-semibold text-white pr-[2rem]">
+                      <div className="flex items-center justify-end gap-2">
+                          <CircleDollarSign className="h-4 w-4 text-green-400" />
+                          <span>{(entry.total_usdt_amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </div>
+        {/* --- Render the progress bar at the bottom --- */}
+        <div className="mt-auto pt-3 border-t border-white/10">
+            <AllocationProgressBar currentValue={totalAllocation} goal={ALLOCATION_GOAL} />
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 

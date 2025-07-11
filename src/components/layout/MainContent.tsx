@@ -271,7 +271,7 @@ export function MainContent({ walletAddress, wallets, onWalletCreated, onWalletD
       <style>{`.custom-scrollbar::-webkit-scrollbar{width:10px;}.custom-scrollbar::-webkit-scrollbar-track{background:rgba(55,65,81,0.3);border-radius:10px;margin-top:5px;margin-bottom:5px;}.custom-scrollbar::-webkit-scrollbar-thumb{background:rgba(209,213,219,0.5);border-radius:10px;border:2px solid transparent;background-clip:content-box;}.custom-scrollbar::-webkit-scrollbar-thumb:hover{background:rgba(156,163,175,0.7);background-clip:content-box;}.custom-scrollbar{scrollbar-width:thin;scrollbar-color:rgba(209,213,219,0.5) rgba(55,65,81,0.3);}`}</style>
       <div className="bg-[var(--overlay)] border border-white/20 backdrop-blur-[var(--blur)] rounded-xl p-4 flex-1 flex flex-col h-full min-h-0 mb-5 ml-5 mr-5">
         <div className="flex items-center justify-between">
-          <Tooltip.Provider>
+          <Tooltip.Provider delayDuration={200}>
             <Tooltip.Root>
               <Tooltip.Trigger asChild>
                 <h2 className="text-xl font-semibold text-white">Your Temporary Wallets ({selectedNetwork.name})</h2>
@@ -287,9 +287,9 @@ export function MainContent({ walletAddress, wallets, onWalletCreated, onWalletD
               </Tooltip.Portal>
             </Tooltip.Root>
           </Tooltip.Provider>
-
+    
           <div className="flex items-center gap-2">
-            <Tooltip.Provider>
+            <Tooltip.Provider delayDuration={200}>
               <Tooltip.Root>
                 <Tooltip.Trigger asChild>
                   <Button onClick={handleSortChange} className="px-4 py-2 bg-green-500/50 text-primary-foreground rounded-[var(--radius)] hover:bg-gray-400/50 transition-colors flex items-center w-[8rem]">
@@ -308,7 +308,7 @@ export function MainContent({ walletAddress, wallets, onWalletCreated, onWalletD
               </Tooltip.Root>
             </Tooltip.Provider>
 
-            <Tooltip.Provider>
+            <Tooltip.Provider delayDuration={200}>
               <Tooltip.Root>
                 <Tooltip.Trigger asChild>
                   <Button onClick={handleCreateNewTempWallet} className="px-4 py-2 bg-green-500/50 text-primary-foreground rounded-[var(--radius)] hover:bg-gray-400/50 transition-colors">
@@ -327,7 +327,7 @@ export function MainContent({ walletAddress, wallets, onWalletCreated, onWalletD
               </Tooltip.Root>
             </Tooltip.Provider>
 
-            <Tooltip.Provider>
+            <Tooltip.Provider delayDuration={200} >
               <Tooltip.Root>
                 <Tooltip.Trigger asChild>
                   <Button onClick={handleCreateRandomTempWallet} className="px-4 py-2 bg-green-500/50 text-primary-foreground rounded-[var(--radius)] hover:bg-gray-400/50 transition-colors">
@@ -346,7 +346,7 @@ export function MainContent({ walletAddress, wallets, onWalletCreated, onWalletD
               </Tooltip.Root>
             </Tooltip.Provider>
 
-            <Tooltip.Provider>
+            <Tooltip.Provider delayDuration={200}>
               <Tooltip.Root>
                 <Tooltip.Trigger asChild>
                   <Button 
@@ -374,7 +374,7 @@ export function MainContent({ walletAddress, wallets, onWalletCreated, onWalletD
               </Tooltip.Root>
             </Tooltip.Provider>
 
-            <Tooltip.Provider>
+            <Tooltip.Provider delayDuration={200}>
               <Tooltip.Root>
                 <Tooltip.Trigger>
                   <DropdownMenu>
@@ -415,7 +415,7 @@ export function MainContent({ walletAddress, wallets, onWalletCreated, onWalletD
               </Tooltip.Root>
             </Tooltip.Provider>
 
-            <Tooltip.Provider>
+            <Tooltip.Provider delayDuration={200}>
               <Tooltip.Root>
                 <Tooltip.Trigger>
                   <DropdownMenu>
