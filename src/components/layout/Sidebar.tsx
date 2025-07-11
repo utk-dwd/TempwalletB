@@ -8,10 +8,14 @@ import { EventName } from '@/utils/types';
 import React from 'react';
 
 
-// This is the button for the "Presale" link.
 const StarBorderButton: React.FC<{ onClick: (e: React.MouseEvent) => void; children: React.ReactNode; className?: string; }> = ({ onClick, children, className }) => {
   return (
     <button onClick={onClick} className={`star-border-button ${className}`}>
+      {/* These two divs create the moving star effect */}
+      <div className="star-animation-top"></div>
+      <div className="star-animation-bottom"></div>
+      
+      {/* This div holds the actual button content */}
       <div className="star-border-button-content">
         {children}
       </div>
@@ -19,25 +23,23 @@ const StarBorderButton: React.FC<{ onClick: (e: React.MouseEvent) => void; child
   );
 };
 
-
 interface SidebarProps {
   activeItem?: string; // Make activeItem optional since we'll derive it from the route
   onNavClick?: (item: string) => void; // Make onNavClick optional for flexibility
 }
 export function Sidebar({ activeItem: propActiveItem, onNavClick }: SidebarProps) {
   // Added 'Presale' to the navigation items
-  const navItems = ['Dashboard', 'Blogs', 'Address Book', 'History', 'Settings', 'Presale'];
+  const navItems = ['Dashboard', 'Blogs', 'Address Book', 'History', 'Settings', '$TEMP Token Pre-Sale'];
   const [showComingSoonPopup, setShowComingSoonPopup] = useState<string | null>(null);
   const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 });
   const [showPolicyPopup, setShowPolicyPopup] = useState<string | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
   
-  // Added the route for the 'Presale' page
   const routeMap: { [key: string]: string } = {
     Dashboard: '/dashboard',
     Blogs: '/blogs',
-    'Presale': '/presale',
+    '$TEMP Token Pre-Sale': '/presale',
     'Address Book': '/address-book',
     History: '/history',
     Settings: '/settings',
@@ -92,68 +94,110 @@ export function Sidebar({ activeItem: propActiveItem, onNavClick }: SidebarProps
       {/* Styles for the StarBorderButton */}
       <style>
         {`
-          .star-border-button {
-            position: relative;
-            background: transparent;
-            border: none;
-            color: white;
-            padding: 0.5rem 0.75rem; /* Match sidebar-item padding */
-            font-size: 0.875rem; /* Match sidebar-item font size */
-            font-weight: 500;
-            cursor: pointer;
-            overflow: hidden;
-            width: 100%;
-            text-align: left;
-            border-radius: var(--radius);
-            height: 2.5rem; /* Match sidebar-item height */
-            display: flex;
-            align-items: center;
-          }
 
-          .star-border-button-content {
-            position: relative;
-            z-index: 1;
-          }
+.star-border-button {
+  position: relative;
+  background: transparent;
+  border: none;
+  color: white;
+  font-weight: 500;
+  cursor: pointer;
+  overflow: hidden; /* This is crucial to clip the animation */
+  width: 100%;
+  border-radius: 0.75rem;
+  height: 2.5rem;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
 
-          .star-border-button::before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 150%;
-            height: 300%;
-            border-radius: var(--radius);
-            background: conic-gradient(from 0deg, #818cf8, #c084fc, #f472b6, #818cf8);
-            animation: rotate 4s linear infinite;
-            transform: translate(-50%, -50%);
-          }
-          
-          .star-border-button::after {
-            content: '';
-            position: absolute;
-            inset: 2px;
-            border-radius: 0.65rem; /* Slightly smaller than main radius to prevent bleed */
-            background: var(--overlay);
-          }
+.star-border-button-content {
+  /* This ensures the content is above the animation */
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start; /* Aligns content to the left */
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  height: 100%;
+}
 
-          .star-border-button:hover::after {
-             background: var(--sidebar-accent);
-          }
-          
-          .star-border-button.active::after {
-            background: var(--sidebar-accent);
-          }
-          
-          .star-border-button.active .star-border-button-content {
-             font-weight: 600;
-          }
+/* Styles for the two animated "star" elements */
+.star-animation-top,
+.star-animation-bottom {
+  position: absolute;
+  width: 300%;
+  height: 50%;
+  opacity: 0.7;
+  border-radius: 9999px; /* rounded-full */
+  background: radial-gradient(circle, white, transparent 20%);
+  z-index: 0;
+}
 
+.star-animation-top {
+  top: -15px;
+  left: -250%;
+  animation: star-movement-top 6s linear infinite alternate;
+}
 
-          @keyframes rotate {
-            100% {
-              transform: translate(-50%, -50%) rotate(1turn);
-            }
-          }
+.star-animation-bottom {
+  bottom: -15px;
+  right: -250%;
+  animation: star-movement-bottom 6s linear infinite alternate;
+}
+
+/* The active/hover state now only needs to handle the uplift and glass effect */
+.star-border-button:hover,
+.star-border-button.active {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+.star-border-button::after {
+  content: '';
+  position: absolute;
+  inset: 1px; /* Border thickness */
+  border-radius: 0.65rem;
+  background: var(--overlay);
+  transition: background 0.3s ease;
+  z-index: 0;
+}
+
+.star-border-button:hover::after,
+.star-border-button.active::after {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.star-border-button.active .star-border-button-content {
+   font-weight: 600;
+}
+
+/* Base styles for standard sidebar buttons */
+.sidebar-item {
+    transition: transform 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
+}
+
+.sidebar-item.active,
+.sidebar-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px 0 rgba(0, 0, 0, 0.3);
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+}
+
+/* Keyframes for the new animation */
+@keyframes star-movement-top {
+  from { transform: translate(0%, 0%); opacity: 0.7; }
+  to { transform: translate(100%, 0%); opacity: 0; }
+}
+
+@keyframes star-movement-bottom {
+  from { transform: translate(0%, 0%); opacity: 0.7; }
+  to { transform: translate(-100%, 0%); opacity: 0; }
+}
         `}
       </style>
 
@@ -193,13 +237,13 @@ export function Sidebar({ activeItem: propActiveItem, onNavClick }: SidebarProps
         
         <nav className="space-y-2 flex-1 flex-grow">
           {navItems.map((item) => (
-            item === 'Donate' ? (
+            item === '$TEMP Token Pre-Sale' ? (
               <StarBorderButton
                 key={item}
                 className={activeItem === item ? 'active' : ''}
                 onClick={(e) => handleNavClick(item, e)}
               >
-                ⭐ Donate
+                ⭐ {item}
               </StarBorderButton>
             ) : (
               <Button

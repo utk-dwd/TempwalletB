@@ -1,101 +1,91 @@
 // src/components/pages/AnimatedLandingPage.tsx
-import { motion, useAnimation } from 'framer-motion';
-import { useEffect, useState } from 'react';
-import { FiEyeOff } from 'react-icons/fi';
-import { InteractiveFlares } from './InteractiveFlares';
+import { useState, useEffect } from 'react';
 
+// --- Mobile Detection Hook (Integrated directly into this file) ---
+const MOBILE_BREAKPOINT = 768;
+
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(window.innerWidth < MOBILE_BREAKPOINT);
+
+  useEffect(() => {
+    const checkDevice = () => {
+      setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
+    };
+    window.addEventListener('resize', checkDevice);
+    return () => window.removeEventListener('resize', checkDevice);
+  }, []);
+
+  return isMobile;
+}
+
+
+// --- The Main Landing Page Component ---
 interface AnimatedLandingPageProps {
   onComplete: () => void;
 }
 
 export function AnimatedLandingPage({ onComplete }: AnimatedLandingPageProps) {
-  const containerControls = useAnimation();
-  const backFaceControls = useAnimation();
+  // --- STATE MANAGEMENT ---
+  const isMobile = useIsMobile();
+  const [displayText, setDisplayText] = useState('TempWallets');
   const [isExiting, setIsExiting] = useState(false);
+  const [mousePosition, setMousePosition] = useState({ x: 50, y: 50 });
 
-  // --- ANIMATION SEQUENCE ---
+  // --- MOUSE TRACKING FOR DESKTOP ---
   useEffect(() => {
-    if (isExiting) return; // Don't run entry animation if exiting
+    if (isMobile) return;
 
-    const sequence = async () => {
-      // 1. The container scales up and fades in.
-      await containerControls.start({
-        opacity: 1,
-        scale: 1,
-        transition: { duration: 0.5, ease: 'easeOut' },
-      });
-
-      // 2. Just before the flip, allow the back face to be rendered.
-      await backFaceControls.start({ opacity: 1 });
-
-      // 3. The container flips.
-      await containerControls.start({
-        rotateY: 180,
-        transition: { duration: 1, ease: 'easeInOut', delay: 1.5 },
-      });
-    };
-    sequence();
-  }, [containerControls, backFaceControls, isExiting]);
-
-  // --- EXIT LOGIC ---
-  useEffect(() => {
-    const handleExit = () => {
-      setIsExiting(true);
+    const handleMouseMove = (e: MouseEvent) => {
+      const x = (e.clientX / window.innerWidth) * 100;
+      const y = (e.clientY / window.innerHeight) * 100;
+      setMousePosition({ x, y });
     };
 
-    const timer = setTimeout(handleExit, 4000);
-    window.addEventListener('scroll', handleExit, { once: true });
-    
+    window.addEventListener('mousemove', handleMouseMove);
+
     return () => {
-      clearTimeout(timer);
-      window.removeEventListener('scroll', handleExit);
+      window.removeEventListener('mousemove', handleMouseMove);
     };
-  }, []); // This effect should only run once
+  }, [isMobile]);
 
+  // --- MAIN ANIMATION AND EXIT LOGIC ---
+  useEffect(() => {
+    if (isMobile) {
+      // On mobile, show the logo briefly, then display the 'not available' message and pause.
+      const timer = setTimeout(() => {
+        setDisplayText('Tempwallets is not available for this device');
+      }, 2500); // Show message after 2.5 seconds
+      return () => clearTimeout(timer);
+    } else {
+      // On desktop, start the exit process after 4 seconds.
+      const timer = setTimeout(() => {
+        setIsExiting(true);
+        setTimeout(onComplete, 500);
+      }, 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [isMobile, onComplete]);
+
+  // --- RENDER ---
   return (
     <div
-      className="min-h-screen flex items-center justify-center bg-transparent relative overflow-hidden"
+      className={`loading-screen ${isExiting ? 'fade-out' : ''}`}
+      style={{
+        '--mouseX': `${mousePosition.x}%`,
+        '--mouseY': `${mousePosition.y}%`,
+      } as React.CSSProperties}
     >
-      <InteractiveFlares />
+      <div className="background-glares">
+        <div className="glare glare-1"></div>
+        <div className="glare glare-2"></div>
+        <div className="glare glare-3"></div>
+      </div>
 
-      {/* FIX: This outer motion.div now controls the fade-out, leaving the dark background intact. */}
-      <motion.div
-        style={{ perspective: '1200px' }}
-        variants={{
-          visible: { opacity: 1 },
-          hidden: { opacity: 0, transition: { duration: 0.8, ease: 'easeOut' } },
-        }}
-        initial="visible"
-        animate={isExiting ? 'hidden' : 'visible'}
-        onAnimationComplete={(definition) => {
-          if (definition === 'hidden') {
-            onComplete();
-          }
-        }}
+      <h1
+        className={`tempwallets-logo ${displayText !== 'TempWallets' ? 'mobile-text' : ''}`}
       >
-        <motion.div
-          className="flipper-container"
-          initial={{ opacity: 0, scale: 0.8, rotateY: 0 }}
-          animate={containerControls}
-        >
-          {/* Back Face: TempWallets Text - controlled with separate animation */}
-          <motion.div
-            className="flipper-face flipper-back"
-            initial={{ opacity: 0 }} // Starts completely invisible
-            animate={backFaceControls}
-          >
-            <h1 className="logo-text-3d">TempWallets</h1>
-          </motion.div>
-
-          {/* Front Face: Incognito Logo */}
-          <div className="flipper-face flipper-front">
-            <div className="logo-3d-effect">
-              <FiEyeOff size={128} className="text-gray-400" />
-            </div>
-            <div className="static-glossy-overlay" />
-          </div>
-        </motion.div>
-      </motion.div>
+        {displayText}
+      </h1>
     </div>
   );
 }

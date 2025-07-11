@@ -9,7 +9,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Crown, RefreshCw } from 'lucide-react';
+import { Crown, RefreshCw, CircleDollarSign } from 'lucide-react';
+import { CardTitle } from '@/components/ui/card';
 
 // Define the structure of our leaderboard data
 interface LeaderboardEntry {
@@ -110,56 +111,62 @@ const Leaderboard = () => {
   };
 
   return (
-    <div className="w-full">
-      <div className="flex justify-end items-center mb-4 -mt-4">
-        <Button
-          onClick={handleRefresh}
-          disabled={isRefreshing}
-          variant="ghost"
-          className="text-white hover:text-gray-300 hover:bg-white/10 transition-all duration-200 group disabled:opacity-50"
-        >
-          <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-          {isRefreshing ? `Next refresh in ${formatTime(countdown)}` : 'Refresh'}
-        </Button>
+    <div className="w-full h-full flex flex-col gap-2">
+      <div className="flex justify-between items-center mb-2">
+          <CardTitle className="text-white text-lg">Presale Participants</CardTitle>
+          <Button
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              variant="ghost"
+              className="text-white hover:text-gray-300 hover:bg-white/10 transition-all duration-200 group disabled:opacity-50"
+          >
+              <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              {isRefreshing ? `Next refresh in ${formatTime(countdown)}` : 'Refresh'}
+          </Button>
       </div>
-
-      {loading && leaderboardData.length === 0 ? (
-        <p className="text-center text-gray-400 py-8">Loading Top Participants...</p>
-      ) : leaderboardData.length === 0 ? (
-        <p className="text-center text-gray-400 py-8">No participants yet. Be the first!</p>
-      ) : (
-        <Table>
-          <TableHeader>
-            <TableRow className="border-white/20 hover:bg-transparent">
-              <TableHead className="w-[100px] text-white font-semibold">Rank</TableHead>
-              <TableHead className="text-white font-semibold">Participant</TableHead>
-              <TableHead className="text-right text-white font-semibold">$Temp Tokens</TableHead>
-              <TableHead className="text-right text-white font-semibold">Amount (USDT)</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {leaderboardData.map((entry, index) => (
-              <TableRow key={entry.participant_address} className="border-white/10 hover:bg-white/5">
-                <TableCell className="font-medium text-lg">
-                  <div className="flex items-center gap-2">
-                    {index === 0 && <Crown className="h-5 w-5 text-yellow-400" />}
-                    {index === 1 && <Crown className="h-5 w-5 text-gray-400" />}
-                    {index === 2 && <Crown className="h-5 w-5 text-yellow-600" />}
-                    <span>{index + 1}</span>
-                  </div>
-                </TableCell>
-                <TableCell className="font-mono text-gray-300">{entry.participant_address}</TableCell>
-                <TableCell className="text-right font-semibold text-gray-200">
-                  {(entry.total_temp_tokens_assigned || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </TableCell>
-                <TableCell className="text-right font-semibold text-lg text-cyan-400">
-                  {(entry.total_usdt_amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </TableCell>
+  
+      <div className="flex-1 overflow-y-auto custom-scrollbar pr-2">
+        {loading && leaderboardData.length === 0 ? (
+          <p className="text-center text-gray-400 py-8">Loading Top Participants...</p>
+        ) : leaderboardData.length === 0 ? (
+          <p className="text-center text-gray-400 py-8">No participants yet. Be the first!</p>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow className="border-white/20 hover:bg-transparent">
+                <TableHead className="w-[100px] text-white font-semibold">Rank</TableHead>
+                <TableHead className="text-white font-semibold">Participant</TableHead>
+                <TableHead className="text-right text-white font-semibold">$TEMP Tokens</TableHead>
+                <TableHead className="text-right text-white font-semibold">Amount</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      )}
+            </TableHeader>
+            <TableBody>
+              {leaderboardData.map((entry, index) => (
+                <TableRow key={entry.participant_address} className="border-white/10 hover:bg-white/5">
+                  <TableCell className="font-medium text-lg">
+                    <div className="flex items-center gap-2">
+                      {index === 0 && <Crown className="h-5 w-5 text-yellow-400" />}
+                      {index === 1 && <Crown className="h-5 w-5 text-gray-400" />}
+                      {index === 2 && <Crown className="h-5 w-5 text-yellow-600" />}
+                      <span>{index + 1}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="font-mono text-gray-300">{entry.participant_address}</TableCell>
+                  <TableCell className="text-right font-semibold text-lg text-cyan-400">
+                    {(entry.total_temp_tokens_assigned || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </TableCell>
+                  <TableCell className="text-right font-semibold text-white">
+                    <div className="flex items-center justify-end gap-2">
+                        <CircleDollarSign className="h-4 w-4 text-green-400" />
+                        <span>{(entry.total_usdt_amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </div>
     </div>
   );
 };
