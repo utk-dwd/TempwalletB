@@ -1,7 +1,7 @@
 // src/components/pages/AnimatedLandingPage.tsx
 import { useState, useEffect } from 'react';
 
-// --- Mobile Detection Hook (Integrated directly into this file) ---
+// --- Mobile Detection Hook (No changes needed here) ---
 const MOBILE_BREAKPOINT = 768;
 
 function useIsMobile() {
@@ -27,13 +27,12 @@ interface AnimatedLandingPageProps {
 export function AnimatedLandingPage({ onComplete }: AnimatedLandingPageProps) {
   // --- STATE MANAGEMENT ---
   const isMobile = useIsMobile();
-  const [displayText, setDisplayText] = useState('TempWallets');
   const [isExiting, setIsExiting] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 50, y: 50 });
 
   // --- MOUSE TRACKING FOR DESKTOP ---
   useEffect(() => {
-    if (isMobile) return;
+    if (isMobile) return; // Keep this as is: no mouse tracking on mobile.
 
     const handleMouseMove = (e: MouseEvent) => {
       const x = (e.clientX / window.innerWidth) * 100;
@@ -48,25 +47,30 @@ export function AnimatedLandingPage({ onComplete }: AnimatedLandingPageProps) {
     };
   }, [isMobile]);
 
-  // --- MAIN ANIMATION AND EXIT LOGIC ---
+  // --- MODIFIED ANIMATION AND EXIT LOGIC ---
   useEffect(() => {
     if (isMobile) {
-      // On mobile, show the logo briefly, then display the 'not available' message and pause.
-      const timer = setTimeout(() => {
-        setDisplayText('Tempwallets is not available for this device');
-      }, 2500); // Show message after 2.5 seconds
-      return () => clearTimeout(timer);
-    } else {
-      // On desktop, start the exit process after 4 seconds.
-      const timer = setTimeout(() => {
-        setIsExiting(true);
-        setTimeout(onComplete, 500);
-      }, 4000);
-      return () => clearTimeout(timer);
+      // 1. If on mobile, call onComplete immediately.
+      onComplete();
+      return; // Stop further execution for mobile.
     }
+
+    // On desktop, the original logic remains.
+    const timer = setTimeout(() => {
+      setIsExiting(true);
+      setTimeout(onComplete, 500); // Call onComplete after the fade-out animation.
+    }, 4000);
+
+    return () => clearTimeout(timer);
   }, [isMobile, onComplete]);
 
-  // --- RENDER ---
+  // 2. Render nothing on mobile.
+  // This prevents any flash of the landing page before the logic above runs.
+  if (isMobile) {
+    return null;
+  }
+
+  // --- RENDER (This part now only runs on desktop) ---
   return (
     <div
       className={`loading-screen ${isExiting ? 'fade-out' : ''}`}
@@ -81,10 +85,8 @@ export function AnimatedLandingPage({ onComplete }: AnimatedLandingPageProps) {
         <div className="glare glare-3"></div>
       </div>
 
-      <h1
-        className={`tempwallets-logo ${displayText !== 'TempWallets' ? 'mobile-text' : ''}`}
-      >
-        {displayText}
+      <h1 className="tempwallets-logo">
+        TempWallets
       </h1>
     </div>
   );
