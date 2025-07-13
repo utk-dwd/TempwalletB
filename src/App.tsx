@@ -77,7 +77,7 @@ function AppLayout({
       {/* Background wrapper with dynamic image */}
       <div className="app-background" style={{ backgroundImage: `url(${backgroundImages[bgIndex]})` }} />
       {/* Main app content */}
-      <div className="relative h-screen flex flex-col p-6 overflow-hidden">
+      <div className="app-container relative h-screen flex flex-col p-6 overflow-hidden">
         <div className="grid grid-cols-[280px_1fr] gap-6 flex-1 min-h-0">
           <Sidebar activeItem={activeItem} onNavClick={onNavClick} />
           <div className="space-y-4 flex flex-col h-full min-h-0">
@@ -303,7 +303,7 @@ function AppRouterContent(props: any) {
       <>
         {/* Background wrapper with dynamic image */}
         <div className="app-background" style={{ backgroundImage: `url(${props.backgroundImages[props.bgIndex]})` }} />
-        <div className="relative min-h-screen flex items-center justify-center">
+        <div className="app-container relative min-h-screen flex items-center justify-center">
           <div className="name-form bg-[var(--overlay)] backdrop-blur-[var(--blur)] rounded-xl p-6 shadow-lg max-w-md w-full">
             <h1 className="text-4xl font-bold text-white mb-4">Temp Wallet dApp</h1>
             <form onSubmit={props.handleNameSubmit} className="space-y-4">

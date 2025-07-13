@@ -170,8 +170,63 @@ const Leaderboard = () => {
         .animate-pulse-glow {
           animation: pulse-glow 2.5s infinite ease-in-out;
         }
+
+        /* Responsive scaling for leaderboard */
+@media (max-width: 1440px) and (min-width: 1024px) {
+  .leaderboard-container {
+    font-size: 0.9em;
+  }
+  .leaderboard-container .text-lg {
+    font-size: 1rem;
+  }
+  .leaderboard-container .text-base {
+    font-size: 0.8rem;
+  }
+  .leaderboard-container .text-sm {
+    font-size: 0.75rem;
+  }
+  .leaderboard-container .text-xs {
+    font-size: 0.65rem;
+  }
+}
+
+@media (max-width: 1200px) and (min-width: 1024px) {
+  .leaderboard-container {
+    font-size: 0.85em;
+  }
+  .leaderboard-container .text-lg {
+    font-size: 0.95rem;
+  }
+  .leaderboard-container .text-base {
+    font-size: 0.75rem;
+  }
+  .leaderboard-container .text-sm {
+    font-size: 0.7rem;
+  }
+  .leaderboard-container .text-xs {
+    font-size: 0.6rem;
+  }
+}
+
+@media (max-width: 1100px) and (min-width: 1024px) {
+  .leaderboard-container {
+    font-size: 0.8em;
+  }
+  .leaderboard-container .text-lg {
+    font-size: 0.9rem;
+  }
+  .leaderboard-container .text-base {
+    font-size: 0.7rem;
+  }
+  .leaderboard-container .text-sm {
+    font-size: 0.65rem;
+  }
+  .leaderboard-container .text-xs {
+    font-size: 0.55rem;
+  }
+}
       `}</style>
-      <div className="w-full h-full flex flex-col gap-2">
+      <div className="leaderboard-container w-full h-full flex flex-col gap-2">
         <div className="flex justify-between items-center mb-2">
             <CardTitle className="text-white text-lg">Presale Participants</CardTitle>
             <Button
@@ -194,33 +249,33 @@ const Leaderboard = () => {
             <Table>
               <TableHeader>
                 <TableRow className="border-white/20 hover:bg-transparent">
-                  <TableHead className="w-[100px] text-white font-semibold">Rank</TableHead>
+                  <TableHead className="w-[60px] xl:w-[80px] text-white font-semibold pr-2">Rank</TableHead>
                   <TableHead className="text-white font-semibold">Participant</TableHead>
-                  <TableHead className="text-right text-white font-semibold">$TEMP Tokens Assigned</TableHead>
+                  <TableHead className="text-right text-white font-semibold">$TEMP Assigned</TableHead>
                   <TableHead className="text-right text-white font-semibold">USDT Amount</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {leaderboardData.map((entry, index) => (
                   <TableRow key={entry.participant_address} className="border-white/10 hover:bg-white/5">
-                    <TableCell className="font-medium text-lg">
-                      <div className="flex items-center gap-2">
-                        {index === 0 && <Crown className="h-5 w-5 text-yellow-400" />}
-                        {index === 1 && <Crown className="h-5 w-5 text-gray-400" />}
-                        {index === 2 && <Crown className="h-5 w-5 text-yellow-600" />}
-                        <span>{index + 1}</span>
+                    <TableCell className="font-medium text-base md:text-lg pr-2">
+                    <div className="flex items-center gap-1 xl:gap-2">
+                        {index === 0 && <Crown className="h-4 w-4 md:h-5 md:w-5 text-yellow-400" />}
+                        {index === 1 && <Crown className="h-4 w-4 md:h-5 md:w-5 text-gray-400" />}
+                        {index === 2 && <Crown className="h-4 w-4 md:h-5 md:w-5 text-yellow-600" />}
+                        <span className="w-6 text-center">{index + 1}</span>
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="py-2">
                       <ObfuscatedAddress address={entry.participant_address} />
                     </TableCell>
-                    <TableCell className="text-right font-semibold text-lg text-cyan-400 pr-[4rem]">
-                      {(entry.total_temp_tokens_assigned || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    <TableCell className="text-right font-semibold text-base md:text-lg text-cyan-400">
+                      {(entry.total_temp_tokens_assigned || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}
                     </TableCell>
-                    <TableCell className="text-right font-semibold text-white pr-[2rem]">
-                      <div className="flex items-center justify-end gap-2">
+                    <TableCell className="text-right font-semibold text-white">
+                      <div className="flex items-center justify-end gap-1 xl:gap-2">
                           <CircleDollarSign className="h-4 w-4 text-green-400" />
-                          <span>{(entry.total_usdt_amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                          <span className="text-sm md:text-base">{(entry.total_usdt_amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -230,7 +285,7 @@ const Leaderboard = () => {
           )}
         </div>
         {/* --- Render the progress bar at the bottom --- */}
-        <div className="mt-auto pt-3 border-t border-white/10">
+        <div className="mt-auto pt-2 xl:pt-3 border-t border-white/10">
             <AllocationProgressBar currentValue={totalAllocation} goal={ALLOCATION_GOAL} />
         </div>
       </div>

@@ -243,8 +243,8 @@ const PresalePage = () => {
       <CautionToggle />
       <DeckViewerToggle />
 
-      <div className="flex-1 p-6 flex flex-col overflow-hidden text-white">
-        <div className="max-w-7xl mx-auto w-full flex flex-col flex-1 min-h-0">
+      <div className="p-4 md:p-6 flex flex-col text-white h-screen overflow-y-auto custom-scrollbar">
+        <div className="max-w-7xl mx-auto w-full flex flex-col flex-1">
           
           <div ref={headerRef} className="mb-8">
             <div className="flex items-center mb-4">
@@ -262,10 +262,10 @@ const PresalePage = () => {
             <p className="text-center text-gray-400 text-sm">TEMP Tokens will go live when we hit the soft-cap of 50,000 TEMP.</p>
           </div>
 
-          <div className="flex-1 flex flex-col lg:flex-row gap-8 min-h-0">
+          <div className="flex flex-col xl:flex-row gap-6">
             {/* Left Column: Leaderboard */}
-            <div ref={leaderboardRef} className="lg:w-2/3 flex flex-col">
-              <Card className="bg-white/5 backdrop-blur-sm border border-white/10 flex-1 flex flex-col overflow-hidden">
+            <div ref={leaderboardRef} className="flex-1 min-w-0">
+            <Card className="bg-white/5 backdrop-blur-sm border border-white/10 h-full">
                 <CardContent className="flex-1 flex flex-col overflow-y-auto custom-scrollbar p-4">
                    <Leaderboard />
                 </CardContent>
@@ -273,7 +273,7 @@ const PresalePage = () => {
             </div>
 
             {/* Right Column: Instructions & Pricing */}
-            <div ref={rightColumnRef} className="lg:w-1/3 flex flex-col gap-2">
+            <div ref={rightColumnRef} className="xl:w-[400px] flex flex-col gap-6">
               <Card className="bg-white/5 backdrop-blur-sm border border-white/10">
                 <CardHeader>
                   <CardTitle className="text-white">How to Participate</CardTitle>
