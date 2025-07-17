@@ -14,28 +14,29 @@ const PRICE_TIERS = [
 const USDT_ABI = [
   "event Transfer(address indexed from, address indexed to, uint256 value)"
 ];
-const allowedOrigins = ['https://tempwallets.com', 'https://www.tempwallets.com'];
-const origin = req.headers.get('origin');
-
-const corsOrigin = allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': corsOrigin,
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
 
 const BLOCK_RANGE_LIMIT = 499;
 
 // --- Main Handler ---
 Deno.serve(async (req) => {
+  // --- CORRECTED CORS LOGIC ---
+  // This logic is now correctly placed inside the handler where 'req' is available.
+  const allowedOrigins = ['https://tempwallets.com', 'https://www.tempwallets.com', 'http://localhost:5173'];
+  const origin = req.headers.get('origin') || '';
+  
+  const corsOrigin = allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
 
+  const corsHeaders = {
+    'Access-Control-Allow-Origin': corsOrigin,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  };
+
+  // Handle the browser's preflight request.
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
   try {
-    console.log("Function started. Initializing clients...");
-    
     const supabaseClient = createClient(
       Deno.env.get('PROJECT_URL')!,
       Deno.env.get('SERVICE_ROLE_KEY')!
@@ -83,16 +84,14 @@ Deno.serve(async (req) => {
             temp_tokens_assigned: tempTokensAssigned,
           };
 
-          const { data: existingTx } = await supabaseClient
+          const { error: insertError } = await supabaseClient
             .from('presale_participations')
-            .select('transaction_hash')
-            .eq('transaction_hash', txHash)
-            .single();
+            .insert(newParticipation)
+            .select()
+            .maybeSingle();
 
-          if (!existingTx) {
-            await supabaseClient
-              .from('presale_participations')
-              .insert(newParticipation);
+          if (insertError && insertError.code !== '23505') { // 23505 is for unique constraint violation
+            console.error(`Failed to insert participation ${txHash}:`, insertError.message);
           }
         }
       }
@@ -109,6 +108,7 @@ Deno.serve(async (req) => {
     });
 
   } catch (err) {
+    console.error('An unhandled error occurred in the function:', err);
     return new Response(JSON.stringify({ error: err.message, details: err.toString() }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,

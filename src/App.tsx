@@ -109,7 +109,7 @@ function AppLayout({
   setIsNotificationExpanded
 }: LayoutProps) {
   const location = useLocation();
-  const hideHeader = location.pathname === '/blogs' || location.pathname === '/presale';
+  const hideHeader = location.pathname === '/faq' || location.pathname === '/presale';
   return (
     <>
       {/* Background wrapper with dynamic image */}
@@ -281,7 +281,7 @@ function AppRoutes({
           />
         }
       />
-      <Route path="/blogs" element={<BlogListing />} />
+      <Route path="/faq" element={<BlogListing />} />
       <Route path="/presale" element={<PresalePage />} />
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
@@ -299,8 +299,8 @@ function AppRouterContent(props: any) {
         case '/':
         case '/dashboard':
           return 'Dashboard';
-        case '/blogs':
-          return 'Blogs';
+        case '/faq':
+          return 'FAQ';
         case '/presale':
           return 'Presale';
         default:
@@ -319,8 +319,8 @@ function AppRouterContent(props: any) {
       case 'Dashboard':
         navigate('/dashboard');
         break;
-      case 'Blogs':
-        navigate('/blogs');
+      case 'FAQ':
+        navigate('/faq');
         break;
       case 'Presale':
         navigate('/presale');
