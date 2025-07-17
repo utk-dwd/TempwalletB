@@ -126,7 +126,7 @@ export function Header({
           full: 'Successfully connected to MetaMask',
           type: 'success',
         });
-        analyticsService.trackEvent(EventName.WALLET_CONNECTION_SUCCEESS);
+        analyticsService.trackEvent(EventName.WALLET_CONNECTION_SUCCESS);
       }
     } catch (err: any) {
       if (err.code === 4001) {
