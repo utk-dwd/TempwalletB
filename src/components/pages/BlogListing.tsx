@@ -1,218 +1,249 @@
 // src/pages/BlogListing.tsx
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Calendar, Clock } from 'lucide-react';
+import { ArrowRight, Calendar, Clock, Search, Newspaper, X } from 'lucide-react'; // Note: Loader2 is no longer needed
+import { supabase } from '@/lib/supabaseClient'; // Import the Supabase client
 
+/**
+ * Defines the structure for a single blog post object,
+ * matching the columns in our Supabase table.
+ */
 interface BlogPost {
   id: string;
   title: string;
-  date: string;
-  readTime: number;
+  date: string; // Keep as string for display formatting
+  read_time_minutes: number;
   preview: string;
-  tags: string[];
-  mediumLink: string;
+  medium_link: string;
 }
 
 interface BlogProps {
-  // Add any props if needed
+  // Props can be extended in the future
 }
 
+/**
+ * A component to display a list of blog articles fetched from Supabase,
+ * with a real-time, animated search bar.
+ */
 export function BlogListing({}: BlogProps) {
-    const blogPosts: BlogPost[] = [
-        {
-          id: 'what-is-burner-wallet',
-          title: 'What Is a Burner Wallet? Complete Guide for Crypto Users',
-          date: 'May 10, 2025',
-          readTime: 5,
-          preview: 'Discover what a burner wallet is, how it works, and why crypto users are turning to temporary wallets for fast, secure transactions.',
-          tags: ['burner wallet', 'temporary crypto wallet'],
-          mediumLink: 'https://placeholder.link'
-        },
-        {
-          id: 'create-temporary-crypto-wallet',
-          title: 'How to Create a Temporary Crypto Wallet in Minutes with Tempwallets',
-          date: 'May 14, 2025',
-          readTime: 5,
-          preview: 'Learn how to set up a burner wallet quickly with Tempwallets and start managing your crypto assets securely in just minutes.',
-          tags: ['create burner wallet', 'tempwallets setup', 'temporary wallet'],
-          mediumLink: 'https://placeholder.link'
-        },
-        {
-          id: 'why-use-tempwallets',
-          title: 'Why Use Tempwallets? Benefits of a Secure Temporary Wallet',
-          date: 'May 18, 2025',
-          readTime: 5,
-          preview: 'Explore the key benefits of using Tempwallets and understand why secure temporary wallets are gaining popularity among crypto enthusiasts.',
-          tags: ['why use burner wallet', 'tempwallets benefits'],
-          mediumLink: 'https://placeholder.link'
-        },
-        {
-          id: 'metamask-vs-tempwallets',
-          title: 'MetaMask vs Tempwallets: Which Burner Wallet Is Right for You?',
-          date: 'May 22, 2025',
-          readTime: 5,
-          preview: 'Compare MetaMask and Tempwallets to find out which burner wallet suits your crypto needs for speed, security, and convenience.',
-          tags: ['metamask burner wallet', 'tempwallets vs metamask'],
-          mediumLink: 'https://placeholder.link'
-        },
-        {
-          id: 'protect-nfts-tempwallets',
-          title: 'Protect Your NFTs Using Tempwallets Burner Wallet',
-          date: 'May 26, 2025',
-          readTime: 5,
-          preview: 'Find out how Tempwallets burner wallets can help you safeguard your NFTs and manage digital assets with enhanced security.',
-          tags: ['burner wallet nft', 'tempwallets nft wallet'],
-          mediumLink: 'https://placeholder.link'
-        },
-        {
-          id: 'burner-wallet-address-guide',
-          title: 'What Is a Burner Wallet Address and How to Use It Safely',
-          date: 'May 30, 2025',
-          readTime: 5,
-          preview: 'Understand what a burner wallet address is, how it functions, and best practices for using Tempwallets addresses securely.',
-          tags: ['burner wallet address', 'tempwallets address'],
-          mediumLink: 'https://placeholder.link'
-        },
-        {
-          id: 'burner-wallets-security',
-          title: 'Are Burner Wallets Safe? Tempwallets Security Features Explained',
-          date: 'Jun 3, 2025',
-          readTime: 5,
-          preview: 'Dive into the security features of Tempwallets and learn how burner wallets protect your crypto assets from threats.',
-          tags: ['burner wallet security', 'tempwallets security'],
-          mediumLink: 'https://placeholder.link'
-        },
-        {
-          id: 'install-tempwallets-extension',
-          title: 'Step-by-Step Guide to Installing the Tempwallets Browser Extension',
-          date: 'Jun 7, 2025',
-          readTime: 5,
-          preview: 'Follow this easy guide to install the Tempwallets browser extension and start using burner wallets for your crypto transactions.',
-          tags: ['burner wallet extension', 'tempwallets extension'],
-          mediumLink: 'https://placeholder.link'
-        },
-        {
-          id: 'temporary-vs-hardware-wallet',
-          title: 'Temporary Wallet vs Hardware Wallet: When to Use Tempwallets',
-          date: 'Jun 11, 2025',
-          readTime: 5,
-          preview: 'Compare temporary wallets and hardware wallets to decide when Tempwallets is the right choice for your crypto security needs.',
-          tags: ['temporary wallet vs hardware wallet', 'burner hardware wallet'],
-          mediumLink: 'https://placeholder.link'
-        },
-      ];
+  // State for the raw posts fetched from the API
+  const [posts, setPosts] = useState<BlogPost[]>([]);
+  // State for the posts filtered by the search query
+  const [filteredPosts, setFilteredPosts] = useState<BlogPost[]>([]);
+  // State for the search input value
+  const [searchQuery, setSearchQuery] = useState('');
+  // State to manage loading and error states for the data fetch
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // State for the animated search bar
+  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
+
+  /**
+   * useEffect hook to fetch blog posts from the Supabase 'posts' table on component mount.
+   */
+  useEffect(() => {
+    const fetchPosts = async () => {
+      try {
+        // Fetch data from the 'blogposts' table, ordering by date descending
+        const { data, error } = await supabase
+          .from('blogposts')
+          .select('*')
+          .order('date', { ascending: false });
+
+        if (error) {
+          throw new Error('Could not fetch blog posts.');
+        }
+
+        setPosts(data || []);
+        setFilteredPosts(data || []);
+      } catch (err: any) {
+        setError(err.message);
+        console.error("Error fetching posts:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchPosts();
+  }, []);
+
+  /**
+   * useEffect hook to filter blog posts based on the search query.
+   */
+  useEffect(() => {
+    const query = searchQuery.toLowerCase();
+    const results = posts.filter(
+      (post) =>
+        post.title.toLowerCase().includes(query) ||
+        post.preview.toLowerCase().includes(query)
+    );
+    setFilteredPosts(results);
+  }, [searchQuery, posts]);
+
+  // Click outside handler for the search bar
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setIsSearchExpanded(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [searchRef]);
+
 
   const handleReadMore = (link: string) => {
     window.open(link, '_blank', 'noopener,noreferrer');
   };
 
-  return (
-    <>
-    <style>
-        {`
-          .custom-scrollbar::-webkit-scrollbar {
-            width: 8px;
-          }
-          .custom-scrollbar::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 4px;
-          }
-          .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 4px;
-            transition: background 0.3s;
-          }
-          .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: rgba(255, 255, 255, 0.3);
-          }
-          /* Firefox */
-          .custom-scrollbar {
-            scrollbar-width: thin;
-            scrollbar-color: rgba(255, 255, 255, 0.2) rgba(255, 255, 255, 0.05);
-          }
-        `}
-      </style>
- 
-    <div className="flex-1 p-6 overflow-y-auto custom-scrollbar">
-      {/* Header Section */}
-      <div className="mb-8">
-        <div className="flex items-center mb-4">
-          <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-          <h1 className="px-6 text-3xl font-bold text-white">Temporary Wallets Demystified: What Every User Should Know</h1>
-          <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+
+  const ArticleSkeleton = () => (
+    <div className="group bg-black/20 backdrop-blur-sm rounded-xl border border-white/10 p-6 flex flex-col md:flex-row items-start gap-6 animate-pulse">
+      {/* Skeleton for the left icon */}
+      <div className="hidden md:flex items-center justify-center bg-white/10 rounded-lg w-20 h-20 flex-shrink-0"></div>
+      
+      <div className="flex-1 w-full space-y-4">
+        {/* Skeleton for the title */}
+        <div className="h-5 bg-white/10 rounded w-3/4"></div>
+        {/* Skeleton for the metadata */}
+        <div className="flex space-x-4">
+          <div className="h-4 bg-white/10 rounded w-1/4"></div>
+          <div className="h-4 bg-white/10 rounded w-1/4"></div>
         </div>
-        <p className="text-center text-gray-400 text-sm">
-        Dive into comprehensive guides on burner and temporary crypto wallets for every user needs.
-        </p>
-      </div>
-
-      {/* Blog Posts Grid */}
-      <div className="space-y-6 max-w-4xl mx-auto">
-        {blogPosts.map((post) => (
-          <article
-            key={post.id}
-            className="bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 p-6 
-                       hover:border-white/20 hover:bg-white/10 transition-all duration-300 
-                       hover:shadow-lg hover:shadow-white/5"
-          >
-            {/* Post Meta */}
-            <div className="flex items-center text-sm text-gray-400 mb-3 space-x-4">
-              <div className="flex items-center space-x-1">
-                <Calendar className="h-3 w-3" />
-                <span>{post.date}</span>
-              </div>
-              <div className="flex items-center space-x-1">
-                <Clock className="h-3 w-3" />
-                <span>{post.readTime} min read</span>
-              </div>
-            </div>
-
-            {/* Post Title */}
-            <h2 className="text-xl font-semibold text-white mb-3 hover:text-gray-300 transition-colors">
-              {post.title}
-            </h2>
-
-            {/* Post Preview */}
-            <p className="text-gray-300 mb-4 leading-relaxed">
-              {post.preview}
-            </p>
-
-            {/* Tags */}
-            <div className="flex flex-wrap gap-2 mb-4">
-              {post.tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="text-xs px-2 py-1 rounded-full bg-white/10 text-gray-300 
-                           border border-white/20 hover:border-white/30 transition-colors"
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
-
-            {/* Read More Button */}
-            <div className="flex justify-end">
-              <Button
-                variant="ghost"
-                className="text-white hover:text-gray-300 hover:bg-white/10 
-                         transition-all duration-200 group"
-                onClick={() => handleReadMore(post.mediumLink)}
-              >
-                Read on Medium
-                <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-              </Button>
-            </div>
-          </article>
-        ))}
-      </div>
-
-      {/* Footer section */}
-      <div className="mt-12 pt-8 border-t border-white/10">
-        <div className="text-center text-gray-400 text-sm">
-          <p>More articles coming soon. Follow us for updates!</p>
+        {/* Skeleton for the preview text */}
+        <div className="space-y-2">
+          <div className="h-4 bg-white/10 rounded w-full"></div>
+          <div className="h-4 bg-white/10 rounded w-5/6"></div>
+          <div className="h-4 bg-white/10 rounded w-full"></div>
+        </div>
+        {/* Skeleton for the button */}
+        <div className="flex justify-end">
+            <div className="h-8 bg-white/10 rounded w-24"></div>
         </div>
       </div>
     </div>
+  );
+
+  const renderLoadingState = () => (
+    <div className="space-y-8">
+      <ArticleSkeleton />
+      <ArticleSkeleton />
+      <ArticleSkeleton />
+    </div>
+  );
+  
+  // Helper component for the error state
+  const renderErrorState = () => (
+    <div className="text-center py-20 bg-red-900/20 border border-red-500/30 rounded-lg">
+      <h3 className="text-xl text-red-300 font-semibold">An Error Occurred</h3>
+      <p className="text-gray-300 mt-2">{error}</p>
+    </div>
+  );
+
+  // Helper component for the no results state
+  const renderNoResults = () => (
+    <div className="text-center py-20">
+      <h3 className="text-xl text-white font-semibold">No Articles Found</h3>
+      <p className="text-gray-400 mt-2">Try adjusting your search query or check back later.</p>
+    </div>
+  );
+
+  return (
+    <>
+      <style>
+        {`
+          .custom-scrollbar::-webkit-scrollbar { width: 8px; }
+          .custom-scrollbar::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.05); }
+          .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 4px; }
+          .line-clamp-3 { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+        `}
+      </style>
+ 
+      <div className="flex-1 p-4 sm:p-6 overflow-y-auto custom-scrollbar">
+        {/* Header Section */}
+        <div className="text-center">
+            <span className="text-sm font-semibold text-gray-400 tracking-wider">FAQ & ARTICLES</span>
+            <h1 className="mt-2 text-4xl md:text-5xl font-bold text-white">Discover our latest FAQ & articles</h1>
+            <p className="mt-4 text-sm max-w-2xl mx-auto text-gray-300">
+                TempWallets.com are disposable temporary wallet technology that allow Degens to receive crypto anonymously by generating wallets deterministically from their MetaMask signatures.
+            </p>
+        </div>
+
+        {/* Centered Animated Search Bar */}
+        <div className="my-3 flex justify-center items-center px-4">
+          <div 
+            ref={searchRef} 
+            className="flex items-center justify-end bg-white/5 backdrop-blur-sm rounded-full border border-white/10 shadow-lg transition-all duration-500 ease-in-out"
+            style={{ width: isSearchExpanded ? 'clamp(18rem, 60vw, 28rem)' : '3.5rem', height: '3rem' }}
+          >
+              <input
+                type="text"
+                placeholder="Search articles..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className={`w-full h-full bg-transparent text-white placeholder-gray-300 focus:outline-none transition-opacity duration-300 ${isSearchExpanded ? 'opacity-100 pl-6' : 'opacity-0'}`}
+                style={{pointerEvents: isSearchExpanded ? 'auto' : 'none'}}
+              />
+              <Button 
+                variant="ghost" 
+                aria-label={isSearchExpanded ? 'Collapse search bar' : 'Expand search bar'}
+                className="absolute rounded-full flex-shrink-0 w-14 h-14 text-white hover:bg-white/20 focus-visible:ring-2 focus-visible:ring-white"
+                onClick={() => setIsSearchExpanded(!isSearchExpanded)}
+              >
+                {isSearchExpanded ? <X className="h-6 w-6" /> : <Search className="h-6 w-6" />}
+              </Button>
+          </div>
+        </div>
+
+        {/* Blog Posts List - Conditional Rendering */}
+        <div className="space-y-8 max-w-4xl mx-auto">
+          {isLoading ? renderLoadingState() : 
+           error ? renderErrorState() : 
+           filteredPosts.length > 0 ? (
+            filteredPosts.map((post) => (
+              <article
+                key={post.id}
+                className="group bg-black/20 backdrop-blur-sm rounded-xl border border-white/10 p-6 transition-all duration-300 hover:border-white/20 hover:bg-white/5 flex flex-col md:flex-row items-start gap-6"
+              >
+                <div className="hidden md:flex items-center justify-center bg-white/5 border border-white/10 rounded-lg w-20 h-20 flex-shrink-0 group-hover:bg-white/10 transition-colors">
+                  <Newspaper className="h-8 w-8 text-gray-400" />
+                </div>
+                <div className="flex-1">
+                  <h2 className="text-xl font-semibold text-white mb-3 group-hover:text-gray-200 transition-colors">
+                    {post.title}
+                  </h2>
+                  <div className="flex items-center text-sm text-gray-400 mb-4 space-x-4">
+                    <div className="flex items-center space-x-1.5">
+                      <Calendar className="h-3.5 w-3.5" />
+                      {/* Format the date for display */}
+                      <span>{new Date(post.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                    </div>
+                    <div className="flex items-center space-x-1.5">
+                      <Clock className="h-3.5 w-3.5" />
+                      <span>{post.read_time_minutes} min read</span>
+                    </div>
+                  </div>
+                  <p className="text-gray-300 text-sm mb-5 leading-relaxed">
+                    {post.preview}
+                  </p>
+                  <div className="flex justify-end">
+                    <Button
+                      variant="ghost"
+                      className="text-white hover:text-gray-200 hover:bg-white/10 transition-all duration-200"
+                      onClick={() => handleReadMore(post.medium_link)}
+                    >
+                      Read More
+                      <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                    </Button>
+                  </div>
+                </div>
+              </article>
+            ))
+          ) : renderNoResults()}
+        </div>
+      </div>
     </>
   );
 }

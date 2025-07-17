@@ -125,7 +125,7 @@ const CautionToggle = () => {
               <div>
                   <p className="text-sm font-semibold text-yellow-200">Important Notice</p>
                   <p className="text-xs text-yellow-200/80 mt-1">
-                        This is the presale <strong className="text-yellow-100/90">allocation</strong> of TEMP token. It will go live when we hit the soft-cap of <strong className="text-yellow-100/90">50,000 TEMP</strong>.
+                        This is the presale <strong className="text-yellow-100/90">allocation</strong> of TEMP token. It will go live when we hit the soft-cap of <strong className="text-yellow-100/90">100,000 USDT</strong>.
                     </p>
                     <p className="text-xs text-yellow-200/80 mt-2">
                         You can only participate by sending <strong className="text-yellow-100/90">USDT</strong> over the
@@ -259,7 +259,7 @@ const PresalePage = () => {
               </h1>
               <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
             </div>
-            <p className="text-center text-gray-400 text-sm">TEMP Tokens will go live when we hit the soft-cap of 50,000 TEMP.</p>
+            <p className="text-center text-gray-400 text-sm">TEMP Tokens will go live when we hit the soft-cap of 100,000 USDT.</p>
           </div>
 
           <div className="flex flex-col xl:flex-row gap-6">

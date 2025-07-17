@@ -3,16 +3,15 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Copy, Send, Trash, RefreshCw, Funnel, Search } from 'lucide-react';
+import { AlertCircle, CheckCircle, Copy, Send, Trash, RefreshCw, Funnel, Search } from 'lucide-react';
 import { createSmartAccount, createSmartAccountWithCounter, createRandomSmartAccount, sendTransaction, fetchWalletAllBalances } from '@/utils/walletUtils';
 import { Wallet, TransactionStatus, TokenDetails, SupportedNetwork } from '@/utils/types';
 import { formatUnits } from 'viem';
 import { HoverInfoBox } from '@/components/ui/HoverInfoBox'; 
 import * as Tooltip from "@radix-ui/react-tooltip";
 import { NETWORKS, NetworkConfig } from '@/utils/networks';
-import analyticsService from '@/services/analytics'; // Import analytics service
-import { EventName } from '@/utils/types'; // Import EventName enum
-
+import analyticsService from '@/services/analytics';
+import { EventName } from '@/utils/types';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,23 +26,27 @@ interface MainContentProps {
   onWalletCreated: (wallet: Wallet) => void;
   onWalletDeleted: (wallet: Wallet) => void;
   onTransactionSent: (wallet: Wallet, status: TransactionStatus) => void;
+  setNotification: (notification: { brief: string; full: string; type: 'error' | 'success' } | null) => void;
 }
 
 type SortType = 'original' | 'walletNumber' | 'balance';
 
-export function MainContent({ walletAddress, wallets, onWalletCreated, onWalletDeleted, onTransactionSent }: MainContentProps) {
+interface Notification {
+  brief: string; // Short, user-friendly message
+  full: string;  // Original detailed error message
+  type: 'error' | 'success';
+}
+
+export function MainContent({ walletAddress, wallets, onWalletCreated, onWalletDeleted, onTransactionSent, setNotification }: MainContentProps) {
   const [isCustomWalletModalOpen, setIsCustomWalletModalOpen] = useState(false);
   const [isSendModalOpen, setIsSendModalOpen] = useState(false);
   const [selectedWallet, setSelectedWallet] = useState<Wallet | null>(null);
   const [customIndex, setCustomIndex] = useState('');
   const [recipient, setRecipient] = useState('');
   const [amount, setAmount] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
-
-  // Network state management
   const [selectedNetworkKey, setSelectedNetworkKey] = useState<SupportedNetwork>('Avalanche');
   const selectedNetwork = NETWORKS[selectedNetworkKey];
+  const [showCopiedPopup, setShowCopiedPopup] = useState(false);
 
   type BiconomyOption = '0xGasless' | 'Pimlico';
   const [biconomyStates, setBiconomyStates] = useState<Record<BiconomyOption, string>>({
@@ -51,21 +54,22 @@ export function MainContent({ walletAddress, wallets, onWalletCreated, onWalletD
     Pimlico: 'Pimlico',
   });
   const biconomyOptions: BiconomyOption[] = ['0xGasless', 'Pimlico'];
-  const handleBiconomyClick = (option: BiconomyOption, event: React.MouseEvent) => {
-    event.preventDefault();
-    setBiconomyStates((prev) => ({...prev, [option]: 'Coming Soon'}));
-    setTimeout(() => setBiconomyStates((prev) => ({...prev, [option]: option})), 3000);
-  };
 
   const [sortType, setSortType] = useState<SortType>('original');
   const [displayedWallets, setDisplayedWallets] = useState<Wallet[]>([]);
-  const [showCopiedPopup, setShowCopiedPopup] = useState(false);
+  const [selectedToken, setSelectedToken] = useState<TokenDetails | null>(null);
+  const externalAccountNumber = walletAddress ? 1 : 0;
+
+  const handleBiconomyClick = (option: BiconomyOption, event: React.MouseEvent) => {
+    event.preventDefault();
+    setBiconomyStates((prev) => ({ ...prev, [option]: 'Coming Soon' }));
+    setTimeout(() => setBiconomyStates((prev) => ({ ...prev, [option]: option })), 3000);
+  };
 
   const handleCopySelectedWalletAddress = async () => {
     if (selectedWallet?.address) {
       try {
         await navigator.clipboard.writeText(selectedWallet.address);
-        // Track ADDRESS_COPY_CLICKED
         analyticsService.trackEvent(EventName.ADDRESS_COPY_CLICKED, {
           walletAddress: selectedWallet.address,
           copySource: 'details_panel_address',
@@ -73,23 +77,17 @@ export function MainContent({ walletAddress, wallets, onWalletCreated, onWalletD
         setShowCopiedPopup(true);
         setTimeout(() => setShowCopiedPopup(false), 2000);
       } catch (err) {
-        console.error('Failed to copy address:', err);
-        setError('Failed to copy address');
+        setNotification({ brief: 'Copy failed', full: 'Failed to copy address', type: 'error' });
       }
     }
   };
 
-  const [selectedToken, setSelectedToken] = useState<TokenDetails | null>(null);
-  const externalAccountNumber = walletAddress ? 1 : 0;
-
   useEffect(() => {
-    // Filter wallets by the selected network before sorting
     let networkWallets = wallets.filter(w => w.networkKey === selectedNetworkKey);
-
     if (sortType === 'walletNumber') {
       networkWallets.sort((a, b) => a.walletNumber - b.walletNumber);
     } else if (sortType === 'balance') {
-        networkWallets.sort((a, b) => {
+      networkWallets.sort((a, b) => {
         const balanceA = a.allTokenBalances[0] ? BigInt(a.allTokenBalances[0].amount) : BigInt(0);
         const balanceB = b.allTokenBalances[0] ? BigInt(b.allTokenBalances[0].amount) : BigInt(0);
         if (balanceB > balanceA) return 1;
@@ -99,9 +97,7 @@ export function MainContent({ walletAddress, wallets, onWalletCreated, onWalletD
     }
     setDisplayedWallets(networkWallets);
 
-    // Check if selectedWallet is no longer in displayedWallets
     if (selectedWallet && !networkWallets.some(w => w.address === selectedWallet.address && w.walletNumber === selectedWallet.walletNumber)) {
-      // Track WALLET_DESELECTED
       analyticsService.trackEvent(EventName.WALLET_DESELECTED, {
         walletAddress: selectedWallet.address,
         walletNumber: selectedWallet.walletNumber,
@@ -111,140 +107,125 @@ export function MainContent({ walletAddress, wallets, onWalletCreated, onWalletD
   }, [wallets, sortType, selectedNetworkKey, selectedWallet]);
 
   const handleCreateNewTempWallet = async () => {
-    // Track CREATE_WALLET_BUTTON_CLICKED
-    analyticsService.trackEvent(EventName.CREATE_WALLET_BUTTON_CLICKED, {
-      creationType: 'standard',
-    });
+  analyticsService.trackEvent(EventName.CREATE_WALLET_BUTTON_CLICKED, { creationType: 'standard' });
+  if (!walletAddress) {
+    setNotification({ brief: 'No wallet connected', full: 'Please connect a wallet first', type: 'error' });
+    return;
+  }
+  try {
+    const wallet = await createSmartAccount(walletAddress, externalAccountNumber, selectedNetwork);
+    onWalletCreated(wallet);
+  } catch (err: any) {
+    console.error('Wallet creation error:', err); // Temporary debug log
+    if (err.code === 4001) {
+      setNotification({ brief: 'Creation cancelled', full: 'You cancelled the wallet creation in MetaMask', type: 'error' });
+    } else {
+      setNotification({ brief: 'Wallet creation failed', full: err.message || 'Failed to create wallet', type: 'error' });
+    }
+  }
+};
 
-    if (!walletAddress) {
-      setError('Please connect a wallet first');
-      return;
+const handleCreateRandomTempWallet = async () => {
+  analyticsService.trackEvent(EventName.CREATE_WALLET_BUTTON_CLICKED, { creationType: 'random' });
+  if (!walletAddress) {
+    setNotification({ brief: 'No wallet connected', full: 'Please connect a wallet first', type: 'error' });
+    return;
+  }
+  try {
+    const wallet = await createRandomSmartAccount(walletAddress, externalAccountNumber, selectedNetwork);
+    onWalletCreated(wallet);
+  } catch (err: any) {
+    console.error('Random wallet creation error:', err); // Temporary debug log
+    if (err.code === 4001) {
+      setNotification({ brief: 'Creation cancelled', full: 'You cancelled the random wallet creation in MetaMask', type: 'error' });
+    } else {
+      setNotification({ brief: 'Random wallet creation failed', full: err.message || 'Failed to create random wallet', type: 'error' });
     }
-    try {
-      const wallet = await createSmartAccount(walletAddress, externalAccountNumber, selectedNetwork);
-      onWalletCreated(wallet);
-      setError(null);
-    } catch (err: any) {
-      setError(err.message || 'Failed to create wallet');
-    }
-  };
-  
-  const handleCreateRandomTempWallet = async () => {
-    // Track CREATE_WALLET_BUTTON_CLICKED
-    analyticsService.trackEvent(EventName.CREATE_WALLET_BUTTON_CLICKED, {
-      creationType: 'random',
-    });
+  }
+};
 
-    if (!walletAddress) {
-      setError('Please connect a wallet first');
-      return;
+const handleCreateCustomTempWallet = async () => {
+  if (!walletAddress) {
+    setNotification({ brief: 'No wallet connected', full: 'Please connect a wallet first', type: 'error' });
+    setIsCustomWalletModalOpen(false);
+    return;
+  }
+  const counter = parseInt(customIndex, 10);
+  if (isNaN(counter) || counter < 0) {
+    setNotification({ brief: 'Invalid index', full: 'Please enter a valid non-negative integer', type: 'error' });
+    return;
+  }
+  try {
+    const wallet = await createSmartAccountWithCounter(walletAddress, counter, externalAccountNumber, selectedNetwork);
+    onWalletCreated(wallet);
+    setIsCustomWalletModalOpen(false);
+    setCustomIndex('');
+  } catch (err: any) {
+    console.error('Custom wallet creation error:', err); // Temporary debug log
+    if (err.code === 4001) {
+      setNotification({ brief: 'Creation cancelled', full: 'You cancelled the custom wallet creation in MetaMask', type: 'error' });
+    } else {
+      setNotification({ brief: 'Custom wallet creation failed', full: err.message || 'Failed to create custom wallet', type: 'error' });
     }
-    try {
-      const wallet = await createRandomSmartAccount(walletAddress, externalAccountNumber, selectedNetwork);
-      onWalletCreated(wallet);
-      setError(null);
-    } catch (err: any) {
-      setError(err.message || 'Failed to create random wallet');
-    }
-  };
-
-  const handleCreateCustomTempWallet = async () => {
-    if (!walletAddress) {
-      setError('Please connect a wallet first');
-      setIsCustomWalletModalOpen(false);
-      return;
-    }
-    const counter = parseInt(customIndex, 10);
-    if (isNaN(counter) || counter < 0) {
-      setError('Please enter a valid non-negative integer');
-      return;
-    }
-    try {
-      const wallet = await createSmartAccountWithCounter(walletAddress, counter, externalAccountNumber, selectedNetwork);
-      onWalletCreated(wallet);
-      setError(null);
-      setIsCustomWalletModalOpen(false);
-      setCustomIndex('');
-    } catch (err: any) {
-      setError(err.message || 'Failed to create custom wallet');
-    }
-  };
+  }
+};
 
   const handleCopyAddress = (address: string) => {
-    navigator.clipboard.writeText(address).then(() => {
-      // Track ADDRESS_COPY_CLICKED
-      analyticsService.trackEvent(EventName.ADDRESS_COPY_CLICKED, {
-        walletAddress: address,
-        copySource: 'wallet_list_button',
-      });
-      setCopyFeedback('Address copied');
-      setTimeout(() => setCopyFeedback(null), 2000);
-    }).catch(() => {
-      setCopyFeedback('Failed to copy address');
-      setTimeout(() => setCopyFeedback(null), 2000);
+  navigator.clipboard.writeText(address).then(() => {
+    analyticsService.trackEvent(EventName.ADDRESS_COPY_CLICKED, {
+      walletAddress: address,
+      copySource: 'wallet_list_button',
     });
-  };
+    setNotification({ brief: 'Address copied', full: 'Address copied to clipboard', type: 'success' });
+  }).catch(() => {
+    setNotification({ brief: 'Copy failed', full: 'Failed to copy address', type: 'error' });
+  });
+};
 
-  const handleDeleteWallet = (wallet: Wallet) => {
-    onWalletDeleted(wallet);
+const handleSendCrypto = async () => {
+  if (!walletAddress || !selectedWallet || !selectedToken) {
+    setNotification({ brief: 'Invalid selection', full: 'Please connect a wallet, select a wallet to send from, and choose a token.', type: 'error' });
+    setIsSendModalOpen(false);
+    return;
+  }
+  try {
+    const status = await sendTransaction(walletAddress, selectedWallet, recipient, amount, selectedToken, selectedNetwork);
+    onTransactionSent(selectedWallet, status);
+    setIsSendModalOpen(false);
+    setRecipient('');
+    setAmount('');
+    await handleRefreshBalance(selectedWallet, true);
+  } catch (err: any) {
+    console.error('Send transaction error:', err); // Temporary debug log
+    if (err.code === 4001) {
+      setNotification({ brief: 'Transaction cancelled', full: 'You cancelled the transaction in MetaMask', type: 'error' });
+    } else {
+      setNotification({ brief: 'Transaction failed', full: err.message || 'Failed to send transaction', type: 'error' });
+    }
+  }
+};
+
+const handleRefreshBalance = async (wallet: Wallet, isPostTransaction: boolean = false) => {
+  try {
+    const updatedBalances = await fetchWalletAllBalances(wallet.address, selectedNetwork);
+    let updatedWallet = { ...wallet, allTokenBalances: updatedBalances };
+    if (isPostTransaction && wallet.transactionStatus) {
+      updatedWallet.transactionStatus = wallet.transactionStatus;
+    } else if (!isPostTransaction) {
+      updatedWallet.transactionStatus = { state: 'idle' };
+    }
+    onWalletCreated(updatedWallet);
     if (selectedWallet?.address === wallet.address && selectedWallet?.walletNumber === wallet.walletNumber) {
-      setSelectedWallet(null);
+      setSelectedWallet(updatedWallet);
     }
-  };
+  } catch (err: any) {
+    setNotification({ brief: 'Balance refresh failed', full: err.message || 'Failed to refresh balance', type: 'error' });
+  }
+};
 
-  const handleSendCrypto = async () => {
-    if (!walletAddress || !selectedWallet || !selectedToken) {
-      setError('Please connect a wallet, select a wallet to send from, and choose a token.');
-      setIsSendModalOpen(false);
-      return;
-    }
-    try {
-      const status = await sendTransaction(
-        walletAddress,
-        selectedWallet,
-        recipient,
-        amount,
-        selectedToken,
-        selectedNetwork
-      );
-      onTransactionSent(selectedWallet, status);
-      setError(null);
-      setIsSendModalOpen(false);
-      setRecipient('');
-      setAmount('');
-      await handleRefreshBalance(selectedWallet, true);
-    } catch (err: any) {
-      setError(err.message || 'Failed to send transaction');
-    }
-  };
-
-  const handleRefreshBalance = async (wallet: Wallet, isPostTransaction: boolean = false) => {
-    try {
-      const updatedBalances = await fetchWalletAllBalances(wallet.address, selectedNetwork);
-      let updatedWallet = { ...wallet, allTokenBalances: updatedBalances };
-      
-      if (isPostTransaction && wallet.transactionStatus) {
-          updatedWallet.transactionStatus = wallet.transactionStatus;
-      } else if (!isPostTransaction) {
-          updatedWallet.transactionStatus = {state: 'idle'};
-      }
-
-      onWalletCreated(updatedWallet);
-      if (selectedWallet?.address === wallet.address && selectedWallet?.walletNumber === wallet.walletNumber) {
-        setSelectedWallet(updatedWallet); 
-      }
-      setError(null);
-    } catch (err: any) {
-      setError(err.message || 'Failed to refresh balance');
-    }
-  };
-  
   const handleSortChange = () => {
     const newSortType = sortType === 'original' ? 'walletNumber' : sortType === 'walletNumber' ? 'balance' : 'original';
-    // Track WALLET_SORT_CHANGED
-    analyticsService.trackEvent(EventName.WALLET_SORT_CHANGED, {
-      sortType: newSortType,
-    });
+    analyticsService.trackEvent(EventName.WALLET_SORT_CHANGED, { sortType: newSortType });
     setSortType(newSortType);
   };
 
@@ -269,7 +250,9 @@ export function MainContent({ walletAddress, wallets, onWalletCreated, onWalletD
   return (
     <>
       <style>{`.custom-scrollbar::-webkit-scrollbar{width:10px;}.custom-scrollbar::-webkit-scrollbar-track{background:rgba(55,65,81,0.3);border-radius:10px;margin-top:5px;margin-bottom:5px;}.custom-scrollbar::-webkit-scrollbar-thumb{background:rgba(209,213,219,0.5);border-radius:10px;border:2px solid transparent;background-clip:content-box;}.custom-scrollbar::-webkit-scrollbar-thumb:hover{background:rgba(156,163,175,0.7);background-clip:content-box;}.custom-scrollbar{scrollbar-width:thin;scrollbar-color:rgba(209,213,219,0.5) rgba(55,65,81,0.3);}`}</style>
-      <div className="bg-[var(--overlay)] border border-white/20 backdrop-blur-[var(--blur)] rounded-xl p-4 flex-1 flex flex-col h-full min-h-0 mb-5 ml-5 mr-5">
+      <div className="relative bg-[var(--overlay)] border border-white/20 backdrop-blur-[var(--blur)] rounded-xl p-4 flex-1 flex flex-col h-full min-h-0 mb-5 ml-5 mr-5">
+        
+
         <div className="flex items-center justify-between">
           <Tooltip.Provider delayDuration={200}>
             <Tooltip.Root>
@@ -287,7 +270,7 @@ export function MainContent({ walletAddress, wallets, onWalletCreated, onWalletD
               </Tooltip.Portal>
             </Tooltip.Root>
           </Tooltip.Provider>
-    
+
           <div className="flex items-center gap-2">
             <Tooltip.Provider delayDuration={200}>
               <Tooltip.Root>
@@ -327,7 +310,7 @@ export function MainContent({ walletAddress, wallets, onWalletCreated, onWalletD
               </Tooltip.Root>
             </Tooltip.Provider>
 
-            <Tooltip.Provider delayDuration={200} >
+            <Tooltip.Provider delayDuration={200}>
               <Tooltip.Root>
                 <Tooltip.Trigger asChild>
                   <Button onClick={handleCreateRandomTempWallet} className="px-4 py-2 bg-green-500/50 text-primary-foreground rounded-[var(--radius)] hover:bg-gray-400/50 transition-colors">
@@ -351,10 +334,7 @@ export function MainContent({ walletAddress, wallets, onWalletCreated, onWalletD
                 <Tooltip.Trigger asChild>
                   <Button 
                     onClick={() => {
-                      
-                      analyticsService.trackEvent(EventName.CREATE_WALLET_BUTTON_CLICKED, {
-                        creationType: 'custom',
-                      });
+                      analyticsService.trackEvent(EventName.CREATE_WALLET_BUTTON_CLICKED, { creationType: 'custom' });
                       setIsCustomWalletModalOpen(true);
                     }} 
                     className="px-4 py-2 bg-green-500/50 text-primary-foreground rounded-[var(--radius)] hover:bg-gray-400/50 transition-colors"
@@ -389,7 +369,6 @@ export function MainContent({ walletAddress, wallets, onWalletCreated, onWalletD
                           key={key} 
                           className="px-4 py-2 hover:bg-gray-400/50 focus:bg-gray-400/50 transition-colors cursor-pointer"
                           onClick={() => {
-                            // Track NETWORK_CHANGED
                             analyticsService.trackEvent(EventName.NETWORK_CHANGED, {
                               previousNetwork: selectedNetwork.name,
                               newNetwork: NETWORKS[key as SupportedNetwork].name,
@@ -408,7 +387,7 @@ export function MainContent({ walletAddress, wallets, onWalletCreated, onWalletD
                     className="bg-white/20 backdrop-blur-sm text-white p-2 rounded-md shadow-lg text-sm"
                     sideOffset={5}
                   >
-                    <p> Select a blockchain Network</p>
+                    <p>Select a blockchain Network</p>
                     <Tooltip.Arrow className="fill-white" />
                   </Tooltip.Content>
                 </Tooltip.Portal>
@@ -442,7 +421,7 @@ export function MainContent({ walletAddress, wallets, onWalletCreated, onWalletD
                     className="bg-white/20 backdrop-blur-sm text-white p-2 rounded-md shadow-lg text-sm"
                     sideOffset={5}
                   >
-                    <p> Select Backend to create <br/> TempWallets</p>
+                    <p>Select Backend to create <br/> TempWallets</p>
                     <Tooltip.Arrow className="fill-white" />
                   </Tooltip.Content>
                 </Tooltip.Portal>
@@ -451,8 +430,6 @@ export function MainContent({ walletAddress, wallets, onWalletCreated, onWalletD
           </div>
         </div>
         <div className="border-b border-white/20 my-4" />
-        {error && <p className="text-sm text-red-400 mb-2">{error}</p>}
-        {copyFeedback && <p className="text-sm text-green-400 mb-2">{copyFeedback}</p>}
         <div className="flex flex-1 gap-4 min-h-0">
           <div className="flex-1 space-y-4 overflow-y-auto pr-2 custom-scrollbar min-h-0">
             {displayedWallets.length === 0 ? (
@@ -463,7 +440,6 @@ export function MainContent({ walletAddress, wallets, onWalletCreated, onWalletD
                   key={`${wallet.address}-${wallet.walletNumber}`} 
                   className={`bg-[var(--overlay)] backdrop-blur-[var(--blur)] rounded-xl p-4 flex items-center justify-between border border-white/20 cursor-pointer transition-all duration-200 hover:border-white/40 ${selectedWallet?.address === wallet.address && selectedWallet?.walletNumber === wallet.walletNumber ? 'shadow-[0_0_15px_rgba(34,197,94,0.5)] border-green-500' : ''}`} 
                   onClick={() => {
-                    // Track WALLET_SELECTED if different wallet
                     if (selectedWallet?.address !== wallet.address || selectedWallet?.walletNumber !== wallet.walletNumber) {
                       analyticsService.trackEvent(EventName.WALLET_SELECTED, {
                         walletAddress: wallet.address,
@@ -502,7 +478,7 @@ export function MainContent({ walletAddress, wallets, onWalletCreated, onWalletD
                         variant="ghost" 
                         size="icon" 
                         className="bg-white/10 text-white rounded-md hover:bg-white/20 p-2" 
-                        onClick={(e) => { e.stopPropagation(); handleCopyAddress(wallet.address);}}
+                        onClick={(e) => { e.stopPropagation(); handleCopyAddress(wallet.address); }}
                       >
                         <Copy className="w-4 h-4" />
                       </Button>
@@ -512,7 +488,7 @@ export function MainContent({ walletAddress, wallets, onWalletCreated, onWalletD
                         variant="ghost" 
                         size="icon" 
                         className="bg-white/10 text-white rounded-md hover:bg-white/20 p-2" 
-                        onClick={(e) => { e.stopPropagation(); setSelectedWallet(wallet); setIsSendModalOpen(true);}}
+                        onClick={(e) => { e.stopPropagation(); setSelectedWallet(wallet); setIsSendModalOpen(true); }}
                         title="Send Crypto"
                       >
                         <Send className="w-4 h-4" />
@@ -523,7 +499,7 @@ export function MainContent({ walletAddress, wallets, onWalletCreated, onWalletD
                         variant="ghost" 
                         size="icon" 
                         className="bg-red-500/20 text-red-400 rounded-md hover:bg-red-500/40 p-2" 
-                        onClick={(e) => { e.stopPropagation(); handleDeleteWallet(wallet);}}
+                        onClick={(e) => { e.stopPropagation(); handleDeleteWallet(wallet); }}
                         title="Delete Wallet"
                       >
                         <Trash className="w-4 h-4" />
@@ -534,7 +510,7 @@ export function MainContent({ walletAddress, wallets, onWalletCreated, onWalletD
                         variant="ghost" 
                         size="icon" 
                         className="bg-white/10 text-white rounded-md hover:bg-white/20 p-2" 
-                        onClick={(e) => { e.stopPropagation(); window.open(`${selectedNetwork.explorerUrl}/address/${wallet.address}`, '_blank');}}
+                        onClick={(e) => { e.stopPropagation(); window.open(`${selectedNetwork.explorerUrl}/address/${wallet.address}`, '_blank'); }}
                         title={`View on ${selectedNetwork.name} Explorer`}
                       >
                         <Search className="w-4 h-4" />
@@ -545,7 +521,7 @@ export function MainContent({ walletAddress, wallets, onWalletCreated, onWalletD
                         variant="ghost" 
                         size="icon" 
                         className="bg-white/10 text-white rounded-md hover:bg-white/20 p-2" 
-                        onClick={(e) => { e.stopPropagation(); handleRefreshBalance(wallet);}}
+                        onClick={(e) => { e.stopPropagation(); handleRefreshBalance(wallet); }}
                         title="Refresh Balance"
                       >
                         <RefreshCw className="w-4 h-4" />
@@ -557,7 +533,7 @@ export function MainContent({ walletAddress, wallets, onWalletCreated, onWalletD
             )}
           </div>
 
-          {/*balance Column*/}
+          {/* Balance Column */}
           <div className="w-[300px] bg-[var(--overlay)] backdrop-blur-[var(--blur)] rounded-xl p-4 flex flex-col">
             <div>
               <h3 className="text-lg font-semibold text-white">Total Portfolio ({selectedNetwork.name})</h3>
@@ -606,7 +582,7 @@ export function MainContent({ walletAddress, wallets, onWalletCreated, onWalletD
             </div>
           </div>
         </div>
-        <Dialog open={isCustomWalletModalOpen} onOpenChange={setIsCustomWalletModalOpen}>
+        <Dialog open={isCustomWalletModalOpen} onOpenChange={(isOpen) => { setIsCustomWalletModalOpen(isOpen); if (!isOpen) setNotification(null); }}>
           <DialogContent className="bg-[var(--overlay)] backdrop-blur-[var(--blur)] rounded-xl p-6 bg-gray-500/50 border border-white/20">
             <DialogHeader>
               <DialogTitle className="text-xl font-semibold text-white">Create Custom Temp Wallet</DialogTitle>
@@ -624,11 +600,10 @@ export function MainContent({ walletAddress, wallets, onWalletCreated, onWalletD
                   placeholder="Enter index (e.g., 1, 2, 3...)" 
                 />
               </div>
-              {error && <p className="text-sm text-red-400">{error}</p>}
             </div>
             <DialogFooter className="flex gap-2 sm:justify-end">
               <Button 
-                onClick={() => {setIsCustomWalletModalOpen(false); setError(null);}} 
+                onClick={() => { setIsCustomWalletModalOpen(false); setNotification(null); }} 
                 className="px-4 py-2 bg-red-500/60 text-primary-foreground rounded-[var(--radius)] hover:bg-red-500/80 transition-colors"
               >
                 Cancel
@@ -642,7 +617,8 @@ export function MainContent({ walletAddress, wallets, onWalletCreated, onWalletD
             </DialogFooter>
           </DialogContent>
         </Dialog>
-        <Dialog open={isSendModalOpen} onOpenChange={(isOpen) => { setIsSendModalOpen(isOpen); if (!isOpen) setError(null); }}>
+        <Dialog open={isSendModalOpen} onOpenChange={(isOpen) => { setIsSendModalOpen(isOpen); if (!isOpen) setNotification(null); }}>
+ 
           <DialogContent className="bg-[var(--overlay)] backdrop-blur-[var(--blur)] rounded-xl p-6 bg-gray-800/50 border border-white/20">
             <DialogHeader>
               <DialogTitle className="text-xl font-semibold text-white">Send {selectedToken?.symbol || 'Crypto'} from Wallet #{selectedWallet?.walletNumber}</DialogTitle>
@@ -695,11 +671,10 @@ export function MainContent({ walletAddress, wallets, onWalletCreated, onWalletD
                   <p className="text-xs text-gray-400 mt-1">Available: {selectedToken.formattedAmount} {selectedToken.symbol}</p>
                 )}
               </div>
-              {error && <p className="text-sm text-red-400">{error}</p>}
             </div>
             <DialogFooter className="flex gap-2 sm:justify-end">
               <Button 
-                onClick={() => { setIsSendModalOpen(false); setError(null); }} 
+                onClick={() => { setIsSendModalOpen(false); setNotification(null); }} 
                 className="px-4 py-2 bg-red-500/60 text-primary-foreground rounded-[var(--radius)] hover:bg-red-500/80 transition-colors"
               >
                 Cancel

@@ -1,5 +1,5 @@
 // src/App.tsx
-import { useState, useEffect, useRef} from 'react';
+import { useState, useEffect, useRef, Dispatch, SetStateAction } from 'react';
 import { ethers } from 'ethers';
 import { Header } from '@/components/layout/Header';
 import { Sidebar } from '@/components/layout/Sidebar';
@@ -10,11 +10,10 @@ import { Wallet, UserData, TransactionStatus } from '@/utils/types';
 import { exportUserData, importUserData } from './utils/exportImport';
 import '@/index.css';
 import { Image } from 'lucide-react'; 
-import { HoverInfoBox } from '@/components/ui/HoverInfoBox';
+import { AlertCircle, CheckCircle } from 'lucide-react';
 import * as Tooltip from "@radix-ui/react-tooltip";
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { BlogListing } from '@/components/pages/BlogListing';
-import React from 'react';
 import PresalePage from './components/pages/PresalePage';
 
 
@@ -27,7 +26,7 @@ interface LayoutProps {
   walletName: string;
   name: string;
   profilePicture: string | null;
-  onConnectWallet: () => void;
+  onConnectWallet: () => Promise<boolean>;
   showProfile: boolean;
   onProfileClick: () => void;
   onEditProfile: (name: string, picture: string | null) => void;
@@ -38,14 +37,51 @@ interface LayoutProps {
   handleExport: () => void;
   handleImport: (event: React.ChangeEvent<HTMLInputElement>) => void;
   handleLogout: () => void;
-  feedback: { type: 'success' | 'error'; message: string } | null;
   bgIndex: number;
   backgroundImages: string[];
   handleSwitchBackground: () => void;
+  notification: Notification | null;
+  setNotification: (notification: { brief: string; full: string; type: 'error' | 'success' } | null) => void;
+  isNotificationExpanded: boolean;
+  setIsNotificationExpanded: Dispatch<SetStateAction<boolean>>;
+}
+
+interface Notification {
+  brief: string;
+  full: string;
+  type: 'error' | 'success';
+}
+
+interface NotificationProps {
+  notification: Notification | null;
+  isExpanded: boolean;
+  setIsExpanded: Dispatch<SetStateAction<boolean>>;
+}
+
+function NotificationComponent({ notification, isExpanded, setIsExpanded }: NotificationProps) {
+  if (!notification) return null;
+  return (
+    <div
+      className={`fixed top-4 right-4 z-50 rounded-lg shadow-lg text-sm font-medium transition-all duration-300 ease-in-out transform cursor-pointer ${
+        isExpanded
+          ? 'w-72 p-4 bg-[var(--overlay)] backdrop-blur-[var(--blur)] border border-white/20'
+          : 'w-48 h-10 px-3 py-2 ' + (notification.type === 'error' ? 'bg-red-500/20 text-red-400 border border-red-500/40' : 'bg-green-500/20 text-green-400 border border-green-500/40')
+      }`}
+      onClick={() => setIsExpanded(!isExpanded)}
+    >
+      <div className="flex items-center gap-2">
+        {notification.type === 'error' ? (
+          <AlertCircle className="w-4 h-4" />
+        ) : (
+          <CheckCircle className="w-4 h-4" />
+        )}
+        <span>{isExpanded ? notification.full : notification.brief}</span>
+      </div>
+    </div>
+  );
 }
 
 function AppLayout({
-  
   children,
   activeItem,
   onNavClick,
@@ -64,18 +100,28 @@ function AppLayout({
   handleExport,
   handleImport,
   handleLogout,
-  feedback,
   bgIndex,
   backgroundImages,
-  handleSwitchBackground
-}: LayoutProps)
-{
+  handleSwitchBackground,
+  notification,
+  setNotification,
+  isNotificationExpanded,
+  setIsNotificationExpanded
+}: LayoutProps) {
   const location = useLocation();
   const hideHeader = location.pathname === '/blogs' || location.pathname === '/presale';
   return (
     <>
       {/* Background wrapper with dynamic image */}
       <div className="app-background" style={{ backgroundImage: `url(${backgroundImages[bgIndex]})` }} />
+
+      {/* Notification Component */}
+      <NotificationComponent
+        notification={notification}
+        isExpanded={isNotificationExpanded}
+        setIsExpanded={setIsNotificationExpanded}
+      />
+
       {/* Main app content */}
       <div className="app-container relative h-screen flex flex-col p-6 overflow-hidden">
         <div className="grid grid-cols-[280px_1fr] gap-6 flex-1 min-h-0">
@@ -92,6 +138,7 @@ function AppLayout({
                 onProfileClick={onProfileClick}
                 onEditProfile={onEditProfile}
                 onEditWalletName={onEditWalletName}
+                setNotification={setNotification}
               />
             )}
               {showProfile && (
@@ -183,11 +230,7 @@ function AppLayout({
                         </Tooltip.Root>
                       </Tooltip.Provider>
 
-                  {feedback && (
-                    <p className={`text-sm ${feedback.type === 'success' ? 'text-success-green' : 'text-danger-red'}`}>
-                      {feedback.message}
-                    </p>
-                  )}
+          
                 </div>
               )}
             </div>
@@ -212,31 +255,16 @@ function AppRoutes({
   currentAccountWallets,
   onWalletCreated,
   onWalletDeleted,
-  onTransactionSent
+  onTransactionSent,
+  setNotification
 }: {
   walletAddress: string | null;
   currentAccountWallets: Wallet[];
   onWalletCreated: (wallet: Wallet) => void;
   onWalletDeleted: (wallet: Wallet) => void;
   onTransactionSent: (wallet: Wallet, status: TransactionStatus) => void;
+  setNotification: (notification: { brief: string; full: string; type: 'error' | 'success' } | null) => void;
 }) {
-  const location = useLocation();
-
-  // Determine active item based on route
-  const getActiveItemFromPath = (pathname: string): string => {
-    switch (pathname) {
-      case '/':
-      case '/dashboard':
-        return 'Dashboard';
-      case '/blogs':
-        return 'Blogs';
-      case '/presale':
-        return 'Presale';
-      default:
-        return 'Dashboard';
-    }
-  };
-
   return (
     <Routes>
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
@@ -249,6 +277,7 @@ function AppRoutes({
             onWalletCreated={onWalletCreated}
             onWalletDeleted={onWalletDeleted}
             onTransactionSent={onTransactionSent}
+            setNotification={setNotification}
           />
         }
       />
@@ -264,24 +293,28 @@ function AppRouterContent(props: any) {
   const navigate = useNavigate();
 
   // Update active item based on route
-  React.useEffect(() => {
-    const path = location.pathname;
-    switch (path) {
-      case '/':
-      case '/dashboard':
-        // Don't call handleNavClick to avoid loop, just update activeItem if needed
-        break;
-      case '/blogs':
-        // Don't call handleNavClick to avoid loop, just update activeItem if needed
-        break;
-      case '/presale':
-        // Don't call handleNavClick to avoid loop, just update activeItem if needed
-        break;
+  useEffect(() => {
+    const getActiveItemFromPath = (pathname: string): string => {
+      switch (pathname) {
+        case '/':
+        case '/dashboard':
+          return 'Dashboard';
+        case '/blogs':
+          return 'Blogs';
+        case '/presale':
+          return 'Presale';
+        default:
+          return 'Dashboard';
       }
-  }, [location.pathname]);
+    };
+
+    const path = location.pathname;
+    props.setActiveItem(getActiveItemFromPath(path));
+  }, [location.pathname, props.setActiveItem]);
 
   // Enhanced navigation handler
   const enhancedHandleNavClick = (item: string) => {
+    props.setActiveItem(item);
     switch (item) {
       case 'Dashboard':
         navigate('/dashboard');
@@ -293,7 +326,6 @@ function AppRouterContent(props: any) {
         navigate('/presale');
         break;
       default:
-        props.handleNavClick(item);
         break;
     }
   };
@@ -336,6 +368,11 @@ function AppRouterContent(props: any) {
             <Image className="w-6 h-6" />
           </button>
         </div>
+        <NotificationComponent
+          notification={props.notification}
+          isExpanded={props.isNotificationExpanded}
+          setIsExpanded={props.setIsNotificationExpanded}
+        />
       </>
     );
   }
@@ -359,10 +396,13 @@ function AppRouterContent(props: any) {
       handleExport={props.handleExport}
       handleImport={props.handleImport}
       handleLogout={props.handleLogout}
-      feedback={props.feedback}
       bgIndex={props.bgIndex}
       backgroundImages={props.backgroundImages}
       handleSwitchBackground={props.handleSwitchBackground}
+      notification={props.notification}
+      setNotification={props.setNotification}
+      isNotificationExpanded={props.isNotificationExpanded}
+      setIsNotificationExpanded={props.setIsNotificationExpanded}
     >
       <AppRoutes
         walletAddress={props.walletAddress}
@@ -370,6 +410,7 @@ function AppRouterContent(props: any) {
         onWalletCreated={props.handleWalletCreated}
         onWalletDeleted={props.handleWalletDeleted}
         onTransactionSent={props.handleTransactionSent}
+        setNotification={props.setNotification}
       />
     </AppLayout>
   );
@@ -379,13 +420,13 @@ function App() {
   const [showLandingPage, setShowLandingPage] = useState<boolean>(true);
   const [isDesktop, setIsDesktop] = useState<boolean>(true);
   const [showProfile, setShowProfile] = useState<boolean>(false);
-  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [activeItem, setActiveItem] = useState<string>('Dashboard');
   const [hasSubmittedName, setHasSubmittedName] = useState<boolean>(false);
   const [name, setName] = useState<string>('');
   const [profilePicture, setProfilePicture] = useState<string | null>(null);
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [walletName, setWalletName] = useState<string>('wallet-name');
+  const [notification, setNotification] = useState<Notification | null>(null);
   const [userData, setUserData] = useState<UserData>({
     accounts: [],
     activeAccount: null,
@@ -394,6 +435,7 @@ function App() {
   // State for background image
   const backgroundImages: string[] = ['/bg7.jpg','/bg2.jpg','/bg1.jpg', '/bg3.jpg', '/bg4.jpg','/bg5.jpg','/bg6.jpg'];
   const [bgIndex, setBgIndex] = useState<number>(0);
+  const [isNotificationExpanded, setIsNotificationExpanded] = useState(false);
 
   // Function to cycle background images
   const handleSwitchBackground = () => {
@@ -408,6 +450,17 @@ function App() {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // Auto-dismiss notifications after 3 seconds
+  useEffect(() => {
+    if (notification) {
+      const timer = setTimeout(() => {
+        setNotification(null);
+        setIsNotificationExpanded(false);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [notification]);
 
   // Add this useEffect for handling clicks outside the dropdown
 useEffect(() => {
@@ -475,7 +528,31 @@ const handleCopyAddress = async () => {
           }
           // Update user data with new active account
           setUserData(prevUserData => {
-            const newUserData = { ...prevUserData, activeAccount: accounts[0], walletNames: prevUserData.walletNames || {} };
+            const newUserData = { ...prevUserData };
+            if (!newUserData.accounts) {
+              newUserData.accounts = [];
+            }
+
+            // Find or create account
+            let accountIndex = newUserData.accounts.findIndex((acc) => acc.account === walletAddress);
+            if (accountIndex === -1) {
+              // Create new account
+              const newAccount = {
+                account: walletAddress!,
+                name: walletName,
+                externalAccountNumber: 1,
+                wallets: []
+              };
+              newUserData.accounts = [...newUserData.accounts, newAccount];
+            } else {
+              // Update existing account
+              const account = { ...newUserData.accounts[accountIndex] };
+              account.name = walletName;
+              newUserData.accounts = newUserData.accounts.map((acc, index) =>
+                index === accountIndex ? account : acc
+              );
+            }
+
             localStorage.setItem('tempWalletUserData', JSON.stringify(newUserData));
             return newUserData;
           });
@@ -512,45 +589,64 @@ const handleCopyAddress = async () => {
     }
   }, [walletAddress]);
 
-  useEffect(() => {
-    if (feedback) {
-      const timer = setTimeout(() => setFeedback(null), 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [feedback]);
-
   const handleConnectWallet = async () => {
-    if (window.ethereum) {
-      try {
-        const provider = new ethers.BrowserProvider(window.ethereum);
-        const accounts = await provider.send('eth_requestAccounts', []);
-        if (accounts.length > 0) {
-          setWalletAddress(accounts[0]);
-          const storedWalletNames = localStorage.getItem('tempWalletNames');
-          if (storedWalletNames) {
-            const walletNames = JSON.parse(storedWalletNames);
-            setWalletName(walletNames[accounts[0]] || 'wallet-name');
-          } else {
-            setWalletName('wallet-name');
-          }
-          const newUserData = { ...userData, activeAccount: accounts[0], walletNames: userData.walletNames || {} };
-          setUserData(newUserData);
-          localStorage.setItem('tempWalletUserData', JSON.stringify(newUserData));
+    if (!window.ethereum) {
+      setNotification({
+        brief: 'MetaMask not found',
+        full: 'Please install MetaMask and try again',
+        type: 'error',
+      });
+      return false;
+    }
+    try {
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const accounts = await provider.send('eth_requestAccounts', []);
+      if (accounts.length > 0) {
+        setWalletAddress(accounts[0]);
+        const storedWalletNames = localStorage.getItem('tempWalletNames');
+        if (storedWalletNames) {
+          const walletNames = JSON.parse(storedWalletNames);
+          setWalletName(walletNames[accounts[0]] || 'wallet-name');
+        } else {
+          setWalletName('wallet-name');
         }
-      } catch (error) {
-        console.error('Failed to connect wallet:', error);
-        setFeedback({ type: 'error', message: 'Failed to connect wallet' });
+        const newUserData = { ...userData, activeAccount: accounts[0], walletNames: userData.walletNames || {} };
+        setUserData(newUserData);
+        localStorage.setItem('tempWalletUserData', JSON.stringify(newUserData));
+        setNotification({
+          brief: 'Wallet connected',
+          full: 'Successfully connected to MetaMask',
+          type: 'success',
+        });
+        return true;
       }
-    } else {
-      setFeedback({ type: 'error', message: 'MetaMask not detected' });
+      // No accounts returned – treat as cancelled
+      throw new Error('No accounts returned from provider');
+    } catch (error: any) {
+      if (error.code === 4001) {
+        setNotification({
+          brief: 'Connection rejected',
+          full: 'MetaMask connection failed: User rejected the request',
+          type: 'error',
+        });
+      } else {
+        setNotification({
+          brief: 'Connection failed',
+          full: error.message || 'Failed to connect to MetaMask',
+          type: 'error',
+        });
+      }
+      // Re-throw the error so that callers can react appropriately
+      throw error;
     }
   };
 
   const handleExport = () => {
     const success = exportUserData();
-    setFeedback({
+    setNotification({
+      brief: success ? 'Export successful' : 'Export failed',
+      full: success ? 'Profile exported successfully' : 'Failed to export wallets',
       type: success ? 'success' : 'error',
-      message: success ? 'Export successful' : 'Failed to export wallets',
     });
   };
 
@@ -558,9 +654,10 @@ const handleCopyAddress = async () => {
     const file = event.target.files?.[0];
     if (!file) return;
     const result = await importUserData(file);
-    setFeedback({
+    setNotification({
+      brief: result.success ? 'Import successful' : 'Import failed',
+      full: result.message,
       type: result.success ? 'success' : 'error',
-      message: result.message,
     });
     if (result.success) {
       const storedData = localStorage.getItem('tempWalletUserData');
@@ -588,6 +685,7 @@ const handleCopyAddress = async () => {
     event.target.value = '';
   };
 
+
   const handleLogout = () => {
     setHasSubmittedName(false);
     setName('');
@@ -596,30 +694,10 @@ const handleCopyAddress = async () => {
     setWalletName('wallet-name');
     setShowProfile(false);
     setActiveItem('Dashboard');
-    setFeedback(null);
     setUserData({ accounts: [], activeAccount: null, walletNames: {} });
     localStorage.removeItem('tempWalletProfile');
     localStorage.removeItem('tempWalletNames');
     localStorage.setItem('tempWalletUserData', JSON.stringify({ accounts: [], activeAccount: null, walletNames: {} }));
-  };
-
-  const handleNavClick = (item: string) => {
-    setActiveItem(item);
-
-    // Add navigation logic for routing
-    if (typeof window !== 'undefined') {
-      switch (item) {
-        case 'Dashboard':
-          window.history.pushState({}, '', '/dashboard');
-          break;
-        case 'Blogs':
-          window.history.pushState({}, '', '/blogs');
-          break;
-        default:
-          break;
-      }
-    }
-    console.log(`Navigating to ${item}`);
   };
 
   const handleNameSubmit = (e: React.FormEvent) => {
@@ -754,48 +832,6 @@ const handleCopyAddress = async () => {
     return <UnsupportedDevice />;
   }
 
-  if (!hasSubmittedName) {
-    return (
-      <>
-        {/* Background wrapper with dynamic image */}
-        <div className="app-background" style={{ backgroundImage: `url(${backgroundImages[bgIndex]})` }} />
-        <div className="relative min-h-screen flex items-center justify-center">
-          <div className="name-form bg-[var(--overlay)] backdrop-blur-[var(--blur)] rounded-xl p-6 shadow-lg max-w-md w-full">
-            <h1 className="text-4xl font-bold text-white mb-4">Temp Wallet dApp</h1>
-            <form onSubmit={handleNameSubmit} className="space-y-4">
-              <label htmlFor="name-input" className="text-lg font-medium text-white">
-                Enter Your Name
-              </label>
-              <input
-                id="name-input"
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Your Name"
-                autoFocus
-                className="w-full px-3 py-2 bg-transparent text-white placeholder-white/50 border border-white/20 rounded-[var(--radius)] focus:outline-none focus:ring-2 focus:ring-white"
-              />
-              <button
-                type="submit"
-                className="w-full px-4 py-2 bg-primary text-primary-foreground rounded-[var(--radius)] hover:bg-gray-400/50 hover:scale-105 hover:shadow-md transition-all duration-200"
-              >
-                Submit
-              </button>
-            </form>
-          </div>
-          {/* Background switcher button */}
-          <button
-            className="fixed bottom-4 right-4 p-2 bg-primary text-primary-foreground rounded-full shadow-md hover:bg-[#3C3AB4] z-10"
-            onClick={handleSwitchBackground}
-            aria-label="Switch background image"
-          >
-            <Image className="w-6 h-6" />
-          </button>
-        </div>
-      </>
-    );
-  }
-
   const currentAccountWallets = userData.accounts.find((acc) => acc.account === walletAddress)?.wallets || [];
 
 return (
@@ -809,7 +845,7 @@ return (
       bgIndex={bgIndex}
       handleSwitchBackground={handleSwitchBackground}
       activeItem={activeItem}
-      handleNavClick={handleNavClick}
+      setActiveItem={setActiveItem}
       walletAddress={walletAddress}
       walletName={walletName}
       profilePicture={profilePicture}
@@ -824,11 +860,14 @@ return (
       handleExport={handleExport}
       handleImport={handleImport}
       handleLogout={handleLogout}
-      feedback={feedback}
       currentAccountWallets={currentAccountWallets}
       handleWalletCreated={handleWalletCreated}
       handleWalletDeleted={handleWalletDeleted}
       handleTransactionSent={handleTransactionSent}
+      notification={notification}
+      setNotification={setNotification}
+      isNotificationExpanded={isNotificationExpanded}
+      setIsNotificationExpanded={setIsNotificationExpanded}
     />
   </Router>
 );

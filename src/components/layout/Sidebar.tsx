@@ -308,9 +308,6 @@ export function Sidebar({ activeItem: propActiveItem, onNavClick }: SidebarProps
             <a href="https://t.me/+jGONCu_VLqgwZTVl" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors">
                 <FaTelegramPlane size={20} />
             </a>
-            <a href="https://discord.gg/tempwallets" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors">
-                <FaDiscord size={20} />
-            </a>
           </div>
         </footer>
       </div>
