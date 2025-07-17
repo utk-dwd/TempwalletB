@@ -247,6 +247,10 @@ const handleRefreshBalance = async (wallet: Wallet, isPostTransaction: boolean =
     return acc;
   }, new Map<string, { amount: bigint; decimals: number }>());
 
+  const handleDeleteWallet = (wallet: Wallet) => {
+    onWalletDeleted(wallet);
+  };
+
   return (
     <>
       <style>{`.custom-scrollbar::-webkit-scrollbar{width:10px;}.custom-scrollbar::-webkit-scrollbar-track{background:rgba(55,65,81,0.3);border-radius:10px;margin-top:5px;margin-bottom:5px;}.custom-scrollbar::-webkit-scrollbar-thumb{background:rgba(209,213,219,0.5);border-radius:10px;border:2px solid transparent;background-clip:content-box;}.custom-scrollbar::-webkit-scrollbar-thumb:hover{background:rgba(156,163,175,0.7);background-clip:content-box;}.custom-scrollbar{scrollbar-width:thin;scrollbar-color:rgba(209,213,219,0.5) rgba(55,65,81,0.3);}`}</style>
