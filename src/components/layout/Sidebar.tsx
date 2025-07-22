@@ -38,7 +38,7 @@ interface SidebarProps {
 }
 export function Sidebar({ activeItem: propActiveItem, onNavClick }: SidebarProps) {
   // Added 'Presale' to the navigation items
-  const navItems = ['Dashboard', 'FAQ', 'Address Book', 'History', 'Settings', '$TEMP Token Pre-Sale'];
+  const navItems = ['Dashboard', 'FAQs', 'Address Book', 'History', 'Settings', '$TEMP Token Pre-Sale'];
   const [showComingSoonPopup, setShowComingSoonPopup] = useState<string | null>(null);
   const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 });
   const [showPolicyPopup, setShowPolicyPopup] = useState<string | null>(null);
@@ -47,7 +47,7 @@ export function Sidebar({ activeItem: propActiveItem, onNavClick }: SidebarProps
 
   const navIcons: { [key: string]: React.ReactNode } = {
       Dashboard: <LayoutDashboard size={20} className="mr-2" />,
-      FAQ: <BookText size={20} className="mr-2" />,
+      FAQs: <BookText size={20} className="mr-2" />,
       'Address Book': <Contact size={20} className="mr-2" />,
       History: <History size={20} className="mr-2" />,
       Settings: <Settings size={20} className="mr-2" />,
@@ -56,7 +56,7 @@ export function Sidebar({ activeItem: propActiveItem, onNavClick }: SidebarProps
   
   const routeMap: { [key: string]: string } = {
     Dashboard: '/dashboard',
-    FAQ: '/faq',
+    FAQs: '/faqs',
     '$TEMP Token Pre-Sale': '/presale',
     'Address Book': '/address-book',
     History: '/history',

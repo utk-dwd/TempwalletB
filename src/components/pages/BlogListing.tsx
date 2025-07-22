@@ -1,7 +1,7 @@
 // src/pages/BlogListing.tsx
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Calendar, Clock, Search, Newspaper, X } from 'lucide-react'; // Note: Loader2 is no longer needed
+import { ArrowRight, Calendar, Clock, Search, X, ChevronDown } from 'lucide-react'; // Removed Newspaper, Added ChevronDown
 import { supabase } from '@/lib/supabaseClient'; // Import the Supabase client
 
 /**
@@ -35,6 +35,12 @@ export function BlogListing({}: BlogProps) {
   // State to manage loading and error states for the data fetch
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // =================================================================
+  // CHANGE 1: New state to track the ID of the expanded card
+  // =================================================================
+  const [expandedPostId, setExpandedPostId] = useState<string | null>(null);
+
 
   // State for the animated search bar
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
@@ -101,9 +107,6 @@ export function BlogListing({}: BlogProps) {
 
   const ArticleSkeleton = () => (
     <div className="group bg-black/20 backdrop-blur-sm rounded-xl border border-white/10 p-6 flex flex-col md:flex-row items-start gap-6 animate-pulse">
-      {/* Skeleton for the left icon */}
-      <div className="hidden md:flex items-center justify-center bg-white/10 rounded-lg w-20 h-20 flex-shrink-0"></div>
-      
       <div className="flex-1 w-full space-y-4">
         {/* Skeleton for the title */}
         <div className="h-5 bg-white/10 rounded w-3/4"></div>
@@ -111,16 +114,6 @@ export function BlogListing({}: BlogProps) {
         <div className="flex space-x-4">
           <div className="h-4 bg-white/10 rounded w-1/4"></div>
           <div className="h-4 bg-white/10 rounded w-1/4"></div>
-        </div>
-        {/* Skeleton for the preview text */}
-        <div className="space-y-2">
-          <div className="h-4 bg-white/10 rounded w-full"></div>
-          <div className="h-4 bg-white/10 rounded w-5/6"></div>
-          <div className="h-4 bg-white/10 rounded w-full"></div>
-        </div>
-        {/* Skeleton for the button */}
-        <div className="flex justify-end">
-            <div className="h-8 bg-white/10 rounded w-24"></div>
         </div>
       </div>
     </div>
@@ -157,7 +150,6 @@ export function BlogListing({}: BlogProps) {
           .custom-scrollbar::-webkit-scrollbar { width: 8px; }
           .custom-scrollbar::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.05); }
           .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 4px; }
-          .line-clamp-3 { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
         `}
       </style>
  
@@ -198,49 +190,68 @@ export function BlogListing({}: BlogProps) {
         </div>
 
         {/* Blog Posts List - Conditional Rendering */}
-        <div className="space-y-8 max-w-4xl mx-auto">
+        <div className="space-y-4 max-w-4xl mx-auto">
           {isLoading ? renderLoadingState() : 
            error ? renderErrorState() : 
            filteredPosts.length > 0 ? (
-            filteredPosts.map((post) => (
-              <article
-                key={post.id}
-                className="group bg-black/20 backdrop-blur-sm rounded-xl border border-white/10 p-6 transition-all duration-300 hover:border-white/20 hover:bg-white/5 flex flex-col md:flex-row items-start gap-6"
-              >
-                <div className="hidden md:flex items-center justify-center bg-white/5 border border-white/10 rounded-lg w-20 h-20 flex-shrink-0 group-hover:bg-white/10 transition-colors">
-                  <Newspaper className="h-8 w-8 text-gray-400" />
-                </div>
-                <div className="flex-1">
-                  <h2 className="text-xl font-semibold text-white mb-3 group-hover:text-gray-200 transition-colors">
-                    {post.title}
-                  </h2>
-                  <div className="flex items-center text-sm text-gray-400 mb-4 space-x-4">
-                    <div className="flex items-center space-x-1.5">
-                      <Calendar className="h-3.5 w-3.5" />
-                      {/* Format the date for display */}
-                      <span>{new Date(post.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+            filteredPosts.map((post) => {
+              // Check if the current post is the one that is expanded
+              const isExpanded = expandedPostId === post.id;
+              
+              return (
+                <article
+                  key={post.id}
+                  className="bg-black/20 backdrop-blur-sm rounded-xl border border-white/10 p-4 md:p-6 transition-all duration-300 hover:border-white/20 hover:bg-white/5"
+                >
+                  <div 
+                    className="flex justify-between items-center cursor-pointer"
+                    // On click, toggle the expanded state for this specific post
+                    onClick={() => setExpandedPostId(isExpanded ? null : post.id)}
+                  >
+                    <div className="flex-1">
+                      <h2 className="text-lg font-semibold text-white group-hover:text-gray-200">
+                        {post.title}
+                      </h2>
+                      <div className="flex items-center text-xs text-gray-400 mt-2 space-x-4">
+                        <div className="flex items-center space-x-1.5">
+                          <Calendar className="h-3 w-3" />
+                          <span>{new Date(post.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                        </div>
+                        <div className="flex items-center space-x-1.5">
+                          <Clock className="h-3 w-3" />
+                          <span>{post.read_time_minutes} min read</span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex items-center space-x-1.5">
-                      <Clock className="h-3.5 w-3.5" />
-                      <span>{post.read_time_minutes} min read</span>
+                    <ChevronDown 
+                      className={`h-6 w-6 text-gray-400 transform transition-transform duration-300 ${isExpanded ? 'rotate-180' : 'rotate-0'}`} 
+                    />
+                  </div>
+
+                  {/* Collapsible Content */}
+                  <div 
+                    className={`overflow-hidden transition-all duration-500 ease-in-out ${isExpanded ? 'max-h-96 opacity-100 mt-4' : 'max-h-0 opacity-0'}`}
+                  >
+                    <p className="text-gray-300 text-sm leading-relaxed">
+                      {post.preview}
+                    </p>
+                    <div className="flex justify-end mt-4">
+                      <Button
+                        variant="ghost"
+                        className="text-white hover:text-gray-200 hover:bg-white/10 transition-all duration-200"
+                        onClick={(e) => {
+                          e.stopPropagation(); // Prevent the card from collapsing when the button is clicked
+                          handleReadMore(post.medium_link);
+                        }}
+                      >
+                        Read More
+                        <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                      </Button>
                     </div>
                   </div>
-                  <p className="text-gray-300 text-sm mb-5 leading-relaxed">
-                    {post.preview}
-                  </p>
-                  <div className="flex justify-end">
-                    <Button
-                      variant="ghost"
-                      className="text-white hover:text-gray-200 hover:bg-white/10 transition-all duration-200"
-                      onClick={() => handleReadMore(post.medium_link)}
-                    >
-                      Read More
-                      <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                    </Button>
-                  </div>
-                </div>
-              </article>
-            ))
+                </article>
+              );
+            })
           ) : renderNoResults()}
         </div>
       </div>

@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { gsap } from 'gsap';
 import { Copy, Wallet, Send, Award, CircleDollarSign, AlertTriangle, X, Presentation } from 'lucide-react';
 import Leaderboard from '@/components/leaderboard/Leaderboard';
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend } from 'recharts';
+
 
 // --- ShadCN UI Components ---
 import { Button } from '@/components/ui/button';
@@ -16,15 +18,104 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-// --- Data for Pricing Tiers ---
-const PRICE_TIERS = [
-  { minAmount: 0, maxAmount: 50, pricePerToken: 0.1 },
-  { minAmount: 50, maxAmount: 100, pricePerToken: 0.08 },
-  { minAmount: 100, maxAmount: 500, pricePerToken: 0.05 },
-  { minAmount: 500, maxAmount: 1000, pricePerToken: 0.04 },
-  { minAmount: 1000, maxAmount: 5000, pricePerToken: 0.02 },
-  { minAmount: 5000, maxAmount: '∞', pricePerToken: 0.01 }
+// --- Data for Tokenomics ---
+const TOKEN_ALLOCATION_DATA = [
+    { name: 'Community & Ecosystem', value: 30, color: '#F5A623' },
+    { name: 'Public ICO', value: 20, color: '#4A90E2' },
+    { name: 'Seed Round Investors', value: 20, color: '#D0021B' },
+    { name: 'Team', value: 20, color: '#F8E71C' },
+    { name: 'Liquidity & Exchange', value: 5, color: '#417505' },
+    { name: 'Advisory', value: 5, color: '#50E3C2' },
 ];
+
+//Tokenomics Card Component
+const TokenomicsCard = () => {
+  return (
+      <Card className="bg-white/5 backdrop-blur-sm border border-white/10">
+          <CardHeader>
+              <CardTitle className="text-white flex items-center gap-2">
+                  <img 
+                    src="/TEMP Token Logo.svg" 
+                    alt="TEMP Token" 
+                    className="h-8 w-8" 
+                  />
+                  <span>TEMP Token ICO</span>
+              </CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-6">
+              {/*Summary Table */}
+              <Table>
+                  <TableHeader>
+                      <TableRow className="border-white/20 hover:bg-transparent">
+                          <TableHead className="text-white/80 text-xs px-2">Allocation</TableHead>
+                          <TableHead className="text-white/80 text-xs px-2">Alloc. %</TableHead>
+                          <TableHead className="text-white/80 text-xs px-2">Price</TableHead>
+                          <TableHead className="text-white/80 text-xs px-2">FDV</TableHead>
+                          <TableHead className="text-right text-white/80 text-xs px-2">Funding</TableHead>
+                      </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                      <TableRow className="border-white/10">
+                          <TableCell className="font-medium text-gray-300 text-xs px-2">100M</TableCell>
+                          <TableCell className="text-gray-300 text-xs px-2">20.00%</TableCell>
+                          <TableCell className="font-mono text-cyan-400 text-xs px-2">$0.0010</TableCell>
+                          <TableCell className="text-gray-300 text-xs px-2">$500k</TableCell>
+                          <TableCell className="text-right text-green-400 text-xs px-2">$100k</TableCell>
+                      </TableRow>
+                  </TableBody>
+              </Table>
+
+              {/* --- Chart and Legend Section --- */}
+              <div className="flex flex-col lg:flex-row items-center gap-4">
+                  {/* Pie Chart */}
+                  <div 
+                      className="w-full lg:w-1/2 h-48 min-h-[192px]"
+                      style={{ 
+                          filter: 'drop-shadow(0 0 1.25rem rgba(0, 255, 255, 0.25))' 
+                      }}
+                  >
+                      <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                              <Pie
+                                  data={TOKEN_ALLOCATION_DATA}
+                                  cx="50%"
+                                  cy="50%"
+                                  labelLine={false}
+                                  outerRadius={80}
+                                  dataKey="value"
+                                  stroke="none"
+                              >
+                                  {TOKEN_ALLOCATION_DATA.map((entry, index) => (
+                                      <Cell 
+                                          key={`cell-${index}`} 
+                                          fill={entry.color} 
+                                          style={{ opacity: 0.8 }} 
+                                      />
+                                  ))}
+                              </Pie>
+                          </PieChart>
+                      </ResponsiveContainer>
+                  </div>
+
+                  {/* Allocation Table/Legend */}
+                  <div className="w-full lg:w-1/2">
+                      <div className="space-y-2">
+                          {TOKEN_ALLOCATION_DATA.map((item) => (
+                              <div key={item.name} className="flex items-center justify-between text-sm">
+                                  <div className="flex items-center gap-2">
+                                      <div className="h-3 w-3 rounded-full" style={{ backgroundColor: item.color, opacity: 0.8 }} />
+                                      <span className="text-gray-300">{item.name}</span>
+                                  </div>
+                                  <span className="font-mono text-cyan-400">{item.value}%</span>
+                              </div>
+                          ))}
+                      </div>
+                  </div>
+              </div>
+          </CardContent>
+      </Card> 
+  );
+};
 
 
 // --- Reusable Components ---
@@ -272,7 +363,7 @@ const PresalePage = () => {
               </Card>
             </div>
 
-            {/* Right Column: Instructions & Pricing */}
+            {/* Right Column: Instructions & Tokenomics */}
             <div ref={rightColumnRef} className="xl:w-[400px] flex flex-col gap-6">
               <Card className="bg-white/5 backdrop-blur-sm border border-white/10">
                 <CardHeader>
@@ -291,40 +382,9 @@ const PresalePage = () => {
                 </CardContent>
               </Card>
 
-              <Card className="bg-white/5 backdrop-blur-sm border border-white/10">
-                <CardHeader>
-                   <CardTitle className="text-white flex items-center gap-2 mb-[-25px]">
-                    <img 
-                      src="/TEMP Token Logo.svg" 
-                      alt="TEMP Token" 
-                      className="h-8 w-8" 
-                    />
-                    <span>TEMP Token Pricing Tiers</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="border-white/20 hover:bg-transparent">
-                        <TableHead className="text-white/80 flex items-center gap-2"> <CircleDollarSign className="h-4 w-4 text-green-400"/>USDT Contributed</TableHead>
-                        <TableHead className="text-right text-white/80">Price per TEMP</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {PRICE_TIERS.map((tier) => (
-                        <TableRow key={tier.minAmount} className="border-white/10">
-                          <TableCell className="font-medium text-gray-300">
-                            {`$${tier.minAmount.toLocaleString()} - $${tier.maxAmount.toLocaleString()}`}
-                          </TableCell>
-                          <TableCell className="text-right font-mono text-cyan-400">
-                            ${tier.pricePerToken}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
+              {/* === REPLACED COMPONENT === */}
+              <TokenomicsCard />
+
             </div>
           </div>
         </div>

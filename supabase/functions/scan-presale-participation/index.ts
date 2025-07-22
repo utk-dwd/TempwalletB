@@ -1,15 +1,9 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { ethers } from 'https://esm.sh/ethers@6.7.0';
 
-// --- Configuration ---
-const PRICE_TIERS = [
-  { minAmount: 0, maxAmount: 50, pricePerToken: 0.1 },
-  { minAmount: 50, maxAmount: 100, pricePerToken: 0.08 },
-  { minAmount: 100, maxAmount: 500, pricePerToken: 0.05 },
-  { minAmount: 500, maxAmount: 1000, pricePerToken: 0.04 },
-  { minAmount: 1000, maxAmount: 5000, pricePerToken: 0.02 },
-  { minAmount: 5000, maxAmount: Infinity, pricePerToken: 0.01 }
-];
+// --- NEW: Configuration for Fixed Price Presale ---
+const TOKEN_PRICE_USDT = 0.001;
+const TOTAL_SUPPLY = 100000000;
 
 const USDT_ABI = [
   "event Transfer(address indexed from, address indexed to, uint256 value)"
@@ -19,19 +13,14 @@ const BLOCK_RANGE_LIMIT = 499;
 
 // --- Main Handler ---
 Deno.serve(async (req) => {
-  // --- CORRECTED CORS LOGIC ---
-  // This logic is now correctly placed inside the handler where 'req' is available.
   const allowedOrigins = ['https://tempwallets.com', 'https://www.tempwallets.com', 'http://localhost:5173'];
   const origin = req.headers.get('origin') || '';
-  
   const corsOrigin = allowedOrigins.includes(origin) ? origin : allowedOrigins[0];
-
   const corsHeaders = {
     'Access-Control-Allow-Origin': corsOrigin,
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   };
 
-  // Handle the browser's preflight request.
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
@@ -46,20 +35,21 @@ Deno.serve(async (req) => {
     const usdtContractAddress = Deno.env.get('VITE_USDT_CONTRACT_ADDRESS')!;
     const usdtContract = new ethers.Contract(usdtContractAddress, USDT_ABI, provider);
 
-    const { data: stateData } = await supabaseClient
+    // --- FETCH BOTH STATE VALUES ---
+    const { data: stateData, error: stateError } = await supabaseClient
       .from('system_state')
-      .select('value')
-      .eq('key', 'last_scanned_block')
-      .single();
+      .select('key, value');
 
-    const fromBlock = parseInt(stateData!.value, 10) + 1;
+    if (stateError) throw stateError;
+
+    const lastScannedBlock = parseInt(stateData.find(s => s.key === 'last_scanned_block')?.value || '0', 10);
+    let totalTokensSold = parseFloat(stateData.find(s => s.key === 'total_tokens_sold')?.value || '0');
+
+    const fromBlock = lastScannedBlock + 1;
     const toBlock = await provider.getBlockNumber();
 
     if (fromBlock > toBlock) {
-      return new Response(JSON.stringify({ message: 'No new blocks to scan.' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      });
+      return new Response(JSON.stringify({ message: 'No new blocks to scan.' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     let totalEventsFound = 0;
@@ -71,11 +61,25 @@ Deno.serve(async (req) => {
       if (events.length > 0) {
         totalEventsFound += events.length;
         for (const event of events) {
+          // --- Check if presale is already sold out before processing ---
+          if (totalTokensSold >= TOTAL_SUPPLY) {
+            console.log("Presale is sold out. Skipping further transactions.");
+            break; // Exit the loop over events
+          }
+
           const { from, value } = event.args;
           const txHash = event.transactionHash;
           const usdtAmount = parseFloat(ethers.formatUnits(value, 6));
-          const tier = PRICE_TIERS.find(t => usdtAmount >= t.minAmount && usdtAmount < t.maxAmount);
-          const tempTokensAssigned = tier ? usdtAmount / tier.pricePerToken : 0;
+
+          // --- CALCULATE TOKENS WITH FIXED PRICE ---
+          let tempTokensAssigned = usdtAmount / TOKEN_PRICE_USDT;
+          
+          // --- CHECK AGAINST TOTAL SUPPLY ---
+          const remainingSupply = TOTAL_SUPPLY - totalTokensSold;
+          if (tempTokensAssigned > remainingSupply) {
+            console.warn(`Transaction ${txHash} exceeds remaining supply. Assigning only what's left.`);
+            tempTokensAssigned = remainingSupply;
+          }
 
           const newParticipation = {
             participant_address: from,
@@ -90,19 +94,24 @@ Deno.serve(async (req) => {
             .select()
             .maybeSingle();
 
-          if (insertError && insertError.code !== '23505') { // 23505 is for unique constraint violation
+          if (insertError && insertError.code !== '23505') {
             console.error(`Failed to insert participation ${txHash}:`, insertError.message);
+          } else if (!insertError) {
+            // --- UPDATE TOTAL TOKENS SOLD ---
+            totalTokensSold += tempTokensAssigned;
           }
         }
       }
+       if (totalTokensSold >= TOTAL_SUPPLY) break; // Exit the loop over blocks
     }
 
-    await supabaseClient
-      .from('system_state')
-      .update({ value: toBlock.toString() })
-      .eq('key', 'last_scanned_block');
+    // --- UPDATE BOTH STATE VALUES IN THE DATABASE ---
+    await Promise.all([
+      supabaseClient.from('system_state').update({ value: toBlock.toString() }).eq('key', 'last_scanned_block'),
+      supabaseClient.from('system_state').update({ value: totalTokensSold.toString() }).eq('key', 'total_tokens_sold')
+    ]);
 
-    return new Response(JSON.stringify({ message: `Successfully scanned up to block ${toBlock}. Found ${totalEventsFound} new participations in total.` }), {
+    return new Response(JSON.stringify({ message: `Successfully scanned up to block ${toBlock}. Found ${totalEventsFound} new participations.` }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     });
