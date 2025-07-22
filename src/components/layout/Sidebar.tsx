@@ -56,7 +56,7 @@ export function Sidebar({ activeItem: propActiveItem, onNavClick }: SidebarProps
   
   const routeMap: { [key: string]: string } = {
     Dashboard: '/dashboard',
-    FAQs: '/faqs',
+    FAQs: '/faq',
     '$TEMP Token Pre-Sale': '/presale',
     'Address Book': '/address-book',
     History: '/history',
