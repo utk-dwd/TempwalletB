@@ -3,12 +3,12 @@ import { avalanche, mainnet, base, arbitrum } from 'viem/chains';
 export interface NetworkConfig {
   name: string;
   chainId: number;
-  viemChain: typeof avalanche | typeof mainnet | typeof base;
+  viemChain: typeof avalanche | typeof mainnet | typeof base | typeof import('viem/chains').arbitrum;
   rpcUrl: string;
-  explorerUrl: 'https://snowtrace.io' | 'https://etherscan.io' | 'https://basescan.org';
+  explorerUrl: 'https://snowtrace.io' | 'https://etherscan.io' | 'https://basescan.org' | 'https://arbiscan.io';
   paymasterApiKey: string;
-  currencySymbol: 'AVAX' | 'ETH' | 'ETH'; // Base uses ETH as currency
-  zerionChainId: 'avalanche' | 'ethereum' | 'base';
+  currencySymbol: 'AVAX' | 'ETH'; // Base and Arbitrum use ETH
+  zerionChainId: 'avalanche' | 'ethereum' | 'base' | 'arbitrum';
 }
 
 // Ensure you have these environment variables in your .env file
