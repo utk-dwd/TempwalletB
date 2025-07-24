@@ -156,8 +156,8 @@ export function BlogListing({}: BlogProps) {
       <div className="flex-1 p-4 sm:p-6 overflow-y-auto custom-scrollbar">
         {/* Header Section */}
         <div className="text-center">
-            <span className="text-sm font-semibold text-gray-400 tracking-wider">FAQ & ARTICLES</span>
-            <h1 className="mt-2 text-4xl md:text-5xl font-bold text-white">Discover our latest FAQ & articles</h1>
+            <span className="text-sm font-semibold text-gray-400 tracking-wider">FAQs & ARTICLES</span>
+            <h1 className="mt-2 text-4xl md:text-5xl font-bold text-white">Discover our latest FAQs & articles</h1>
             <p className="mt-4 text-sm max-w-2xl mx-auto text-gray-300">
                 TempWallets.com are disposable temporary wallet technology that allow Degens to receive crypto anonymously by generating wallets deterministically from their MetaMask signatures.
             </p>

@@ -1,4 +1,4 @@
-import { avalanche, mainnet, base } from 'viem/chains';
+import { avalanche, mainnet, base, arbitrum } from 'viem/chains';
 
 export interface NetworkConfig {
   name: string;
@@ -15,6 +15,8 @@ export interface NetworkConfig {
 const VITE_AVALANCHE_RPC = import.meta.env.VITE_AVALANCHE_RPC;
 const VITE_ETHEREUM_RPC = import.meta.env.VITE_ETHEREUM_RPC;
 const VITE_BASE_RPC = import.meta.env.VITE_BASE_RPC;
+const VITE_ARBITRUM_RPC = import.meta.env.VITE_ARBITRUM_RPC;
+const VITE_BICONOMY_PAYMASTER_API_KEY_ARBITRUM = import.meta.env.VITE_BICONOMY_PAYMASTER_API_KEY_ARBITRUM;
 const VITE_BICONOMY_PAYMASTER_API_KEY_AVALANCHE = import.meta.env.VITE_BICONOMY_PAYMASTER_API_KEY; // Assuming one key for now
 const VITE_BICONOMY_PAYMASTER_API_KEY_ETHEREUM = import.meta.env.VITE_BICONOMY_PAYMASTER_API_KEY_ETHEREUM;
 const VITE_BICONOMY_PAYMASTER_API_KEY_BASE = import.meta.env.VITE_BICONOMY_PAYMASTER_API_KEY_BASE;
@@ -50,6 +52,17 @@ export const NETWORKS: Record<string, NetworkConfig> = {
     paymasterApiKey: VITE_BICONOMY_PAYMASTER_API_KEY_BASE,
     currencySymbol: "ETH",
     zerionChainId: 'base',
+  },
+
+  Arbitrum: {
+    name: "Arbitrum",
+    chainId: 42161,
+    viemChain: arbitrum,
+    rpcUrl: VITE_ARBITRUM_RPC,
+    explorerUrl: "https://arbiscan.io",
+    paymasterApiKey: VITE_BICONOMY_PAYMASTER_API_KEY_ARBITRUM,
+    currencySymbol: "ETH",
+    zerionChainId: 'arbitrum',
   },
   // Add more networks here as needed, e.g., Polygon, Arbitrum
 };
