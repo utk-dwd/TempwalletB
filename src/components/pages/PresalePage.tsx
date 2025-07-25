@@ -20,14 +20,13 @@ import {
 
 // --- Data for Tokenomics ---
 const TOKEN_ALLOCATION_DATA = [
-    { name: 'Community & Ecosystem', value: 30, color: '#F5A623' },
-    { name: 'Public ICO', value: 20, color: '#4A90E2' },
-    { name: 'Seed Round Investors', value: 20, color: '#D0021B' },
-    { name: 'Team', value: 20, color: '#F8E71C' },
-    { name: 'Liquidity & Exchange', value: 5, color: '#417505' },
-    { name: 'Advisory', value: 5, color: '#50E3C2' },
+  { name: 'Community & Ecosystem', value: 30, color: '#002642' }, // Very Dark Blue
+  { name: 'Public ICO', value: 20, color: '#023E7D' }, // Dark Blue
+  { name: 'Seed Round Investors', value: 20, color: '#0466C8' }, // Medium Blue
+  { name: 'Team', value: 20, color: '#6A9AC4' }, // Lighter Blue
+  { name: 'Liquidity & Exchange', value: 5, color: '#9D0208' }, // Deep Red Accent
+  { name: 'Advisory', value: 5, color: '#D00000' }, // Brighter Red Accent
 ];
-
 //Tokenomics Card Component
 const TokenomicsCard = () => {
   return (

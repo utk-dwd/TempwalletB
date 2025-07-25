@@ -71,7 +71,7 @@ const Leaderboard = () => {
   
   // --- NEW: State for total allocation and the goal ---
   const [totalAllocation, setTotalAllocation] = useState(0);
-  const ALLOCATION_GOAL = 125000000;
+  const ALLOCATION_GOAL = 100000000;
 
   // This function fetches and processes the data from Supabase
   const fetchLeaderboard = async () => {
