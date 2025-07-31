@@ -18,6 +18,7 @@ import PresalePage from './components/pages/PresalePage';
 import { supabase, setAuthToken } from './lib/supabaseClient'; // Import supabase client and setAuthToken
 import { signMessage } from './utils/walletUtils'; // Import signMessage
 import { NETWORKS } from './utils/networks'; // Import NETWORKS for the signMessage call
+import analyticsService from './services/analytics';
 
 // component definition: (Props interfaces remain the same)
 interface LayoutProps {

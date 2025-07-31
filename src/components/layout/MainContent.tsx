@@ -15,6 +15,7 @@ import { useBalances } from '@/hooks/useBalances'; // Import the new hook
 import { supabase } from '@/lib/supabaseClient'; // Import supabase client
 
 
+
 interface MainContentProps {
   walletAddress: string | null;
   wallets: Wallet[];
