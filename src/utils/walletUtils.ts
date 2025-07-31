@@ -3,35 +3,29 @@ import { createSmartAccountClient, PaymasterMode } from '@biconomy/account';
 import { createPublicClient, http, isAddress, formatUnits, parseUnits, encodeFunctionData } from 'viem';
 import { keccak256, AbiCoder } from 'ethers';
 import { getProvider } from './provider';
-import { Wallet, UserData, TransactionStatus, TokenDetails } from './types';
+import { Wallet, TransactionStatus, TokenDetails } from './types'; // Removed UserData as it's no longer sourced from localStorage
 import { NetworkConfig } from './networks';
 import analyticsService from '../services/analytics';
-import { EventName } from './types'; 
+import { EventName } from './types';
+import { supabase } from '../lib/supabaseClient'; // Import supabase client
 
-const CONSTANT_MESSAGE = 'You are creating a new tempwallet, this will not cost you anything';
+const CONSTANT_MESSAGE = 'You are creating a new tempwallet, this will not cost you anything'; // Retained as per your request
 
 export const signMessage = async (network: NetworkConfig): Promise<string> => {
   try {
     const provider = await getProvider(network);
     const signer = await provider.getSigner();
-    return await signer.signMessage(CONSTANT_MESSAGE);
+    return await signer.signMessage(CONSTANT_MESSAGE); // Using CONSTANT_MESSAGE without nonce
   } catch (error) {
     console.error('Failed to sign message:', error);
     throw new Error(`Message signing failed: ${error}`);
   }
 };
 
-export const getUserData = (): UserData => {
-  const data = localStorage.getItem('tempWalletUserData');
-  return data ? JSON.parse(data) : { 
-    accounts: [], 
-    activeAccount: null,
-    walletNames: {}
-  };
-};
+// Removed getUserData as data is now fetched from Supabase
+// export const getUserData = (): UserData => { ... };
 
-
-//This function estimates gas fees
+// This function estimates gas fees
 const estimateGasFeeInToken = async (
   smartAccount: any,
   tx: any,
@@ -39,23 +33,18 @@ const estimateGasFeeInToken = async (
   tokenDecimals: number
 ): Promise<bigint> => {
   try {
-    // Get gas estimate
     const gasEstimate = await smartAccount.estimateUserOperationGas({
       userOperation: await smartAccount.buildUserOperation([tx]),
     });
-    
-    // Rough estimate: gas fee is usually 10-20% of transaction amount for ERC20 payments
-    // You might need to adjust this based on your experience
-    return parseUnits("5", tokenDecimals); // Reserve 5 tokens for gas fees
+    return parseUnits("5", tokenDecimals);
   } catch (error) {
     console.warn('Could not estimate gas fee, using default reserve');
-    return parseUnits("10", tokenDecimals); // Default reserve
+    return parseUnits("10", tokenDecimals);
   }
 };
 
-const saveUserData = (userData: UserData) => {
-  localStorage.setItem('tempWalletUserData', JSON.stringify(userData));
-};
+// Removed saveUserData as data is now saved to Supabase
+// const saveUserData = (userData: UserData) => { ... };
 
 const ERC20_ABI = [
   { name: 'balanceOf', inputs: [{ type: 'address', name: 'account' }], outputs: [{ type: 'uint256', name: '' }], stateMutability: 'view', type: 'function' },
@@ -65,6 +54,8 @@ const ERC20_ABI = [
 ];
 
 const getNextWalletNumber = (account: string): number => {
+  // This counter is still local because it tracks the next *proposed* wallet number
+  // The actual persistence is handled by the backend
   if (!account || !/^0x[a-fA-F0-9]{40}$/.test(account)) throw new Error(`Invalid account address: ${account}`);
   const key = `walletCounter_${account.toLowerCase()}`;
   const current = parseInt(localStorage.getItem(key) || '0', 10);
@@ -75,7 +66,7 @@ const getNextWalletNumber = (account: string): number => {
 
 const generateDeterministicIndex = async (walletNumber: number, network: NetworkConfig): Promise<number> => {
   try {
-    const signature = await signMessage(network);
+    const signature = await signMessage(network); // No nonce argument
     const hash = keccak256(AbiCoder.defaultAbiCoder().encode(['bytes', 'uint256'], [signature, walletNumber]));
     return parseInt(hash.slice(2, 10), 16);
   } catch (error) {
@@ -86,7 +77,7 @@ const generateDeterministicIndex = async (walletNumber: number, network: Network
 
 export const generateRandomIndex = async (network: NetworkConfig): Promise<{ index: number, walletNumber: number }> => {
   try {
-    const signature = await signMessage(network);
+    const signature = await signMessage(network); // No nonce argument
     const timestamp = Date.now();
     const randomBytes = new Uint32Array(1);
     crypto.getRandomValues(randomBytes);
@@ -105,7 +96,6 @@ const ZERION_API_KEY = import.meta.env.VITE_ZERION_API_KEY;
 
 export const fetchWalletAllBalances = async (address: string, network: NetworkConfig): Promise<TokenDetails[]> => {
   try {
-
     const originalUrl = `https://api.zerion.io/v1/wallets/${address}/positions/?filter[chain_ids]=${network.zerionChainId}&sort=value`;
     const proxyUrl = `/api/cors-proxy?url=${encodeURIComponent(originalUrl)}&authorization=${encodeURIComponent(`Basic ${btoa(ZERION_API_KEY + ':')}`)}`;
     
@@ -118,24 +108,20 @@ export const fetchWalletAllBalances = async (address: string, network: NetworkCo
     const { data } = await response.json();
 
     return data.map((position: any): TokenDetails | null => {
-      // Ensure we are dealing with a fungible token with implementations
       if (!position.attributes.fungible_info?.implementations) {
         return null;
       }
       
       const implementations = position.attributes.fungible_info.implementations;
 
-      // Finding the implementation that matches the network's zerionChainId.
       const correctImplementation = implementations.find(
         (impl: any) => impl.chain_id === network.zerionChainId
       );
       
-      // Deriving the token address, falling back if not found.
       const tokenAddress = correctImplementation?.address ?? '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee';
       
 
       return {
-        // Updated the address field with the correctly derived tokenAddress
         address: tokenAddress,
         chainId: network.chainId,
         amount: position.attributes.quantity.int,
@@ -144,14 +130,90 @@ export const fetchWalletAllBalances = async (address: string, network: NetworkCo
         symbol: position.attributes.fungible_info.symbol,
         iconUrl: position.attributes.fungible_info.icon?.url
       };
-    }).filter((token: TokenDetails | null): token is TokenDetails => token !== null)   // Filter out any null entries
-
+    }).filter((token: TokenDetails | null): token is TokenDetails => token !== null) ;
   } catch (error) {
     console.error('Failed to fetch token balances from Zerion:', error);
     return [];
   }
 };
 
+/**
+ * Saves a new or updated wallet's details to the Supabase database via the Edge Function.
+ * @param wallet The wallet object to save.
+ * @param metamask_address The parent MetaMask address.
+ * @returns The data returned from the Supabase insert/update operation, including the new wallet's ID.
+ */
+async function syncWalletToBackend(wallet: Wallet, metamask_address: string) {
+  try {
+    // Get the current Supabase session token for authorization
+    const session = await supabase.auth.getSession();
+    const accessToken = session.data.session?.access_token;
+
+    if (!accessToken) {
+      throw new Error('No Supabase session found. User not authenticated.');
+    }
+
+    const response = await fetch('/functions/v1/temp-wallets', { // Call the deployed Edge Function
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}` // Use the Supabase session token
+      },
+      body: JSON.stringify({
+        address: wallet.address,
+        wallet_number: wallet.walletNumber,
+        external_account_number: wallet.externalAccountNumber,
+        index: wallet.index,
+        network_key: wallet.networkKey,
+        parent_metamask_address: metamask_address,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.json();
+      throw new Error(`Failed to sync wallet to backend: ${errorBody.error || response.statusText}`);
+    }
+    const data = await response.json();
+    console.log('Wallet synced to backend:', data);
+    return data; // Return the full response data, which should include the wallet's Supabase ID
+  } catch (error: any) {
+    console.error('Backend sync failed for wallet:', wallet.address, error.message);
+    throw error;
+  }
+}
+
+/**
+ * Saves the given token balances to the Supabase 'balances' table.
+ * @param tempWalletId The ID of the temp_wallet the balances belong to.
+ * @param balances An array of TokenDetails.
+ */
+async function saveBalancesToSupabase(tempWalletId: string, balances: TokenDetails[]) {
+  try {
+    const balancesToInsert = balances.map(balance => ({
+      temp_wallet_id: tempWalletId,
+      token_address: balance.address.toLowerCase(),
+      chain_id: balance.chainId,
+      amount: balance.amount,
+      decimals: balance.decimals,
+      formatted_amount: balance.formattedAmount,
+      symbol: balance.symbol || 'N/A',
+      last_updated: new Date().toISOString(),
+    }));
+
+    // Use upsert to handle updates for existing token balances and inserts for new ones
+    const { error } = await supabase
+      .from('balances')
+      .upsert(balancesToInsert, { onConflict: 'temp_wallet_id,token_address,chain_id', ignoreDuplicates: false });
+
+    if (error) {
+      console.error('Error saving balances to Supabase:', error.message);
+      throw error;
+    }
+    console.log('Balances saved/updated in Supabase for wallet ID:', tempWalletId);
+  } catch (error: any) {
+    console.error('Failed to save balances to Supabase:', error.message);
+  }
+}
 
 const createSmartAccountBase = async (
   account: string,
@@ -161,7 +223,6 @@ const createSmartAccountBase = async (
   isRandom: boolean = false
 ): Promise<Wallet> => {
   try {
-      // Track WALLET_CREATION_STARTED
       analyticsService.trackEvent(EventName.WALLET_CREATION_STARTED, {
           creationType: isRandom ? 'random' : 'deterministic',
           walletNumber,
@@ -185,8 +246,8 @@ const createSmartAccountBase = async (
       }
       
       const { index } = isRandom 
-          ? await generateRandomIndex(network) 
-          : { index: await generateDeterministicIndex(walletNumber, network) };
+          ? await generateRandomIndex(network) // No nonce argument
+          : { index: await generateDeterministicIndex(walletNumber, network) }; // No nonce argument
 
       const smartAccount = await createSmartAccountClient({
           signer,
@@ -199,13 +260,9 @@ const createSmartAccountBase = async (
 
       const accountAddress = await smartAccount.getAccountAddress();
       
-      const userData = getUserData();
-      let accountData = userData.accounts.find((acc) => acc.account.toLowerCase() === account.toLowerCase());
-      if (!accountData) {
-          accountData = { account, name: '', externalAccountNumber, wallets: [] };
-          userData.accounts.push(accountData);
-      }
+      const initialBalances = await fetchWalletAllBalances(accountAddress, network);
 
+      // Create a temporary wallet object for the frontend and for syncing
       const wallet: Wallet = {
           address: accountAddress,
           walletNumber,
@@ -213,14 +270,20 @@ const createSmartAccountBase = async (
           index,
           networkKey: network.name as keyof typeof import('../utils/networks').NETWORKS,
           transactionStatus: { state: 'idle' },
-          allTokenBalances: await fetchWalletAllBalances(accountAddress, network),
-          balance: '' 
+          allTokenBalances: initialBalances,
+          balance: initialBalances.find(t => t.address.toLowerCase() === '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee')?.formattedAmount || '0'
       };
 
-      accountData.wallets.push(wallet);
-      saveUserData(userData);
+      // Sync the new wallet to the Supabase backend and get its DB ID
+      const syncedWalletData = await syncWalletToBackend(wallet, account);
+      
+      if (syncedWalletData && syncedWalletData.id) {
+          wallet.id = syncedWalletData.id; // Assign the Supabase ID to the wallet object
+          await saveBalancesToSupabase(syncedWalletData.id, initialBalances); // Save balances using the Supabase ID
+      } else {
+          console.warn('Wallet not synced to backend or missing ID, balances not saved to Supabase.');
+      }
 
-      // Track WALLET_CREATION_SUCCESS
       analyticsService.trackEvent(EventName.WALLET_CREATION_SUCCESS, {
           walletAddress: accountAddress,
           walletNumber,
@@ -228,10 +291,9 @@ const createSmartAccountBase = async (
           networkName: network.name,
       });
 
-      console.log(`Created smart account on ${network.name}:`, { address: accountAddress, walletNumber });
+      console.log(`Created smart account on ${network.name}:`, { address: accountAddress, walletNumber, id: wallet.id });
       return wallet;
   } catch (error) {
-      // Track WALLET_CREATION_FAILED
       analyticsService.trackEvent(EventName.WALLET_CREATION_FAILED, {
           errorMessage: String(error),
           creationType: isRandom ? 'random' : 'deterministic',
@@ -252,13 +314,8 @@ export const createSmartAccountWithCounter = async (account: string, walletNumbe
 };
 
 export const createRandomSmartAccount = async (account: string, externalAccountNumber: number, network: NetworkConfig): Promise<Wallet> => {
-    const { walletNumber } = await generateRandomIndex(network);
-    const userData = getUserData();
-    const accountData = userData.accounts.find((acc) => acc.account.toLowerCase() === account.toLowerCase());
-    const existingWallet = accountData?.wallets.find(w => w.walletNumber === walletNumber && w.networkKey === network.name);
-    if (existingWallet) {
-        throw new Error(`Wallet number ${walletNumber} already exists. This is extremely rare - please try again.`);
-    }
+    const { walletNumber } = await generateRandomIndex(network); // No nonce argument
+    // The local storage `getUserData` and `existingWallet` check removed here, as database handles uniqueness
     return createSmartAccountBase(account, walletNumber, externalAccountNumber, network, true);
 };
 
@@ -271,7 +328,6 @@ export const sendTransaction = async (
   network: NetworkConfig
 ): Promise<TransactionStatus> => {
   try {
-    // Track TRANSACTION_INITIATED
     analyticsService.trackEvent(EventName.TRANSACTION_INITIATED, {
       fromWalletAddress: wallet.address,
       tokenSymbol: tokenDetails.symbol,
@@ -279,38 +335,31 @@ export const sendTransaction = async (
       networkName: network.name,
     });
 
-    // Validate recipient address
     if (!isAddress(to)) throw new Error('Invalid recipient address');
 
-    // Track TRANSACTION_VALIDATION_STARTED
     analyticsService.trackEvent(EventName.TRANSACTION_VALIDATION_STARTED);
 
-    // Set up provider and signer
     const provider = await getProvider(network, account);
     const signer = await provider.getSigner();
     if ((await signer.getAddress()).toLowerCase() !== account.toLowerCase()) {
       throw new Error('Signer address does not match the provided account');
     }
 
-    // Load environment variables
     const bundlerUrl = import.meta.env.VITE_BUNDLER_URL;
     const paymasterApiKey = network.paymasterApiKey;
     const rpcUrl = network.rpcUrl;
 
-    // Validate environment variables and network config
     if (!bundlerUrl || !paymasterApiKey || !rpcUrl || !network.chainId) {
       throw new Error(
         `Missing configuration for ${network.name}: Ensure VITE_BUNDLER_URL, paymasterApiKey, rpcUrl, and chainId are set`
       );
     }
 
-    // Create public client for balance checks
     const publicClient = createPublicClient({
       chain: network.viemChain,
       transport: http(rpcUrl),
     });
 
-    // Reinitialize smart account
     const smartAccount = await createSmartAccountClient({
       signer,
       bundlerUrl,
@@ -326,7 +375,6 @@ export const sendTransaction = async (
     const isNativeToken = tokenDetails.address.toLowerCase() === '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee';
     const amountWei = parseUnits(amount, tokenDetails.decimals);
 
-    // Validate amount
     if (amountWei <= 0) throw new Error('Amount must be positive');
 
     if (isNativeToken) {
@@ -350,7 +398,6 @@ export const sendTransaction = async (
         throw new Error(`Invalid token address: ${tokenDetails.address}`);
       }
 
-      // Get current token balance
       const balance = await publicClient.readContract({
         address: tokenDetails.address as `0x${string}`,
         abi: ERC20_ABI,
@@ -365,12 +412,10 @@ export const sendTransaction = async (
         formattedRequired: amount
       });
 
-      // Check if we have enough for the transaction
       if (balance < amountWei) {
         throw new Error(`Insufficient ${tokenDetails.symbol} balance. Have: ${formatUnits(balance, tokenDetails.decimals)}, Need: ${amount}`);
       }
 
-      // Estimate gas fee in tokens for ERC20 paymaster mode
       const estimatedGasFee = await estimateGasFeeInToken(smartAccount, {
         to: tokenDetails.address as `0x${string}`,
         data: encodeFunctionData({
@@ -387,7 +432,6 @@ export const sendTransaction = async (
         formattedTotalNeeded: formatUnits(amountWei + estimatedGasFee, tokenDetails.decimals)
       });
 
-      // Check if we have enough tokens to cover both transfer + gas fees
       const totalNeeded = amountWei + estimatedGasFee;
       if (balance < totalNeeded) {
         console.log('❌ Insufficient balance for ERC20 gas payment, falling back to SPONSORED mode');
@@ -425,17 +469,14 @@ export const sendTransaction = async (
       network: network.name
     });
 
-    // Track TRANSACTION_MODE_SELECTED
     analyticsService.trackEvent(EventName.TRANSACTION_MODE_SELECTED, {
       paymasterMode: paymasterServiceData.mode,
       preferredToken: paymasterServiceData.preferredToken,
     });
 
-    // Send transaction
     const { waitForTxHash } = await smartAccount.sendTransaction(tx, { paymasterServiceData });
     const { transactionHash } = await waitForTxHash();
     
-    // Track TRANSACTION_SUCCESS
     analyticsService.trackEvent(EventName.TRANSACTION_SUCCESS, {
       transactionHash,
       fromWalletAddress: wallet.address,
@@ -451,13 +492,32 @@ export const sendTransaction = async (
       token: tokenDetails.symbol
     });
 
+    try {
+      // Save successful transaction to Supabase 'transactions' table
+      const { data, error } = await supabase
+        .from('transactions')
+        .insert({
+          temp_wallet_id: wallet.id, // Ensure wallet.id is available from Supabase
+          tx_hash: transactionHash,
+          state: 'success',
+          message: successMessage,
+          token_symbol: tokenDetails.symbol,
+          amount: amount,
+          to_address: to,
+        });
+      if (error) {
+        console.error('Failed to save transaction to Supabase:', error.message);
+      }
+    } catch (dbError) {
+      console.error('Error saving transaction to database:', dbError);
+    }
+
     return {
       state: 'success',
       txHash: transactionHash,
       message: successMessage,
     };
   } catch (error: any) {
-    // Track TRANSACTION_FAILED
     analyticsService.trackEvent(EventName.TRANSACTION_FAILED, {
       errorMessage: error.message || 'Failed to send transaction',
       fromWalletAddress: wallet.address,
@@ -466,7 +526,6 @@ export const sendTransaction = async (
 
     console.error('❌ Transaction Failed:', error);
     
-    // Provide better error messages
     let errorMessage = error.message || 'Failed to send transaction';
     
     if (errorMessage.includes('AA33') && errorMessage.includes('not have enough token balance')) {
@@ -475,6 +534,26 @@ export const sendTransaction = async (
       errorMessage = 'Transaction failed due to insufficient gas token balance. Try using sponsored mode.';
     }
     
+    try {
+      // Save failed transaction to Supabase 'transactions' table
+      const { data, error: dbError } = await supabase
+        .from('transactions')
+        .insert({
+          temp_wallet_id: wallet.id, // Ensure wallet.id is available from Supabase
+          tx_hash: 'N/A', // No hash for transactions that failed before submission
+          state: 'error',
+          message: errorMessage,
+          token_symbol: tokenDetails.symbol,
+          amount: amount,
+          to_address: to,
+        });
+      if (dbError) {
+        console.error('Failed to save failed transaction to Supabase:', dbError.message);
+      }
+    } catch (e) {
+      console.error('Error saving failed transaction to database:', e);
+    }
+
     return { 
       state: 'error', 
       message: errorMessage 
