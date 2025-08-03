@@ -21,7 +21,6 @@ export interface TokenDetails {
 }
 
 export interface Wallet {
-  id?: string;
   balance: string;
   address: `0x${string}`;
   walletNumber: number;

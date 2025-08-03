@@ -1,12 +1,12 @@
 // src/App.tsx
-import { useState, useEffect, useRef, Dispatch, SetStateAction, useCallback } from 'react'; // Added useCallback
+import { useState, useEffect, useRef, Dispatch, SetStateAction } from 'react';
 import { ethers } from 'ethers';
 import { Header } from '@/components/layout/Header';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { MainContent } from '@/components/layout/MainContent';
 import { AnimatedLandingPage } from '@/components/pages/AnimatedLandingPage';
 import { UnsupportedDevice } from '@/components/pages/UnsupportedDevice';
-import { Wallet, UserData, TransactionStatus, WalletAccount, SupportedNetwork, TokenDetails } from '@/utils/types'; // Updated Wallet, UserData imports
+import { Wallet, UserData, TransactionStatus } from '@/utils/types';
 import { exportUserData, importUserData } from './utils/exportImport';
 import '@/index.css';
 import { Image } from 'lucide-react'; 
@@ -15,12 +15,9 @@ import * as Tooltip from "@radix-ui/react-tooltip";
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { BlogListing } from '@/components/pages/BlogListing';
 import PresalePage from './components/pages/PresalePage';
-import { supabase, setAuthToken } from './lib/supabaseClient'; // Import supabase client and setAuthToken
-import { signMessage } from './utils/walletUtils'; // Import signMessage
-import { NETWORKS } from './utils/networks'; // Import NETWORKS for the signMessage call
-import analyticsService from './services/analytics';
 
-// component definition: (Props interfaces remain the same)
+
+//component definition:
 interface LayoutProps {
   children: React.ReactNode;
   activeItem: string;
@@ -264,7 +261,7 @@ function AppRoutes({
   walletAddress: string | null;
   currentAccountWallets: Wallet[];
   onWalletCreated: (wallet: Wallet) => void;
-  onWalletDeleted: (walletId: string) => void; // Changed to walletId for Supabase delete
+  onWalletDeleted: (wallet: Wallet) => void;
   onTransactionSent: (wallet: Wallet, status: TransactionStatus) => void;
   setNotification: (notification: { brief: string; full: string; type: 'error' | 'success' } | null) => void;
 }) {
@@ -430,16 +427,17 @@ function App() {
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [walletName, setWalletName] = useState<string>('wallet-name');
   const [notification, setNotification] = useState<Notification | null>(null);
-  // UserData now represents data from Supabase, not local storage
   const [userData, setUserData] = useState<UserData>({
     accounts: [],
     activeAccount: null,
     walletNames: {},
   });
+  // State for background image
   const backgroundImages: string[] = ['/bg7.jpg','/bg2.jpg','/bg1.jpg', '/bg3.jpg', '/bg4.jpg','/bg5.jpg','/bg6.jpg'];
   const [bgIndex, setBgIndex] = useState<number>(0);
   const [isNotificationExpanded, setIsNotificationExpanded] = useState(false);
 
+  // Function to cycle background images
   const handleSwitchBackground = () => {
     setBgIndex((prevIndex) => (prevIndex + 1) % backgroundImages.length);
   };
@@ -453,6 +451,7 @@ function App() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Auto-dismiss notifications after 3 seconds
   useEffect(() => {
     if (notification) {
       const timer = setTimeout(() => {
@@ -463,197 +462,132 @@ function App() {
     }
   }, [notification]);
 
-  const [showCopiedPopup, setShowCopiedPopup] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node) && showProfile) {
-        setShowProfile(false);
-      }
+  // Add this useEffect for handling clicks outside the dropdown
+useEffect(() => {
+  function handleClickOutside(event: MouseEvent) {
+    if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node) && showProfile) {
+      setShowProfile(false);
     }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [showProfile]);
+  }
 
-  const handleCopyAddress = async () => {
-    if (walletAddress) {
-      try {
-        await navigator.clipboard.writeText(walletAddress);
-        setShowCopiedPopup(true);
-        setTimeout(() => setShowCopiedPopup(false), 2000);
-      } catch (err) {
-        console.error('Failed to copy address:', err);
-      }
-    }
+  document.addEventListener('mousedown', handleClickOutside);
+  return () => {
+    document.removeEventListener('mousedown', handleClickOutside);
   };
+}, [showProfile]);
 
-  // --- NEW: Supabase Authentication and Data Fetching ---
-  const fetchUserDataFromSupabase = useCallback(async (currentMetamaskAddress: string) => {
+const [showCopiedPopup, setShowCopiedPopup] = useState(false);
+const dropdownRef = useRef<HTMLDivElement>(null);
+
+// Add this function for copying address
+const handleCopyAddress = async () => {
+  if (walletAddress) {
     try {
-      // Fetch user profile name
-      const { data: userProfile, error: profileError } = await supabase
-        .from('users')
-        .select('name, profile_picture, total_wallets_created') // Assuming 'name' and 'profile_picture' cols
-        .eq('metamask_address', currentMetamaskAddress.toLowerCase())
-        .single();
-
-      if (profileError) throw profileError;
-      
-      setName(userProfile?.name || `User_${currentMetamaskAddress.slice(0, 6)}`); // Default name
-      setProfilePicture(userProfile?.profile_picture || null); //
-      setHasSubmittedName(true); // User is known if we fetched data
-
-      // Fetch temporary wallets for this user
-      const { data: tempWallets, error: walletsError } = await supabase
-        .from('temp_wallets')
-        .select('*')
-        .eq('parent_metamask_address', currentMetamaskAddress.toLowerCase())
-        .is('deleted_at', null); // Only active wallets
-
-      if (walletsError) throw walletsError;
-
-      // Fetch balances for all temp wallets
-      const walletsWithBalances: Wallet[] = [];
-      for (const tempWallet of tempWallets || []) {
-        const { data: balancesData, error: balancesError } = await supabase
-          .from('balances')
-          .select('*')
-          .eq('temp_wallet_id', tempWallet.id);
-
-        if (balancesError) {
-          console.error(`Error fetching balances for wallet ${tempWallet.address}:`, balancesError.message);
-          // Continue even if balances fail for one wallet
-        }
-        
-        // Map Supabase temp_wallet to frontend Wallet interface
-        const mappedWallet: Wallet = {
-          id: tempWallet.id, // Supabase ID
-          address: tempWallet.address as `0x${string}`, //
-          walletNumber: tempWallet.wallet_number, //
-          externalAccountNumber: tempWallet.external_account_number, //
-          index: tempWallet.index, //
-          networkKey: tempWallet.network_key as SupportedNetwork, //
-          transactionStatus: { state: 'idle' }, // Default status
-          allTokenBalances: (balancesData || []).map(b => ({ // Map fetched balances
-            address: b.token_address as `0x${string}`, //
-            chainId: b.chain_id, //
-            amount: b.amount, //
-            decimals: b.decimals, //
-            formattedAmount: b.formatted_amount, //
-            symbol: b.symbol, //
-            iconUrl: undefined, // Zerion provides icon, but not stored in DB currently. Will need to re-fetch or derive.
-          })),
-          // Calculate native balance from allTokenBalances
-          balance: (balancesData || []).find(b => b.token_address.toLowerCase() === '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee')?.formatted_amount || '0', //
-        };
-        walletsWithBalances.push(mappedWallet);
-      }
-
-      const activeAccountData: WalletAccount = { // Create the active account structure
-        account: currentMetamaskAddress, //
-        name: userProfile?.name || `User_${currentMetamaskAddress.slice(0, 6)}`, //
-        externalAccountNumber: 1, // Default, as we're linking to the primary MetaMask account
-        wallets: walletsWithBalances, // All fetched temp wallets
-      };
-
-      setUserData({ // Update global UserData state
-        accounts: [activeAccountData], // Assuming only one active MetaMask account at a time
-        activeAccount: currentMetamaskAddress, //
-        walletNames: {}, // Wallet names are now stored in the 'users' table or derived
-      });
-
-      // Set wallet name from profile or default
-      setWalletName(userProfile?.name || `wallet-name`);
-
-    } catch (error: any) {
-      console.error('Failed to fetch user data from Supabase:', error.message);
-      setNotification({ brief: 'Data sync failed', full: 'Could not load your wallets from the server.', type: 'error' });
-      setHasSubmittedName(false); // If data fetch fails, assume no submitted name
-      setWalletAddress(null); // Disconnect wallet on error
+      await navigator.clipboard.writeText(walletAddress);
+      setShowCopiedPopup(true);
+      setTimeout(() => setShowCopiedPopup(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy address:', err);
     }
-  }, [setNotification]);
+  }
+};
 
   useEffect(() => {
-    // Check for existing Supabase session on load
-    const checkSession = async () => {
-      const { data: { session }, error } = await supabase.auth.getSession();
+    // Load profile data
+    const storedProfile = localStorage.getItem('tempWalletProfile');
+    if (storedProfile) {
+      const { name: storedName, profilePicture: storedPicture } = JSON.parse(storedProfile);
+      setName(storedName || '');
+      setProfilePicture(storedPicture || null);
+      setHasSubmittedName(true);
+    }
 
-      if (session) {
-        // If session exists, set wallet address from session user's metadata or from local storage if available
-        const metamaskAddressFromSession = session.user.user_metadata?.metamask_address || localStorage.getItem('lastConnectedMetamaskAddress');
-        if (metamaskAddressFromSession) {
-          setWalletAddress(metamaskAddressFromSession);
-          await fetchUserDataFromSupabase(metamaskAddressFromSession); // Fetch user data associated with this address
+    // Load user data
+    const storedUserData = localStorage.getItem('tempWalletUserData');
+    if (storedUserData) {
+      const parsedData: UserData = JSON.parse(storedUserData);
+      if (parsedData.accounts && Array.isArray(parsedData.accounts)) {
+        setUserData({ ...parsedData, walletNames: parsedData.walletNames || {} });
+        if (parsedData.activeAccount) {
+          setWalletAddress(parsedData.activeAccount);
         }
-      } else if (error) {
-        console.error('Error getting Supabase session:', error.message);
-        setWalletAddress(null);
-        setUserData({ accounts: [], activeAccount: null, walletNames: {} }); // Clear local data
-        localStorage.removeItem('tempWalletProfile'); // Clear local profile
-        localStorage.removeItem('tempWalletUserData'); // Clear local user data
       }
-    };
-
-    checkSession();
+    }
 
     // MetaMask account changes listener
     if (window.ethereum) {
-      const handleAccountsChanged = async (accounts: string[]) => {
+      const handleAccountsChanged = (accounts: string[]) => {
         if (accounts.length > 0) {
-          const newAccount = accounts[0];
-          setWalletAddress(newAccount);
-          localStorage.setItem('lastConnectedMetamaskAddress', newAccount); // Store for persistence
-          await fetchUserDataFromSupabase(newAccount); // Re-fetch data for new account
+          setWalletAddress(accounts[0]);
+          const storedWalletNames = localStorage.getItem('tempWalletNames');
+          if (storedWalletNames) {
+            const walletNames = JSON.parse(storedWalletNames);
+            setWalletName(walletNames[accounts[0]] || 'wallet-name');
+          } else {
+            setWalletName('wallet-name');
+          }
+          // Update user data with new active account
+          setUserData(prevUserData => {
+            const newUserData = { ...prevUserData };
+            if (!newUserData.accounts) {
+              newUserData.accounts = [];
+            }
+
+            // Find or create account
+            let accountIndex = newUserData.accounts.findIndex((acc) => acc.account === walletAddress);
+            if (accountIndex === -1) {
+              // Create new account
+              const newAccount = {
+                account: walletAddress!,
+                name: walletName,
+                externalAccountNumber: 1,
+                wallets: []
+              };
+              newUserData.accounts = [...newUserData.accounts, newAccount];
+            } else {
+              // Update existing account
+              const account = { ...newUserData.accounts[accountIndex] };
+              account.name = walletName;
+              newUserData.accounts = newUserData.accounts.map((acc, index) =>
+                index === accountIndex ? account : acc
+              );
+            }
+
+            localStorage.setItem('tempWalletUserData', JSON.stringify(newUserData));
+            return newUserData;
+          });
         } else {
-          // No accounts, user disconnected MetaMask
           setWalletAddress(null);
           setWalletName('wallet-name');
-          setHasSubmittedName(false);
-          setName('');
-          setProfilePicture(null);
-          setUserData({ accounts: [], activeAccount: null, walletNames: {} });
-          // Clear Supabase session on MetaMask disconnect
-          await supabase.auth.signOut();
-          localStorage.removeItem('lastConnectedMetamaskAddress');
-          localStorage.removeItem('tempWalletProfile');
-          localStorage.removeItem('tempWalletUserData');
+          const emptyUserData = { accounts: [], activeAccount: null, walletNames: {} };
+          setUserData(emptyUserData);
+          localStorage.setItem('tempWalletUserData', JSON.stringify(emptyUserData));
         }
       };
 
       window.ethereum.on('accountsChanged', handleAccountsChanged);
 
+      // Cleanup listener on unmount
       return () => {
         if (window.ethereum?.removeListener) {
           window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
         }
       };
     }
-  }, [fetchUserDataFromSupabase]); // Add fetchUserDataFromSupabase to dependencies
+  }, []); // Empty dependency array - only run once on mount
 
-  // This effect is likely redundant now that fetchUserDataFromSupabase handles walletName
+  // Separate effect for handling wallet name updates when walletAddress changes
   useEffect(() => {
     if (walletAddress) {
-      // Logic to fetch wallet name from Supabase 'users' table based on walletAddress (metamask_address)
-      // or set a default if not found
-      const fetchWalletName = async () => {
-        const { data, error } = await supabase
-          .from('users')
-          .select('name')
-          .eq('metamask_address', walletAddress.toLowerCase())
-          .single();
-        if (data) {
-          setWalletName(data.name || 'wallet-name');
-        } else if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows found"
-          console.error('Error fetching wallet name from Supabase:', error.message);
+      const storedWalletNames = localStorage.getItem('tempWalletNames');
+      if (storedWalletNames) {
+        const walletNames = JSON.parse(storedWalletNames);
+        if (walletNames[walletAddress]) {
+          setWalletName(walletNames[walletAddress]);
         }
-      };
-      fetchWalletName();
+      }
     }
   }, [walletAddress]);
-
 
   const handleConnectWallet = async () => {
     if (!window.ethereum) {
@@ -668,58 +602,25 @@ function App() {
       const provider = new ethers.BrowserProvider(window.ethereum);
       const accounts = await provider.send('eth_requestAccounts', []);
       if (accounts.length > 0) {
-        const connectedAccount = accounts[0];
-        // Request signature for authentication with Edge Function
-        const signature = await signMessage(NETWORKS.Avalanche); // Use a default network for signing, it doesn't matter for the message.
-        
-        // Call the Edge Function for authentication
-        const authResponse = await fetch('/functions/v1/auth', { // Adjust URL based on your Supabase functions path
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            metamask_address: connectedAccount,
-            signature: signature,
-          }),
-        });
-
-        if (!authResponse.ok) {
-          const errorBody = await authResponse.json();
-          throw new Error(`Authentication failed: ${errorBody.error || authResponse.statusText}`);
-        }
-
-        const { token, user_id, mixpanel_id, total_wallets_created } = await authResponse.json();
-        await setAuthToken(token); // Set the Supabase session token
-
-        setWalletAddress(connectedAccount);
-        localStorage.setItem('lastConnectedMetamaskAddress', connectedAccount); // Store for quick re-connect
-        
-        // Fetch/update user data from Supabase
-        await fetchUserDataFromSupabase(connectedAccount);
-
-        // Update Mixpanel identity if mixpanel_id is returned
-        if (mixpanel_id) {
-          analyticsService.identify(mixpanel_id);
+        setWalletAddress(accounts[0]);
+        const storedWalletNames = localStorage.getItem('tempWalletNames');
+        if (storedWalletNames) {
+          const walletNames = JSON.parse(storedWalletNames);
+          setWalletName(walletNames[accounts[0]] || 'wallet-name');
         } else {
-          // If no mixpanel_id, set an alias or new identity
-          analyticsService.alias(user_id, connectedAccount); // Alias new user to their Supabase ID
+          setWalletName('wallet-name');
         }
-        
-        // Set people properties in Mixpanel
-        analyticsService.setPeople({
-          $name: name, // Use current name from state
-          walletAddress: connectedAccount,
-          totalWalletsCreated: total_wallets_created, // Use total_wallets_created from auth response
-          lastLogin: new Date().toISOString(), //
-        });
-
-
+        const newUserData = { ...userData, activeAccount: accounts[0], walletNames: userData.walletNames || {} };
+        setUserData(newUserData);
+        localStorage.setItem('tempWalletUserData', JSON.stringify(newUserData));
         setNotification({
           brief: 'Wallet connected',
-          full: 'Successfully connected to MetaMask and authenticated',
+          full: 'Successfully connected to MetaMask',
           type: 'success',
         });
         return true;
       }
+      // No accounts returned – treat as cancelled
       throw new Error('No accounts returned from provider');
     } catch (error: any) {
       if (error.code === 4001) {
@@ -735,18 +636,13 @@ function App() {
           type: 'error',
         });
       }
-      console.error('Failed to connect MetaMask:', error);
-      return false;
+      // Re-throw the error so that callers can react appropriately
+      throw error;
     }
   };
 
   const handleExport = () => {
-    // Export functionality will now work with the data structure in userData, which comes from Supabase.
-    // However, the `exportUserData` function still directly reads from localStorage for 'tempWalletUserData'
-    // and 'tempWalletProfile'. We need to ensure that `userData` state is accurately reflected in localStorage
-    // if `exportUserData` continues to rely on it. A better approach would be to pass `userData` directly.
-    // For now, assuming localStorage is kept in sync.
-    const success = exportUserData(); 
+    const success = exportUserData();
     setNotification({
       brief: success ? 'Export successful' : 'Export failed',
       full: success ? 'Profile exported successfully' : 'Failed to export wallets',
@@ -757,27 +653,40 @@ function App() {
   const handleImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    const result = await importUserData(file); // importUserData needs update to interact with Supabase
+    const result = await importUserData(file);
     setNotification({
       brief: result.success ? 'Import successful' : 'Import failed',
       full: result.message,
       type: result.success ? 'success' : 'error',
     });
     if (result.success) {
-      // After import, re-fetch from Supabase to ensure consistency
-      if (walletAddress) {
-        await fetchUserDataFromSupabase(walletAddress);
-      } else {
-        // If wallet not connected, prompt to connect
-        setNotification({ brief: 'Connect Wallet', full: 'Please connect MetaMask to see imported data.', type: 'error' });
+      const storedData = localStorage.getItem('tempWalletUserData');
+      const storedProfile = localStorage.getItem('tempWalletProfile');
+      if (storedData) {
+        const parsedData: UserData = JSON.parse(storedData);
+        setUserData({ ...parsedData, walletNames: parsedData.walletNames || {} });
+        setWalletAddress(parsedData.activeAccount);
+      }
+      if (storedProfile) {
+        const { name: importedName } = JSON.parse(storedProfile);
+        setName(importedName || '');
+      }
+      const storedWalletNames = localStorage.getItem('tempWalletNames');
+      if (storedWalletNames) {
+        const walletNames = JSON.parse(storedWalletNames);
+        const activeAccount = userData?.activeAccount;
+        if (activeAccount && walletNames[activeAccount]) {
+          setWalletName(walletNames[activeAccount]);
+        } else {
+          setWalletName('wallet-name');
+        }
       }
     }
-    event.target.value = ''; // Clear file input
+    event.target.value = '';
   };
 
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut(); // Sign out from Supabase
+  const handleLogout = () => {
     setHasSubmittedName(false);
     setName('');
     setProfilePicture(null);
@@ -785,186 +694,136 @@ function App() {
     setWalletName('wallet-name');
     setShowProfile(false);
     setActiveItem('Dashboard');
-    setUserData({ accounts: [], activeAccount: null, walletNames: {} }); // Clear local state
-    localStorage.removeItem('lastConnectedMetamaskAddress'); // Clear local cache
-    localStorage.removeItem('tempWalletProfile'); // Clear local profile
-    localStorage.removeItem('tempWalletUserData'); // Clear local user data
+    setUserData({ accounts: [], activeAccount: null, walletNames: {} });
+    localStorage.removeItem('tempWalletProfile');
+    localStorage.removeItem('tempWalletNames');
+    localStorage.setItem('tempWalletUserData', JSON.stringify({ accounts: [], activeAccount: null, walletNames: {} }));
   };
 
-  const handleNameSubmit = async (e: React.FormEvent) => {
+  const handleNameSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (name.trim()) {
       setHasSubmittedName(true);
-      if (walletAddress) {
-        // Update user's name in Supabase
-        const { error } = await supabase
-          .from('users')
-          .update({ name: name, profile_picture: profilePicture }) // Update both if profilePicture is there
-          .eq('metamask_address', walletAddress.toLowerCase()); // Use metamask_address to identify user
-        if (error) {
-          console.error('Failed to update user profile in Supabase:', error.message);
-          setNotification({ brief: 'Profile update failed', full: 'Could not save your name to the server.', type: 'error' });
-        } else {
-          setNotification({ brief: 'Profile updated', full: 'Your name has been saved.', type: 'success' });
-        }
-      }
-      // Keep local storage for compatibility with export/import for now
       localStorage.setItem('tempWalletProfile', JSON.stringify({ name, profilePicture }));
     }
   };
 
-  const handleEditProfile = async (newName: string, newProfilePicture: string | null) => {
+  const handleEditProfile = (newName: string, newProfilePicture: string | null) => {
     setName(newName);
     setProfilePicture(newProfilePicture);
-    if (walletAddress) {
-      // Update user's profile in Supabase
-      const { error } = await supabase
-        .from('users')
-        .update({ name: newName, profile_picture: newProfilePicture })
-        .eq('metamask_address', walletAddress.toLowerCase()); // Identify by metamask_address
-      if (error) {
-        console.error('Failed to update user profile in Supabase:', error.message);
-        setNotification({ brief: 'Profile update failed', full: 'Could not save profile changes to the server.', type: 'error' });
-      } else {
-        setNotification({ brief: 'Profile updated', full: 'Your profile has been saved.', type: 'success' });
-      }
-    }
-    localStorage.setItem('tempWalletProfile', JSON.stringify({ name: newName, profilePicture: newProfilePicture })); // Keep local storage for export/import compatibility
+    localStorage.setItem('tempWalletProfile', JSON.stringify({ name: newName, profilePicture: newProfilePicture }));
   };
 
-  const handleEditWalletName = async (newWalletName: string) => {
+  const handleEditWalletName = (newWalletName: string) => {
     if (walletAddress) {
       setWalletName(newWalletName);
-      // Update the name of the *user's account* in the 'users' table in Supabase
-      const { error } = await supabase
-        .from('users')
-        .update({ name: newWalletName })
-        .eq('metamask_address', walletAddress.toLowerCase());
-      if (error) {
-        console.error('Failed to update wallet name in Supabase:', error.message);
-        setNotification({ brief: 'Wallet name update failed', full: 'Could not save wallet name to the server.', type: 'error' });
-      } else {
-        setNotification({ brief: 'Wallet name updated', full: 'Your wallet name has been saved.', type: 'success' });
-      }
-      // Update local UserData state (assuming it's a single account for simplicity for now)
-      setUserData(prevUserData => {
-        const updatedAccounts = prevUserData.accounts.map(acc => 
-          acc.account.toLowerCase() === walletAddress.toLowerCase() 
-            ? { ...acc, name: newWalletName } 
-            : acc
-        );
-        return { ...prevUserData, accounts: updatedAccounts, walletNames: { ...prevUserData.walletNames, [walletAddress.toLowerCase()]: newWalletName } }; // Keep local walletNames for now
-      });
-      localStorage.setItem('tempWalletNames', JSON.stringify({ [walletAddress]: newWalletName })); // Keep local storage for compatibility
+      const storedWalletNames = localStorage.getItem('tempWalletNames');
+      const walletNames = storedWalletNames ? JSON.parse(storedWalletNames) : {};
+      walletNames[walletAddress] = newWalletName;
+      localStorage.setItem('tempWalletNames', JSON.stringify(walletNames));
+      setUserData({ ...userData, walletNames: { ...walletNames } });
     }
   };
 
   const handleWalletCreated = (wallet: Wallet) => {
-    // This function now primarily updates the local state with the wallet that was ALREADY
-    // synced to the backend in walletUtils.ts (it should contain its Supabase ID)
     setUserData(prevUserData => {
       const newUserData = { ...prevUserData };
       if (!newUserData.accounts) {
         newUserData.accounts = [];
       }
 
-      let accountIndex = newUserData.accounts.findIndex((acc) => acc.account.toLowerCase() === walletAddress?.toLowerCase());
+      // Find or create account
+      let accountIndex = newUserData.accounts.findIndex((acc) => acc.account === walletAddress);
       if (accountIndex === -1) {
-        // This case should ideally not happen if handleConnectWallet fetched initial user data
-        const newAccount: WalletAccount = {
+        // Create new account
+        const newAccount = {
           account: walletAddress!,
-          name: walletName, // Use current wallet name
-          externalAccountNumber: 1, // Default
+          name: walletName,
+          externalAccountNumber: 1,
           wallets: [wallet]
         };
         newUserData.accounts = [...newUserData.accounts, newAccount];
       } else {
+        // Update existing account
         const account = { ...newUserData.accounts[accountIndex] };
         const existingWalletIndex = account.wallets.findIndex(
-          (w) => w.id === wallet.id // Use Supabase ID for unique identification
+          (w) => w.address === wallet.address && w.walletNumber === wallet.walletNumber
         );
 
         if (existingWalletIndex !== -1) {
+          // Update existing wallet
           account.wallets = account.wallets.map((w, index) =>
             index === existingWalletIndex ? wallet : w
           );
         } else {
+          // Add new wallet
           account.wallets = [...account.wallets, wallet];
         }
+
+        // Update accounts array immutably
         newUserData.accounts = newUserData.accounts.map((acc, index) =>
           index === accountIndex ? account : acc
         );
       }
+
+      localStorage.setItem('tempWalletUserData', JSON.stringify(newUserData));
       return newUserData;
     });
-    // No localStorage.setItem('tempWalletUserData') here, as data flow is now from Supabase
   };
 
-  const handleWalletDeleted = async (walletId: string) => { // Now accepts walletId
-    try {
-      // Call Edge Function to soft delete wallet
-      const response = await fetch(`/functions/v1/temp-wallets/${walletId}`, { //
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${await supabase.auth.getSession().then(s => s.data.session?.access_token)}`
-        },
-      });
+  const handleWalletDeleted = (wallet: Wallet) => {
+    setUserData(prevUserData => {
+      const newUserData = { ...prevUserData };
+      const accountIndex = newUserData.accounts.findIndex((acc) => acc.account === walletAddress);
 
-      if (!response.ok) {
-        const errorBody = await response.json();
-        throw new Error(`Failed to delete wallet: ${errorBody.error || response.statusText}`);
+      if (accountIndex !== -1) {
+        const account = { ...newUserData.accounts[accountIndex] };
+        account.wallets = account.wallets.filter(
+          (w) => !(w.address === wallet.address && w.walletNumber === wallet.walletNumber)
+        );
+
+        // Update accounts array immutably
+        newUserData.accounts = newUserData.accounts.map((acc, index) =>
+          index === accountIndex ? account : acc
+        );
+
+        localStorage.setItem('tempWalletUserData', JSON.stringify(newUserData));
       }
 
-      setNotification({ brief: 'Wallet deleted', full: 'Temporary wallet successfully deleted.', type: 'success' });
-
-      // Update local state by filtering out the deleted wallet
-      setUserData(prevUserData => {
-        const newUserData = { ...prevUserData };
-        const accountIndex = newUserData.accounts.findIndex((acc) => acc.account.toLowerCase() === walletAddress?.toLowerCase());
-
-        if (accountIndex !== -1) {
-          const account = { ...newUserData.accounts[accountIndex] };
-          account.wallets = account.wallets.filter(w => w.id !== walletId); // Filter by Supabase ID
-          newUserData.accounts = newUserData.accounts.map((acc, index) =>
-            index === accountIndex ? account : acc
-          );
-        }
-        return newUserData;
-      });
-
-    } catch (error: any) {
-      console.error('Failed to delete wallet:', error.message);
-      setNotification({ brief: 'Deletion failed', full: `Failed to delete wallet: ${error.message}`, type: 'error' });
-    }
+      return newUserData;
+    });
   };
 
   const handleTransactionSent = (wallet: Wallet, status: TransactionStatus) => {
-    // This function only updates local state to reflect transaction status,
-    // actual transaction logging to DB is handled in walletUtils.ts sendTransaction.
     setUserData(prevUserData => {
       const newUserData = { ...prevUserData };
-      const accountIndex = newUserData.accounts.findIndex((acc) => acc.account.toLowerCase() === walletAddress?.toLowerCase());
+      const accountIndex = newUserData.accounts.findIndex((acc) => acc.account === walletAddress);
 
       if (accountIndex !== -1) {
         const account = { ...newUserData.accounts[accountIndex] };
         const walletIndex = account.wallets.findIndex(
-          (w) => w.id === wallet.id // Use Supabase ID
+          (w) => w.address === wallet.address && w.walletNumber === wallet.walletNumber
         );
 
         if (walletIndex !== -1) {
           account.wallets = account.wallets.map((w, index) =>
             index === walletIndex ? { ...w, transactionStatus: status } : w
           );
+
+          // Update accounts array immutably
           newUserData.accounts = newUserData.accounts.map((acc, index) =>
             index === accountIndex ? account : acc
           );
+
+          localStorage.setItem('tempWalletUserData', JSON.stringify(newUserData));
         }
       }
+
       return newUserData;
     });
   };
 
+  // --- CHANGE: Render the new animated landing page ---
   if (showLandingPage) {
     return <AnimatedLandingPage onComplete={() => setShowLandingPage(false)} />;
   }
@@ -973,7 +832,7 @@ function App() {
     return <UnsupportedDevice />;
   }
 
-  const currentAccountWallets = userData.accounts.find((acc) => acc.account.toLowerCase() === walletAddress?.toLowerCase())?.wallets || [];
+  const currentAccountWallets = userData.accounts.find((acc) => acc.account === walletAddress)?.wallets || [];
 
 return (
   <Router>
@@ -1013,5 +872,6 @@ return (
   </Router>
 );
 }
+
 
 export default App;

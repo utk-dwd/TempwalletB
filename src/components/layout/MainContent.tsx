@@ -1,485 +1,698 @@
 // src/components/layout/MainContent.tsx
-import React, { useState, useEffect, useMemo, useCallback } from 'react'; // Added useCallback, useMemo
-import { ethers } from 'ethers';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { NetworkConfig, NETWORKS } from '@/utils/networks';
+import { AlertCircle, CheckCircle, Copy, Send, Trash, RefreshCw, Funnel, Search } from 'lucide-react';
+import { createSmartAccount, createSmartAccountWithCounter, createRandomSmartAccount, sendTransaction, fetchWalletAllBalances } from '@/utils/walletUtils';
 import { Wallet, TransactionStatus, TokenDetails, SupportedNetwork } from '@/utils/types';
-import { createRandomSmartAccount, createSmartAccount, createSmartAccountWithCounter, sendTransaction } from '@/utils/walletUtils';
-import { ChevronRight, PlusCircle, Trash2, Wallet as WalletIcon, Coins, Loader2, RefreshCw } from 'lucide-react';
-import { AlertCircle, CheckCircle } from 'lucide-react';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { useBalances } from '@/hooks/useBalances'; // Import the new hook
-import { supabase } from '@/lib/supabaseClient'; // Import supabase client
-
-
+import { formatUnits } from 'viem';
+import { HoverInfoBox } from '@/components/ui/HoverInfoBox'; 
+import * as Tooltip from "@radix-ui/react-tooltip";
+import { NETWORKS, NetworkConfig } from '@/utils/networks';
+import analyticsService from '@/services/analytics';
+import { EventName } from '@/utils/types';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ChevronDown } from "lucide-react";
 
 interface MainContentProps {
   walletAddress: string | null;
   wallets: Wallet[];
   onWalletCreated: (wallet: Wallet) => void;
-  onWalletDeleted: (walletId: string) => void; // Changed to walletId
+  onWalletDeleted: (wallet: Wallet) => void;
   onTransactionSent: (wallet: Wallet, status: TransactionStatus) => void;
   setNotification: (notification: { brief: string; full: string; type: 'error' | 'success' } | null) => void;
 }
 
-export const MainContent: React.FC<MainContentProps> = ({
-  walletAddress,
-  wallets,
-  onWalletCreated,
-  onWalletDeleted,
-  onTransactionSent,
-  setNotification,
-}) => {
-  const [newWalletNumber, setNewWalletNumber] = useState<string>('');
-  const [selectedNetworkKey, setSelectedNetworkKey] = useState<SupportedNetwork>('Avalanche');
+type SortType = 'original' | 'walletNumber' | 'balance';
+
+interface Notification {
+  brief: string; // Short, user-friendly message
+  full: string;  // Original detailed error message
+  type: 'error' | 'success';
+}
+
+export function MainContent({ walletAddress, wallets, onWalletCreated, onWalletDeleted, onTransactionSent, setNotification }: MainContentProps) {
+  const [isCustomWalletModalOpen, setIsCustomWalletModalOpen] = useState(false);
+  const [isSendModalOpen, setIsSendModalOpen] = useState(false);
   const [selectedWallet, setSelectedWallet] = useState<Wallet | null>(null);
-  const [isSending, setIsSending] = useState<boolean>(false);
-  const [sendToAddress, setSendToAddress] = useState<string>('');
-  const [sendAmount, setSendAmount] = useState<string>('');
+  const [customIndex, setCustomIndex] = useState('');
+  const [recipient, setRecipient] = useState('');
+  const [amount, setAmount] = useState('');
+  const [selectedNetworkKey, setSelectedNetworkKey] = useState<SupportedNetwork>('Avalanche');
+  const selectedNetwork = NETWORKS[selectedNetworkKey];
+  const [showCopiedPopup, setShowCopiedPopup] = useState(false);
+
+  type BiconomyOption = '0xGasless' | 'Pimlico';
+  const [biconomyStates, setBiconomyStates] = useState<Record<BiconomyOption, string>>({
+    '0xGasless': '0xGasless',
+    Pimlico: 'Pimlico',
+  });
+  const biconomyOptions: BiconomyOption[] = ['0xGasless', 'Pimlico'];
+
+  const [sortType, setSortType] = useState<SortType>('original');
+  const [displayedWallets, setDisplayedWallets] = useState<Wallet[]>([]);
   const [selectedToken, setSelectedToken] = useState<TokenDetails | null>(null);
-  const [isRefreshingAllBalances, setIsRefreshingAllBalances] = useState<boolean>(false); // New state for refreshing all
+  const externalAccountNumber = walletAddress ? 1 : 0;
 
+  const handleBiconomyClick = (option: BiconomyOption, event: React.MouseEvent) => {
+    event.preventDefault();
+    setBiconomyStates((prev) => ({ ...prev, [option]: 'Coming Soon' }));
+    setTimeout(() => setBiconomyStates((prev) => ({ ...prev, [option]: option })), 3000);
+  };
 
-  // Memoize the network config for the selected network key
-  const selectedNetwork = useMemo(() => NETWORKS[selectedNetworkKey], [selectedNetworkKey]);
-
-  // Handle selected wallet change
-  useEffect(() => {
-    if (wallets.length > 0 && !selectedWallet) {
-      setSelectedWallet(wallets[0]);
-    } else if (selectedWallet && !wallets.some(w => w.id === selectedWallet.id)) { // Check by ID
-      // If selected wallet was deleted, default to first available or null
-      setSelectedWallet(wallets.length > 0 ? wallets[0] : null);
-    }
-  }, [wallets, selectedWallet]);
-
-  // Use the useBalances hook for the selected wallet's balances
-  // This will give real-time updates from Supabase
-  const { data: currentWalletBalances, isLoading: isLoadingBalances, refetch: refetchCurrentWalletBalances } = useBalances(selectedWallet?.id, !!selectedWallet?.id);
-
-  // Update selectedToken if selectedWallet or its balances change
-  useEffect(() => {
-    if (currentWalletBalances && currentWalletBalances.length > 0) {
-      // Prioritize native token, otherwise first available
-      const nativeToken = currentWalletBalances.find(t => t.address.toLowerCase() === '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee');
-      setSelectedToken(nativeToken || currentWalletBalances[0]);
-    } else {
-      setSelectedToken(null);
-    }
-  }, [currentWalletBalances]);
-
-
-  const handleCreateWallet = async (type: 'random' | 'deterministic' | 'counter') => {
-    if (!walletAddress) {
-      setNotification({ brief: 'Wallet not connected', full: 'Please connect your MetaMask wallet first.', type: 'error' });
-      return;
-    }
-
-    try {
-      let newWallet: Wallet;
-      const externalAccountNumber = 1; // Assuming primary MetaMask account is external account 1
-
-      if (type === 'random') {
-        newWallet = await createRandomSmartAccount(walletAddress, externalAccountNumber, selectedNetwork);
-      } else if (type === 'deterministic') {
-        if (!newWalletNumber || isNaN(parseInt(newWalletNumber))) {
-          setNotification({ brief: 'Invalid number', full: 'Please enter a valid wallet number for deterministic creation.', type: 'error' });
-          return;
-        }
-        newWallet = await createSmartAccountWithCounter(walletAddress, parseInt(newWalletNumber), externalAccountNumber, selectedNetwork);
-      } else { // 'counter'
-        newWallet = await createSmartAccount(walletAddress, externalAccountNumber, selectedNetwork);
+  const handleCopySelectedWalletAddress = async () => {
+    if (selectedWallet?.address) {
+      try {
+        await navigator.clipboard.writeText(selectedWallet.address);
+        analyticsService.trackEvent(EventName.ADDRESS_COPY_CLICKED, {
+          walletAddress: selectedWallet.address,
+          copySource: 'details_panel_address',
+        });
+        setShowCopiedPopup(true);
+        setTimeout(() => setShowCopiedPopup(false), 2000);
+      } catch (err) {
+        setNotification({ brief: 'Copy failed', full: 'Failed to copy address', type: 'error' });
       }
-
-      onWalletCreated(newWallet);
-      setSelectedWallet(newWallet); // Automatically select the new wallet
-      setNewWalletNumber(''); // Clear input
-      setNotification({ brief: 'Wallet Created', full: `New temporary wallet ${newWallet.address.slice(0, 6)}... created successfully!`, type: 'success' });
-    } catch (error: any) {
-      console.error('Error creating wallet:', error);
-      setNotification({ brief: 'Wallet Creation Failed', full: error.message || 'Failed to create temporary wallet.', type: 'error' });
     }
   };
 
-  const handleDeleteWallet = async (wallet: Wallet) => {
-    if (!wallet.id) { // Ensure wallet has a Supabase ID
-      setNotification({ brief: 'Error', full: 'Cannot delete wallet: Missing database ID.', type: 'error' });
-      return;
-    }
-    const confirmDelete = window.confirm(`Are you sure you want to delete wallet ${wallet.address}? This cannot be undone.`);
-    if (!confirmDelete) return;
-
-    try {
-      onWalletDeleted(wallet.id); // Pass wallet ID for deletion
-      setNotification({ brief: 'Deleting Wallet', full: `Attempting to delete wallet ${wallet.address.slice(0, 6)}...`, type: 'success' });
-    } catch (error: any) {
-      console.error('Error deleting wallet:', error);
-      setNotification({ brief: 'Wallet Deletion Failed', full: error.message || 'Failed to delete temporary wallet.', type: 'error' });
-    }
-  };
-
-  const handleSendTransaction = async () => {
-    if (!selectedWallet || !sendToAddress || !sendAmount || !selectedToken) {
-      setNotification({ brief: 'Missing Info', full: 'Please fill all transaction fields.', type: 'error' });
-      return;
-    }
-    if (!walletAddress) {
-      setNotification({ brief: 'Wallet Not Connected', full: 'Please connect your MetaMask wallet.', type: 'error' });
-      return;
-    }
-
-    setIsSending(true);
-    setNotification({ brief: 'Sending Transaction', full: `Sending ${sendAmount} ${selectedToken.symbol} to ${sendToAddress.slice(0, 6)}...`, type: 'success' });
-
-    try {
-      const status = await sendTransaction(walletAddress, selectedWallet, sendToAddress, sendAmount, selectedToken, selectedNetwork);
-      onTransactionSent(selectedWallet, status);
-      setNotification({ brief: status.state === 'success' ? 'Transaction Success' : 'Transaction Failed', full: status.message || '', type: status.state === 'success' ? 'success' : 'error' });
-      setSendToAddress('');
-      setSendAmount('');
-      // Refetch balances after successful transaction to update UI
-      refetchCurrentWalletBalances(); 
-    } catch (error: any) {
-      console.error('Transaction error:', error);
-      const errorMessage = error.message || 'Failed to send transaction.';
-      setNotification({ brief: 'Transaction Failed', full: errorMessage, type: 'error' });
-      onTransactionSent(selectedWallet, { state: 'error', message: errorMessage });
-    } finally {
-      setIsSending(false);
-    }
-  };
-
-  // Function to refresh all wallet balances for the current user
-  const handleRefreshAllBalances = async () => {
-    if (!walletAddress) {
-      setNotification({ brief: 'Wallet not connected', full: 'Please connect your MetaMask wallet first.', type: 'error' });
-      return;
-    }
-    setIsRefreshingAllBalances(true);
-    setNotification({ brief: 'Refreshing Balances', full: 'Fetching latest balances for all your wallets...', type: 'success' });
-
-    try {
-      const { data: currentWallets, error: fetchError } = await supabase
-        .from('temp_wallets')
-        .select('*')
-        .eq('parent_metamask_address', walletAddress.toLowerCase())
-        .is('deleted_at', null);
-
-      if (fetchError) throw fetchError;
-
-      const balancePromises = (currentWallets || []).map(async (tempWallet) => {
-        const network = NETWORKS[tempWallet.network_key as SupportedNetwork];
-        if (!network) {
-          console.warn(`Unknown network key: ${tempWallet.network_key} for wallet ${tempWallet.address}`);
-          return;
-        }
-        const fetchedBalances = await sendTransaction(
-          walletAddress,
-          {
-            ...tempWallet, // Pass existing wallet data from DB fetch
-            address: tempWallet.address as `0x${string}`,
-            networkKey: tempWallet.network_key as SupportedNetwork,
-            walletNumber: tempWallet.wallet_number,
-            externalAccountNumber: tempWallet.external_account_number,
-            allTokenBalances: [], // Placeholder, actual balances fetched below
-            balance: '0', // Placeholder
-          },
-          '0x0000000000000000000000000000000000000000', // Dummy to address
-          '0', // Dummy amount
-          { address: '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee', chainId: network.chainId, amount: '0', decimals: 18, formattedAmount: '0', symbol: 'ETH' }, // Dummy token details
-          network
-        );
-        // We will need to re-fetch from Zerion and update Supabase
-        const allFetchedBalances = await (await import('@/utils/walletUtils')).fetchWalletAllBalances(tempWallet.address, network);
-        
-        // This is a simplified direct update. In a real app, you'd have a specific Edge Function
-        // or backend service to update balances safely. For this example, we'll do direct supabase update.
-        const balancesToInsert = allFetchedBalances.map(balance => ({
-          temp_wallet_id: tempWallet.id,
-          token_address: balance.address.toLowerCase(),
-          chain_id: balance.chainId,
-          amount: balance.amount,
-          decimals: balance.decimals,
-          formatted_amount: balance.formattedAmount,
-          symbol: balance.symbol || 'N/A',
-          last_updated: new Date().toISOString(),
-        }));
-
-        const { error: upsertError } = await supabase
-          .from('balances')
-          .upsert(balancesToInsert, { onConflict: 'temp_wallet_id,token_address,chain_id', ignoreDuplicates: false });
-
-        if (upsertError) {
-          console.error(`Error upserting balances for wallet ${tempWallet.address}:`, upsertError.message);
-        }
+  useEffect(() => {
+    let networkWallets = wallets.filter(w => w.networkKey === selectedNetworkKey);
+    if (sortType === 'walletNumber') {
+      networkWallets.sort((a, b) => a.walletNumber - b.walletNumber);
+    } else if (sortType === 'balance') {
+      networkWallets.sort((a, b) => {
+        const balanceA = a.allTokenBalances[0] ? BigInt(a.allTokenBalances[0].amount) : BigInt(0);
+        const balanceB = b.allTokenBalances[0] ? BigInt(b.allTokenBalances[0].amount) : BigInt(0);
+        if (balanceB > balanceA) return 1;
+        if (balanceB < balanceA) return -1;
+        return a.walletNumber - b.walletNumber;
       });
-
-      await Promise.allSettled(balancePromises); // Wait for all balance updates
-      setNotification({ brief: 'Balances Refreshed', full: 'All wallet balances updated successfully!', type: 'success' });
-      refetchCurrentWalletBalances(); // Refetch balances for the currently selected wallet
-    } catch (error: any) {
-      console.error('Error refreshing all balances:', error);
-      setNotification({ brief: 'Refresh Failed', full: error.message || 'Failed to refresh all wallet balances.', type: 'error' });
-    } finally {
-      setIsRefreshingAllBalances(false);
     }
+    setDisplayedWallets(networkWallets);
+
+    if (selectedWallet && !networkWallets.some(w => w.address === selectedWallet.address && w.walletNumber === selectedWallet.walletNumber)) {
+      analyticsService.trackEvent(EventName.WALLET_DESELECTED, {
+        walletAddress: selectedWallet.address,
+        walletNumber: selectedWallet.walletNumber,
+      });
+      setSelectedWallet(null);
+    }
+  }, [wallets, sortType, selectedNetworkKey, selectedWallet]);
+
+  const handleCreateNewTempWallet = async () => {
+  analyticsService.trackEvent(EventName.CREATE_WALLET_BUTTON_CLICKED, { creationType: 'standard' });
+  if (!walletAddress) {
+    setNotification({ brief: 'No wallet connected', full: 'Please connect a wallet first', type: 'error' });
+    return;
+  }
+  try {
+    const wallet = await createSmartAccount(walletAddress, externalAccountNumber, selectedNetwork);
+    onWalletCreated(wallet);
+  } catch (err: any) {
+    console.error('Wallet creation error:', err); // Temporary debug log
+    if (err.code === 4001) {
+      setNotification({ brief: 'Creation cancelled', full: 'You cancelled the wallet creation in MetaMask', type: 'error' });
+    } else {
+      setNotification({ brief: 'Wallet creation failed', full: err.message || 'Failed to create wallet', type: 'error' });
+    }
+  }
+};
+
+const handleCreateRandomTempWallet = async () => {
+  analyticsService.trackEvent(EventName.CREATE_WALLET_BUTTON_CLICKED, { creationType: 'random' });
+  if (!walletAddress) {
+    setNotification({ brief: 'No wallet connected', full: 'Please connect a wallet first', type: 'error' });
+    return;
+  }
+  try {
+    const wallet = await createRandomSmartAccount(walletAddress, externalAccountNumber, selectedNetwork);
+    onWalletCreated(wallet);
+  } catch (err: any) {
+    console.error('Random wallet creation error:', err); // Temporary debug log
+    if (err.code === 4001) {
+      setNotification({ brief: 'Creation cancelled', full: 'You cancelled the random wallet creation in MetaMask', type: 'error' });
+    } else {
+      setNotification({ brief: 'Random wallet creation failed', full: err.message || 'Failed to create random wallet', type: 'error' });
+    }
+  }
+};
+
+const handleCreateCustomTempWallet = async () => {
+  if (!walletAddress) {
+    setNotification({ brief: 'No wallet connected', full: 'Please connect a wallet first', type: 'error' });
+    setIsCustomWalletModalOpen(false);
+    return;
+  }
+  const counter = parseInt(customIndex, 10);
+  if (isNaN(counter) || counter < 0) {
+    setNotification({ brief: 'Invalid index', full: 'Please enter a valid non-negative integer', type: 'error' });
+    return;
+  }
+  try {
+    const wallet = await createSmartAccountWithCounter(walletAddress, counter, externalAccountNumber, selectedNetwork);
+    onWalletCreated(wallet);
+    setIsCustomWalletModalOpen(false);
+    setCustomIndex('');
+  } catch (err: any) {
+    console.error('Custom wallet creation error:', err); // Temporary debug log
+    if (err.code === 4001) {
+      setNotification({ brief: 'Creation cancelled', full: 'You cancelled the custom wallet creation in MetaMask', type: 'error' });
+    } else {
+      setNotification({ brief: 'Custom wallet creation failed', full: err.message || 'Failed to create custom wallet', type: 'error' });
+    }
+  }
+};
+
+  const handleCopyAddress = (address: string) => {
+  navigator.clipboard.writeText(address).then(() => {
+    analyticsService.trackEvent(EventName.ADDRESS_COPY_CLICKED, {
+      walletAddress: address,
+      copySource: 'wallet_list_button',
+    });
+    setNotification({ brief: 'Address copied', full: 'Address copied to clipboard', type: 'success' });
+  }).catch(() => {
+    setNotification({ brief: 'Copy failed', full: 'Failed to copy address', type: 'error' });
+  });
+};
+
+const handleSendCrypto = async () => {
+  if (!walletAddress || !selectedWallet || !selectedToken) {
+    setNotification({ brief: 'Invalid selection', full: 'Please connect a wallet, select a wallet to send from, and choose a token.', type: 'error' });
+    setIsSendModalOpen(false);
+    return;
+  }
+  try {
+    const status = await sendTransaction(walletAddress, selectedWallet, recipient, amount, selectedToken, selectedNetwork);
+    onTransactionSent(selectedWallet, status);
+    setIsSendModalOpen(false);
+    setRecipient('');
+    setAmount('');
+    await handleRefreshBalance(selectedWallet, true);
+  } catch (err: any) {
+    console.error('Send transaction error:', err); // Temporary debug log
+    if (err.code === 4001) {
+      setNotification({ brief: 'Transaction cancelled', full: 'You cancelled the transaction in MetaMask', type: 'error' });
+    } else {
+      setNotification({ brief: 'Transaction failed', full: err.message || 'Failed to send transaction', type: 'error' });
+    }
+  }
+};
+
+const handleRefreshBalance = async (wallet: Wallet, isPostTransaction: boolean = false) => {
+  try {
+    const updatedBalances = await fetchWalletAllBalances(wallet.address, selectedNetwork);
+    let updatedWallet = { ...wallet, allTokenBalances: updatedBalances };
+    if (isPostTransaction && wallet.transactionStatus) {
+      updatedWallet.transactionStatus = wallet.transactionStatus;
+    } else if (!isPostTransaction) {
+      updatedWallet.transactionStatus = { state: 'idle' };
+    }
+    onWalletCreated(updatedWallet);
+    if (selectedWallet?.address === wallet.address && selectedWallet?.walletNumber === wallet.walletNumber) {
+      setSelectedWallet(updatedWallet);
+    }
+  } catch (err: any) {
+    setNotification({ brief: 'Balance refresh failed', full: err.message || 'Failed to refresh balance', type: 'error' });
+  }
+};
+
+  const handleSortChange = () => {
+    const newSortType = sortType === 'original' ? 'walletNumber' : sortType === 'walletNumber' ? 'balance' : 'original';
+    analyticsService.trackEvent(EventName.WALLET_SORT_CHANGED, { sortType: newSortType });
+    setSortType(newSortType);
   };
 
+  const getSortButtonLabel = () => {
+    if (sortType === 'walletNumber') return 'By Wallet #';
+    if (sortType === 'balance') return 'By Balance';
+    return 'Default Order';
+  };
 
-  if (!walletAddress) {
-    return (
-      <Card className="flex-1 flex flex-col items-center justify-center bg-background/50 backdrop-blur-md border border-white/20 rounded-xl p-8 text-center">
-        <h2 className="text-3xl font-bold text-text-primary mb-4">Connect Wallet to Get Started</h2>
-        <p className="text-lg text-text-secondary mb-6">Please connect your MetaMask wallet to create and manage temporary wallets.</p>
-        {/* The Header component handles the actual connect wallet button, so no button here */}
-      </Card>
-    );
-  }
+  const totalBalances = displayedWallets.reduce((acc, wallet) => {
+    wallet.allTokenBalances.forEach(token => {
+      const existing = acc.get(token.symbol || 'Unknown');
+      if (existing) {
+        acc.set(token.symbol || 'Unknown', { ...existing, amount: existing.amount + BigInt(token.amount) });
+      } else {
+        acc.set(token.symbol || 'Unknown', { amount: BigInt(token.amount), decimals: token.decimals });
+      }
+    });
+    return acc;
+  }, new Map<string, { amount: bigint; decimals: number }>());
+
+  const handleDeleteWallet = (wallet: Wallet) => {
+    onWalletDeleted(wallet);
+  };
 
   return (
-    <div className="grid grid-cols-2 gap-6 flex-1 min-h-0">
-      {/* Left Column: Wallet Management */}
-      <Card className="flex flex-col bg-background/50 backdrop-blur-md border border-white/20 rounded-xl">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-text-primary">Your Wallets</CardTitle>
-          <Button onClick={handleRefreshAllBalances} disabled={isRefreshingAllBalances} className="text-xs px-2 py-1 h-auto">
-            {isRefreshingAllBalances ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-1 h-3 w-3" />}
-            Refresh All
-          </Button>
-        </CardHeader>
-        <CardContent className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
-          {wallets.length === 0 ? (
-            <p className="text-text-secondary">No temporary wallets created yet.</p>
-          ) : (
-            <div className="space-y-3">
-              {wallets.map((wallet) => (
-                <div
-                  key={wallet.id} // Use Supabase ID as key
-                  className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-all duration-200 ${
-                    selectedWallet?.id === wallet.id ? 'bg-primary/20 border border-primary text-primary-foreground' : 'bg-card/30 hover:bg-card/50 text-text-primary border border-transparent'
-                  }`}
-                  onClick={() => setSelectedWallet(wallet)}
+    <>
+      <style>{`.custom-scrollbar::-webkit-scrollbar{width:10px;}.custom-scrollbar::-webkit-scrollbar-track{background:rgba(55,65,81,0.3);border-radius:10px;margin-top:5px;margin-bottom:5px;}.custom-scrollbar::-webkit-scrollbar-thumb{background:rgba(209,213,219,0.5);border-radius:10px;border:2px solid transparent;background-clip:content-box;}.custom-scrollbar::-webkit-scrollbar-thumb:hover{background:rgba(156,163,175,0.7);background-clip:content-box;}.custom-scrollbar{scrollbar-width:thin;scrollbar-color:rgba(209,213,219,0.5) rgba(55,65,81,0.3);}`}</style>
+      <div className="relative bg-[var(--overlay)] border border-white/20 backdrop-blur-[var(--blur)] rounded-xl p-4 flex-1 flex flex-col h-full min-h-0 mb-5 ml-5 mr-5">
+        
+
+        <div className="flex items-center justify-between">
+          <Tooltip.Provider delayDuration={200}>
+            <Tooltip.Root>
+              <Tooltip.Trigger asChild>
+                <h2 className="text-xl font-semibold text-white">Your Temporary Wallets ({selectedNetwork.name})</h2>
+              </Tooltip.Trigger>
+              <Tooltip.Portal>
+                <Tooltip.Content
+                  className="bg-white/10 backdrop-blur-sm text-white p-2 rounded-md shadow-lg box-shadow: 0 4px 6px rgba(0, 0, 0, 1) text-sm"
+                  sideOffset={5}
                 >
-                  <div className="flex items-center gap-3">
-                    <WalletIcon className="h-5 w-5" />
-                    <div>
-                      <p className="font-medium text-sm">
-                        Wallet #{wallet.walletNumber} ({wallet.networkKey})
-                      </p>
-                      <p className="text-xs text-text-secondary">
-                        {wallet.address.slice(0, 6)}...{wallet.address.slice(-4)}
-                      </p>
-                    </div>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-text-secondary hover:text-danger-red"
-                    onClick={(e) => {
-                      e.stopPropagation(); // Prevent card click
-                      handleDeleteWallet(wallet);
-                    }}
-                  >
-                    <Trash2 className="h-4 w-4" />
+                  <p>This is a temporary wallet <br/>that requires no gas fees.</p>
+                  <Tooltip.Arrow className="fill-white" />
+                </Tooltip.Content>
+              </Tooltip.Portal>
+            </Tooltip.Root>
+          </Tooltip.Provider>
+
+          <div className="flex items-center gap-2">
+            <Tooltip.Provider delayDuration={200}>
+              <Tooltip.Root>
+                <Tooltip.Trigger asChild>
+                  <Button onClick={handleSortChange} className="px-4 py-2 bg-green-500/50 text-primary-foreground rounded-[var(--radius)] hover:bg-gray-400/50 transition-colors flex items-center w-[8rem]">
+                    <Funnel className="w-4 h-4 mr-2" /><span>{getSortButtonLabel()}</span>
                   </Button>
+                </Tooltip.Trigger>
+                <Tooltip.Portal>
+                  <Tooltip.Content
+                    className="bg-white/10 backdrop-blur-sm text-white p-2 rounded-md shadow-lg text-sm"
+                    sideOffset={5}
+                  >
+                    <p>Sort your wallets below {getSortButtonLabel()}</p>
+                    <Tooltip.Arrow className="fill-white" />
+                  </Tooltip.Content>
+                </Tooltip.Portal>
+              </Tooltip.Root>
+            </Tooltip.Provider>
+
+            <Tooltip.Provider delayDuration={200}>
+              <Tooltip.Root>
+                <Tooltip.Trigger asChild>
+                  <Button onClick={handleCreateNewTempWallet} className="px-4 py-2 bg-green-500/50 text-primary-foreground rounded-[var(--radius)] hover:bg-gray-400/50 transition-colors">
+                    + TempWallet
+                  </Button>
+                </Tooltip.Trigger>
+                <Tooltip.Portal>
+                  <Tooltip.Content
+                    className="bg-white/10 backdrop-blur-sm text-white p-2 rounded-md shadow-lg text-sm"
+                    sideOffset={5}
+                  >
+                    <p>This button will create a new smart wallet</p>
+                    <Tooltip.Arrow className="fill-white" />
+                  </Tooltip.Content>
+                </Tooltip.Portal>
+              </Tooltip.Root>
+            </Tooltip.Provider>
+
+            <Tooltip.Provider delayDuration={200}>
+              <Tooltip.Root>
+                <Tooltip.Trigger asChild>
+                  <Button onClick={handleCreateRandomTempWallet} className="px-4 py-2 bg-green-500/50 text-primary-foreground rounded-[var(--radius)] hover:bg-gray-400/50 transition-colors">
+                    + Random TempWallet
+                  </Button>
+                </Tooltip.Trigger>
+                <Tooltip.Portal>
+                  <Tooltip.Content
+                    className="bg-white/10 backdrop-blur-sm text-white p-2 rounded-md shadow-lg text-sm"
+                    sideOffset={5}
+                  >
+                    <p>This button will create a new smart wallet using your <br/> metamask signature and a random index number.</p>
+                    <Tooltip.Arrow className="fill-white" />
+                  </Tooltip.Content>
+                </Tooltip.Portal>
+              </Tooltip.Root>
+            </Tooltip.Provider>
+
+            <Tooltip.Provider delayDuration={200}>
+              <Tooltip.Root>
+                <Tooltip.Trigger asChild>
+                  <Button 
+                    onClick={() => {
+                      analyticsService.trackEvent(EventName.CREATE_WALLET_BUTTON_CLICKED, { creationType: 'custom' });
+                      setIsCustomWalletModalOpen(true);
+                    }} 
+                    className="px-4 py-2 bg-green-500/50 text-primary-foreground rounded-[var(--radius)] hover:bg-gray-400/50 transition-colors"
+                  >
+                    + Custom TempWallet
+                  </Button>
+                </Tooltip.Trigger>
+                <Tooltip.Portal>
+                  <Tooltip.Content
+                    className="bg-white/10 backdrop-blur-sm text-white p-2 rounded-md shadow-lg text-sm"
+                    sideOffset={5}
+                  >
+                    <p>This button will create a new smart wallet using your <br/> metamask signature and a custom index number.</p>
+                    <Tooltip.Arrow className="fill-white" />
+                  </Tooltip.Content>
+                </Tooltip.Portal>
+              </Tooltip.Root>
+            </Tooltip.Provider>
+
+            <Tooltip.Provider delayDuration={200}>
+              <Tooltip.Root>
+                <Tooltip.Trigger>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button className="px-4 py-2 bg-green-500/50 text-primary-foreground rounded-[var(--radius)] hover:bg-gray-400/50 transition-colors flex items-center gap-2 w-[7rem]">
+                        {selectedNetwork.name} <ChevronDown className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="backdrop-blur-sm bg-gray-500/30 text-primary-foreground rounded-[var(--radius)] border-none">
+                      {Object.keys(NETWORKS).map((key) => (
+                        <DropdownMenuItem 
+                          key={key} 
+                          className="px-4 py-2 hover:bg-gray-400/50 focus:bg-gray-400/50 transition-colors cursor-pointer"
+                          onClick={() => {
+                            analyticsService.trackEvent(EventName.NETWORK_CHANGED, {
+                              previousNetwork: selectedNetwork.name,
+                              newNetwork: NETWORKS[key as SupportedNetwork].name,
+                            });
+                            setSelectedNetworkKey(key as SupportedNetwork);
+                          }}
+                        >
+                          {NETWORKS[key as SupportedNetwork].name}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </Tooltip.Trigger>
+                <Tooltip.Portal>
+                  <Tooltip.Content
+                    className="bg-white/20 backdrop-blur-sm text-white p-2 rounded-md shadow-lg text-sm"
+                    sideOffset={5}
+                  >
+                    <p>Select a blockchain Network</p>
+                    <Tooltip.Arrow className="fill-white" />
+                  </Tooltip.Content>
+                </Tooltip.Portal>
+              </Tooltip.Root>
+            </Tooltip.Provider>
+
+            <Tooltip.Provider delayDuration={200}>
+              <Tooltip.Root>
+                <Tooltip.Trigger>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button className="px-4 py-2 bg-green-500/50 text-primary-foreground rounded-[var(--radius)] hover:bg-gray-400/50 transition-colors flex items-center gap-2">
+                        Biconomy <ChevronDown className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="backdrop-blur-sm bg-gray-500/50 text-primary-foreground rounded-[var(--radius)] border-none">
+                      {biconomyOptions.map((option) => (
+                        <DropdownMenuItem 
+                          key={option} 
+                          className="px-4 py-2 hover:bg-gray-400/50 focus:bg-gray-400/50 transition-colors cursor-pointer" 
+                          onClick={(event) => handleBiconomyClick(option, event)}
+                        >
+                          {biconomyStates[option] ?? option}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </Tooltip.Trigger>
+                <Tooltip.Portal>
+                  <Tooltip.Content
+                    className="bg-white/20 backdrop-blur-sm text-white p-2 rounded-md shadow-lg text-sm"
+                    sideOffset={5}
+                  >
+                    <p>Select Backend to create <br/> TempWallets</p>
+                    <Tooltip.Arrow className="fill-white" />
+                  </Tooltip.Content>
+                </Tooltip.Portal>
+              </Tooltip.Root>
+            </Tooltip.Provider>
+          </div>
+        </div>
+        <div className="border-b border-white/20 my-4" />
+        <div className="flex flex-1 gap-4 min-h-0">
+          <div className="flex-1 space-y-4 overflow-y-auto pr-2 custom-scrollbar min-h-0">
+            {displayedWallets.length === 0 ? (
+              <div className="text-white text-center py-10">No wallets created for {selectedNetwork.name}.</div>
+            ) : (
+              displayedWallets.map((wallet) => (
+                <div 
+                  key={`${wallet.address}-${wallet.walletNumber}`} 
+                  className={`bg-[var(--overlay)] backdrop-blur-[var(--blur)] rounded-xl p-4 flex items-center justify-between border border-white/20 cursor-pointer transition-all duration-200 hover:border-white/40 ${selectedWallet?.address === wallet.address && selectedWallet?.walletNumber === wallet.walletNumber ? 'shadow-[0_0_15px_rgba(34,197,94,0.5)] border-green-500' : ''}`} 
+                  onClick={() => {
+                    if (selectedWallet?.address !== wallet.address || selectedWallet?.walletNumber !== wallet.walletNumber) {
+                      analyticsService.trackEvent(EventName.WALLET_SELECTED, {
+                        walletAddress: wallet.address,
+                        walletNumber: wallet.walletNumber,
+                      });
+                    }
+                    setSelectedWallet(wallet);
+                  }}
+                >
+                  <div>
+                    <p className="text-sm font-medium text-white">
+                      Wallet #{wallet.walletNumber} <span className="text-xs text-blue-400 ml-2">{wallet.walletNumber > 1000 ? '[Random]' : ' '}</span><br />
+                      <span className="text-xs text-gray-400">{wallet.address}</span>
+                    </p>
+                    {wallet.transactionStatus && wallet.transactionStatus.state !== 'idle' && (
+                      <p className={`text-xs mt-1 ${wallet.transactionStatus.state === 'success' ? 'text-green-400' : wallet.transactionStatus.state === 'error' ? 'text-red-400' : 'text-yellow-400'}`}>
+                        {wallet.transactionStatus.state === 'success' && wallet.transactionStatus.txHash ? (
+                          <a 
+                            href={`${selectedNetwork.explorerUrl}/tx/${wallet.transactionStatus.txHash}`} 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className="underline hover:text-green-300" 
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {wallet.transactionStatus.message || 'Transaction successful'}
+                          </a>
+                        ) : (
+                          wallet.transactionStatus.message || `Status: ${wallet.transactionStatus.state}`
+                        )}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <HoverInfoBox infoText="Copy Address" position="bottom">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="bg-white/10 text-white rounded-md hover:bg-white/20 p-2" 
+                        onClick={(e) => { e.stopPropagation(); handleCopyAddress(wallet.address); }}
+                      >
+                        <Copy className="w-4 h-4" />
+                      </Button>
+                    </HoverInfoBox>
+                    <HoverInfoBox infoText="Send Crypto" position="bottom">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="bg-white/10 text-white rounded-md hover:bg-white/20 p-2" 
+                        onClick={(e) => { e.stopPropagation(); setSelectedWallet(wallet); setIsSendModalOpen(true); }}
+                        title="Send Crypto"
+                      >
+                        <Send className="w-4 h-4" />
+                      </Button>
+                    </HoverInfoBox>
+                    <HoverInfoBox infoText="Delete Wallet" position="bottom">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="bg-red-500/20 text-red-400 rounded-md hover:bg-red-500/40 p-2" 
+                        onClick={(e) => { e.stopPropagation(); handleDeleteWallet(wallet); }}
+                        title="Delete Wallet"
+                      >
+                        <Trash className="w-4 h-4" />
+                      </Button>
+                    </HoverInfoBox>
+                    <HoverInfoBox infoText="View on Explorer" position="bottom">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="bg-white/10 text-white rounded-md hover:bg-white/20 p-2" 
+                        onClick={(e) => { e.stopPropagation(); window.open(`${selectedNetwork.explorerUrl}/address/${wallet.address}`, '_blank'); }}
+                        title={`View on ${selectedNetwork.name} Explorer`}
+                      >
+                        <Search className="w-4 h-4" />
+                      </Button>
+                    </HoverInfoBox>
+                    <HoverInfoBox infoText="Refresh Balance" position="left">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="bg-white/10 text-white rounded-md hover:bg-white/20 p-2" 
+                        onClick={(e) => { e.stopPropagation(); handleRefreshBalance(wallet); }}
+                        title="Refresh Balance"
+                      >
+                        <RefreshCw className="w-4 h-4" />
+                      </Button>
+                    </HoverInfoBox>
+                  </div>
                 </div>
+              ))
+            )}
+          </div>
+
+          {/* Balance Column */}
+          <div className="w-[300px] bg-[var(--overlay)] backdrop-blur-[var(--blur)] rounded-xl p-4 flex flex-col">
+            <div>
+              <h3 className="text-lg font-semibold text-white">Total Portfolio ({selectedNetwork.name})</h3>
+              {Array.from(totalBalances.entries()).map(([symbol, tokenData]) => (
+                <p key={symbol} className="text-sm text-white mt-2">
+                  {symbol}: {formatUnits(tokenData.amount, tokenData.decimals)}
+                </p>
               ))}
             </div>
-          )}
-        </CardContent>
-        <CardFooter className="flex flex-col gap-4 mt-4">
-          <div className="flex w-full gap-2">
-            <Input
-              placeholder="Deterministic # (optional)"
-              type="number"
-              value={newWalletNumber}
-              onChange={(e) => setNewWalletNumber(e.target.value)}
-              className="flex-1 bg-input-background text-text-primary border-input-border"
-            />
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="text-text-primary border-input-border">
-                  {selectedNetwork.name}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="bg-dropdown-background border-dropdown-border">
-                <DropdownMenuLabel className="text-text-secondary">Select Network</DropdownMenuLabel>
-                <DropdownMenuSeparator className="bg-dropdown-separator" />
-                {Object.values(NETWORKS).map((network) => (
-                  <DropdownMenuItem
-                    key={network.chainId}
-                    onSelect={() => setSelectedNetworkKey(network.name as SupportedNetwork)}
-                    className="text-text-primary hover:bg-accent-orange/20"
-                  >
-                    {network.name}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-          <div className="grid grid-cols-2 gap-4 w-full">
-            <Button
-              onClick={() => handleCreateWallet('random')}
-              disabled={!walletAddress}
-              className="w-full bg-primary text-primary-foreground hover:bg-[#3C3AB4] hover:scale-[1.02] transition-transform"
-            >
-              <PlusCircle className="mr-2 h-4 w-4" /> Random
-            </Button>
-            <Button
-              onClick={() => handleCreateWallet('counter')}
-              disabled={!walletAddress}
-              className="w-full bg-primary text-primary-foreground hover:bg-[#3C3AB4] hover:scale-[1.02] transition-transform"
-            >
-              <PlusCircle className="mr-2 h-4 w-4" /> Next Seq.
-            </Button>
-          </div>
-          <Button
-            onClick={() => handleCreateWallet('deterministic')}
-            disabled={!walletAddress || !newWalletNumber}
-            className="w-full bg-primary text-primary-foreground hover:bg-[#3C3AB4] hover:scale-[1.02] transition-transform"
-          >
-            <PlusCircle className="mr-2 h-4 w-4" /> Deterministic
-          </Button>
-        </CardFooter>
-      </Card>
-
-      {/* Right Column: Selected Wallet Details & Send */}
-      <div className="flex flex-col gap-6">
-        {selectedWallet ? (
-          <>
-            <Card className="bg-background/50 backdrop-blur-md border border-white/20 rounded-xl">
-              <CardHeader>
-                <CardTitle className="text-text-primary">
-                  Selected Wallet ({selectedWallet.networkKey})
-                </CardTitle>
-                <CardDescription className="text-text-secondary">
-                  {selectedWallet.address}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center gap-2 text-text-primary">
-                  <WalletIcon className="h-5 w-5" />
-                  <p>Wallet Number: {selectedWallet.walletNumber}</p>
-                </div>
-                <div className="flex items-center gap-2 text-text-primary">
-                  <Coins className="h-5 w-5" />
-                  <p>Balances:</p>
-                  {isLoadingBalances ? (
-                    <span className="flex items-center text-text-secondary">
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading balances...
-                    </span>
-                  ) : (
-                    <div className="space-y-1">
-                      {currentWalletBalances && currentWalletBalances.length > 0 ? (
-                        currentWalletBalances.map((token) => (
-                          <div key={token.address} className="flex items-center gap-2 text-text-primary text-sm">
-                            {token.iconUrl && <img src={token.iconUrl} alt={token.symbol} className="h-4 w-4 rounded-full" />}
-                            <span>{token.formattedAmount} {token.symbol}</span>
-                          </div>
-                        ))
-                      ) : (
-                        <p className="text-text-secondary text-sm">No balances found.</p>
-                      )}
-                    </div>
-                  )}
-                </div>
-                {selectedWallet.transactionStatus && (
-                  <div className={`flex items-center gap-2 text-sm font-medium ${selectedWallet.transactionStatus.state === 'success' ? 'text-success-green' : 'text-danger-red'}`}>
-                    {selectedWallet.transactionStatus.state === 'success' ? <CheckCircle className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
-                    <span>Tx Status: {selectedWallet.transactionStatus.message || selectedWallet.transactionStatus.state}</span>
+            {selectedWallet && (
+              <>
+                <div className="border-b border-white/20 my-4" />
+                <h3 className="text-lg font-semibold text-white">Selected Wallet #{selectedWallet.walletNumber}</h3>
+                <p 
+                  className="text-regular text-gray-400 cursor-pointer hover:text-accent-orange transition-colors" 
+                  onClick={handleCopySelectedWalletAddress} 
+                  title="Click to copy full address"
+                >
+                  {selectedWallet.address.slice(0, 6)}.....{selectedWallet.address.slice(-8)}
+                </p>
+                {showCopiedPopup && (
+                  <div className="absolute -top-8 left-0 bg-success-green text-white text-xs px-2 py-1 rounded shadow-lg">
+                    Copied!
                   </div>
                 )}
-              </CardContent>
-            </Card>
-
-            <Card className="bg-background/50 backdrop-blur-md border border-white/20 rounded-xl">
-              <CardHeader>
-                <CardTitle className="text-text-primary">Send Transaction</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid w-full items-center gap-1.5">
-                  <Label htmlFor="to-address" className="text-text-primary">To Address</Label>
-                  <Input
-                    type="text"
-                    id="to-address"
-                    placeholder="0x..."
-                    value={sendToAddress}
-                    onChange={(e) => setSendToAddress(e.target.value)}
-                    className="bg-input-background text-text-primary border-input-border"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4 w-full">
-                  <div className="grid w-full items-center gap-1.5">
-                    <Label htmlFor="amount" className="text-text-primary">Amount</Label>
-                    <Input
-                      type="number"
-                      id="amount"
-                      placeholder="0.0"
-                      value={sendAmount}
-                      onChange={(e) => setSendAmount(e.target.value)}
-                      className="bg-input-background text-text-primary border-input-border"
-                    />
-                  </div>
-                  <div className="grid w-full items-center gap-1.5">
-                    <Label htmlFor="token" className="text-text-primary">Token</Label>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="outline" className="w-full justify-between text-text-primary border-input-border">
-                          {selectedToken ? (
-                            <>
-                              {selectedToken.iconUrl && <img src={selectedToken.iconUrl} alt={selectedToken.symbol} className="h-5 w-5 rounded-full mr-2" />}
-                              {selectedToken.symbol}
-                            </>
-                          ) : (
-                            "Select Token"
-                          )}
-                          <ChevronRight className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent className="w-[calc(var(--radix-dropdown-menu-trigger-width))] bg-dropdown-background border-dropdown-border">
-                        <DropdownMenuLabel className="text-text-secondary">Select Token</DropdownMenuLabel>
-                        <DropdownMenuSeparator className="bg-dropdown-separator" />
-                        {currentWalletBalances && currentWalletBalances.length > 0 ? (
-                          currentWalletBalances.map((token) => (
-                            <DropdownMenuItem
-                              key={token.address}
-                              onSelect={() => setSelectedToken(token)}
-                              className="flex items-center text-text-primary hover:bg-accent-orange/20"
-                            >
-                              {token.iconUrl && <img src={token.iconUrl} alt={token.symbol} className="h-4 w-4 rounded-full mr-2" />}
-                              {token.symbol} ({token.formattedAmount})
-                            </DropdownMenuItem>
-                          ))
-                        ) : (
-                          <DropdownMenuItem disabled className="text-text-secondary">No tokens available</DropdownMenuItem>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </div>
-              </CardContent>
-              <CardFooter>
-                <Button
-                  onClick={handleSendTransaction}
-                  disabled={isSending || !selectedWallet || !sendToAddress || !sendAmount || !selectedToken}
-                  className="w-full bg-primary text-primary-foreground hover:bg-[#3C3AB4] hover:scale-[1.02] transition-transform"
+                {selectedWallet.allTokenBalances.map(token => (
+                  <p key={token.address} className="text-sm text-white mt-2 flex items-center">
+                    {token.iconUrl && <img src={token.iconUrl} alt={token.symbol} className="w-4 h-4 mr-2 rounded-full" />} 
+                    {token.symbol}: {token.formattedAmount}
+                  </p>
+                ))}
+              </>
+            )}
+            {!selectedWallet && wallets.length > 0 && (
+              <div className="mt-auto text-center text-gray-400 text-sm">
+                Select a wallet to see its details.
+              </div>
+            )}
+            <div className="mt-auto">
+              <p className="text-xs text-gray-400">
+                TempWallets.com is a DApp for creating gasless temporary smart wallets. The functionality is live on multiple networks. <br />
+                Check <a href="https://bit.ly/pitchdeck-tempwallets" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">Project Deck here</a>.<br />
+                Talk to us on <a href="https://t.me/+jGONCu_VLqgwZTVl" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">Telegram here</a>.<br />
+                Explore and test this DApp responsibly.
+              </p>
+            </div>
+          </div>
+        </div>
+        <Dialog open={isCustomWalletModalOpen} onOpenChange={(isOpen) => { setIsCustomWalletModalOpen(isOpen); if (!isOpen) setNotification(null); }}>
+          <DialogContent className="bg-[var(--overlay)] backdrop-blur-[var(--blur)] rounded-xl p-6 bg-gray-500/50 border border-white/20">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-semibold text-white">Create Custom Temp Wallet</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div>
+                <label htmlFor="custom-index" className="text-sm font-medium text-white block mb-1">Wallet Index Number</label>
+                <Input 
+                  id="custom-index" 
+                  type="number" 
+                  min="0" 
+                  value={customIndex} 
+                  onChange={(e) => setCustomIndex(e.target.value)} 
+                  className="mt-1 px-3 py-2 bg-transparent text-white placeholder-white/50 border border-white/20 rounded-[var(--radius)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)] w-full" 
+                  placeholder="Enter index (e.g., 1, 2, 3...)" 
+                />
+              </div>
+            </div>
+            <DialogFooter className="flex gap-2 sm:justify-end">
+              <Button 
+                onClick={() => { setIsCustomWalletModalOpen(false); setNotification(null); }} 
+                className="px-4 py-2 bg-red-500/60 text-primary-foreground rounded-[var(--radius)] hover:bg-red-500/80 transition-colors"
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleCreateCustomTempWallet} 
+                className="px-4 py-2 bg-green-500/60 text-primary-foreground rounded-[var(--radius)] hover:bg-green-500/80 transition-colors"
+              >
+                Create
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+        <Dialog open={isSendModalOpen} onOpenChange={(isOpen) => { setIsSendModalOpen(isOpen); if (!isOpen) setNotification(null); }}>
+ 
+          <DialogContent className="bg-[var(--overlay)] backdrop-blur-[var(--blur)] rounded-xl p-6 bg-gray-800/50 border border-white/20">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-semibold text-white">Send {selectedToken?.symbol || 'Crypto'} from Wallet #{selectedWallet?.walletNumber}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div>
+                <label htmlFor="token" className="text-sm font-medium text-white block mb-1">Select Token</label>
+                <select 
+                  id="token" 
+                  value={selectedToken?.address || ''} 
+                  onChange={(e) => {
+                    const token = selectedWallet?.allTokenBalances.find(t => t.address === e.target.value) || null;
+                    setSelectedToken(token);
+                  }} 
+                  className="mt-1 px-3 py-2 bg-transparent text-white border border-white/20 rounded-[var(--radius)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)] w-full"
                 >
-                  {isSending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Send Transaction
-                </Button>
-              </CardFooter>
-            </Card>
-          </>
-        ) : (
-          <Card className="col-span-2 flex-1 flex flex-col items-center justify-center bg-background/50 backdrop-blur-md border border-white/20 rounded-xl p-8 text-center">
-            <h3 className="text-2xl font-bold text-text-primary mb-3">No Wallet Selected</h3>
-            <p className="text-md text-text-secondary">Select a wallet from the left or create a new one.</p>
-          </Card>
-        )}
+                  <option value="" disabled>Select a token</option>
+                  {selectedWallet?.allTokenBalances.map(token => (
+                    <option key={token.address} value={token.address} className="bg-gray-800 text-white">
+                      {token.symbol}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="recipient" className="text-sm font-medium text-white block mb-1">Recipient Address</label>
+                <Input 
+                  id="recipient" 
+                  type="text" 
+                  value={recipient} 
+                  onChange={(e) => setRecipient(e.target.value)} 
+                  className="mt-1 px-3 py-2 bg-transparent text-white placeholder-white/50 border border-white/20 rounded-[var(--radius)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)] w-full" 
+                  placeholder="0x..." 
+                />
+              </div>
+              <div>
+                <label htmlFor="amount" className="text-sm font-medium text-white block mb-1">Crypto ({selectedToken?.symbol})</label>
+                <Input 
+                  id="amount" 
+                  type="number" 
+                  step={selectedToken ? 1 / (10 ** selectedToken.decimals) : '0.000001'} 
+                  min="0" 
+                  value={amount} 
+                  onChange={(e) => setAmount(e.target.value)} 
+                  className="mt-1 px-3 py-2 bg-transparent text-white placeholder-white/50 border border-white/20 rounded-[var(--radius)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)] w-full" 
+                  placeholder="0.0" 
+                  disabled={!selectedToken}
+                />
+                {selectedToken && (
+                  <p className="text-xs text-gray-400 mt-1">Available: {selectedToken.formattedAmount} {selectedToken.symbol}</p>
+                )}
+              </div>
+            </div>
+            <DialogFooter className="flex gap-2 sm:justify-end">
+              <Button 
+                onClick={() => { setIsSendModalOpen(false); setNotification(null); }} 
+                className="px-4 py-2 bg-red-500/60 text-primary-foreground rounded-[var(--radius)] hover:bg-red-500/80 transition-colors"
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleSendCrypto} 
+                className="px-4 py-2 bg-green-500/60 text-primary-foreground rounded-[var(--radius)] hover:bg-green-500/80 transition-colors"
+              >
+                Send
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
-    </div>
+    </>
   );
-};
+}
