@@ -3,7 +3,7 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 // Note: dynamic import of '@iexec/web3telegram' inside methods to support ESM-only package in CJS app
 import type { SendTelegramParams, SendTelegramResponse } from '@iexec/web3telegram';
-import { IExec } from 'iexec';
+import type { IExec } from 'iexec';
 import { Wallet } from 'ethers';
 
 @Injectable()
@@ -34,8 +34,9 @@ export class IexecService implements OnModuleInit {
   this.web3Provider = getWeb3Provider(privateKey); // Store as class property
   const { IExecWeb3telegram } = await import('@iexec/web3telegram');
   this.web3telegram = new IExecWeb3telegram(this.web3Provider);
-      this.dataProtector = new IExecDataProtectorCore(this.web3Provider);
-      this.iexec = new IExec({ ethProvider: this.web3Provider });
+  this.dataProtector = new IExecDataProtectorCore(this.web3Provider);
+  const { IExec } = await import('iexec');
+  this.iexec = new IExec({ ethProvider: this.web3Provider });
 
       const voucherAddress = this.configService.get<string>('IEXEC_VOUCHER_ADDRESS');
       if (voucherAddress) {
