@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "strict": false,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "baseUrl": ".",
+    "paths": {
+      "@tempwallet/backend/*": ["apps/backend/src/*"],
+      "@tempwallet/shared/*": ["packages/shared/src/*"],
+      "@tempwallet/prisma/*": ["packages/prisma/src/*"]
+    }
+  }
+}
