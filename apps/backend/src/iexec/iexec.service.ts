@@ -1,14 +1,15 @@
 // apps/backend/src/iexec/iexec.service.ts
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { IExecWeb3telegram, SendTelegramParams, SendTelegramResponse } from '@iexec/web3telegram';
+// Note: dynamic import of '@iexec/web3telegram' inside methods to support ESM-only package in CJS app
+import type { SendTelegramParams, SendTelegramResponse } from '@iexec/web3telegram';
 import { IExec } from 'iexec';
 import { Wallet } from 'ethers';
 
 @Injectable()
 export class IexecService implements OnModuleInit {
   private readonly logger = new Logger(IexecService.name);
-  private web3telegram: IExecWeb3telegram;
+  private web3telegram: any;
   private dataProtector: any;
   private iexec: IExec;
   private web3Provider: Wallet; // Add class property
@@ -31,7 +32,8 @@ export class IexecService implements OnModuleInit {
   // Dynamically import ESM-only dataprotector bits
   const { IExecDataProtectorCore, getWeb3Provider } = await import('@iexec/dataprotector');
   this.web3Provider = getWeb3Provider(privateKey); // Store as class property
-      this.web3telegram = new IExecWeb3telegram(this.web3Provider);
+  const { IExecWeb3telegram } = await import('@iexec/web3telegram');
+  this.web3telegram = new IExecWeb3telegram(this.web3Provider);
       this.dataProtector = new IExecDataProtectorCore(this.web3Provider);
       this.iexec = new IExec({ ethProvider: this.web3Provider });
 
