@@ -17,6 +17,8 @@
     "start:backend": "pnpm --filter '@tempwallet/backend' run start:dev",
     "start:frontend": "pnpm --filter '@tempwallet/frontend' run dev",
   "start": "pnpm --filter '@tempwallet/backend' run start:prod",
+  "deploy:build": "pnpm --filter '@tempwallet/prisma' build && pnpm --filter '@tempwallet/backend' build",
+  "deploy:start": "pnpm --filter '@tempwallet/prisma' prisma migrate deploy && pnpm --filter '@tempwallet/backend' start:prod",
   "clean": "pnpm -r clean",
     "clean:packages": "pnpm --filter './packages/*' clean"
   },
