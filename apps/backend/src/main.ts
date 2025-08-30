@@ -19,9 +19,9 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   app.enableCors();
-
-  // Run on port 3001 to match frontend expectation
-  const server = await app.listen(3001);
+  // Respect Railway/Heroku-style PORT and listen on IPv6 '::' (also serves IPv4)
+  const port = Number(process.env.PORT) || 3001;
+  await app.listen(port, '::');
   
   const prismaService = app.get(PrismaService); 
   await prismaService.$connect(); 
