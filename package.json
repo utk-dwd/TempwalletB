@@ -16,7 +16,8 @@
     "backend:dev": "pnpm --filter '@tempwallet/backend' run start:dev",
     "start:backend": "pnpm --filter '@tempwallet/backend' run start:dev",
     "start:frontend": "pnpm --filter '@tempwallet/frontend' run dev",
-    "clean": "pnpm -r clean",
+  "start": "pnpm --filter '@tempwallet/backend' run start:prod",
+  "clean": "pnpm -r clean",
     "clean:packages": "pnpm --filter './packages/*' clean"
   },
   "devDependencies": {

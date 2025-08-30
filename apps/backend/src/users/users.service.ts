@@ -1,25 +1,16 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '@tempwallet/prisma';
-import { IExecDataProtectorCore, getWeb3Provider } from '@iexec/dataprotector';
 import { ConfigService } from '@nestjs/config';
 import { TelegramRegistrationPayload } from '@tempwallet/shared';
 
 @Injectable()
 export class UsersService {
   private readonly logger = new Logger(UsersService.name);
-  private dataProtector: IExecDataProtectorCore;
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
-  ) {
-    const privateKey = this.configService.get<string>('IEXEC_BACKEND_PRIVATE_KEY');
-    if (!privateKey) {
-      this.logger.error('IEXEC_BACKEND_PRIVATE_KEY not found');
-      throw new Error('IEXEC_BACKEND_PRIVATE_KEY is required');
-    }
-    this.dataProtector = new IExecDataProtectorCore(getWeb3Provider(privateKey));
-  }
+  ) {}
 
   async findOneByMetamaskAddress(metamask_address: string) {
     return this.prisma.user.findUnique({
@@ -59,7 +50,16 @@ export class UsersService {
       if (!payload.chatId || typeof payload.chatId !== 'string') {
         throw new Error('Invalid Telegram Chat ID');
       }
-      const protectedData = await this.dataProtector.protectData({
+      // Dynamically import ESM-only iExec dataprotector when needed
+      const { IExecDataProtectorCore, getWeb3Provider } = await import('@iexec/dataprotector');
+      const privateKey = this.configService.get<string>('IEXEC_BACKEND_PRIVATE_KEY');
+      if (!privateKey) {
+        this.logger.error('IEXEC_BACKEND_PRIVATE_KEY not found');
+        throw new Error('IEXEC_BACKEND_PRIVATE_KEY is required');
+      }
+      const dataProtector = new IExecDataProtectorCore(getWeb3Provider(privateKey));
+
+      const protectedData = await dataProtector.protectData({
         data: { telegram_chatId: payload.chatId },
         name: `Telegram Chat ID for user ${userId}`,
         onStatusUpdate: ({ title, isDone }) => {
@@ -71,7 +71,7 @@ export class UsersService {
       if (!backendWallet) {
         throw new Error('IEXEC_BACKEND_WALLET_ADDRESS not configured');
       }
-      await this.dataProtector.grantAccess({
+      await dataProtector.grantAccess({
         protectedData: protectedData.address,
         authorizedApp: appAddress,
         authorizedUser: backendWallet,

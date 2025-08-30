@@ -2,7 +2,6 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { IExecWeb3telegram, SendTelegramParams, SendTelegramResponse } from '@iexec/web3telegram';
-import { IExecDataProtectorCore, getWeb3Provider } from '@iexec/dataprotector';
 import { IExec } from 'iexec';
 import { Wallet } from 'ethers';
 
@@ -10,7 +9,7 @@ import { Wallet } from 'ethers';
 export class IexecService implements OnModuleInit {
   private readonly logger = new Logger(IexecService.name);
   private web3telegram: IExecWeb3telegram;
-  private dataProtector: IExecDataProtectorCore;
+  private dataProtector: any;
   private iexec: IExec;
   private web3Provider: Wallet; // Add class property
   private isInitialized = false;
@@ -29,7 +28,9 @@ export class IexecService implements OnModuleInit {
         throw new Error('IEXEC_BACKEND_PRIVATE_KEY is required');
       }
 
-      this.web3Provider = getWeb3Provider(privateKey); // Store as class property
+  // Dynamically import ESM-only dataprotector bits
+  const { IExecDataProtectorCore, getWeb3Provider } = await import('@iexec/dataprotector');
+  this.web3Provider = getWeb3Provider(privateKey); // Store as class property
       this.web3telegram = new IExecWeb3telegram(this.web3Provider);
       this.dataProtector = new IExecDataProtectorCore(this.web3Provider);
       this.iexec = new IExec({ ethProvider: this.web3Provider });
