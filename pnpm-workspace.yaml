@@ -1,2 +1,8 @@
-onlyBuiltDependencies:
-  - supabase
+packages:
+  # New structure (packages and apps)
+  - 'packages/*'
+  - 'apps/*'
+  # Legacy structure (during migration)
+  - 'frontend'
+  - 'backend'
+  - 'shared'

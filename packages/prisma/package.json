@@ -1,0 +1,43 @@
+{
+  "name": "@tempwallet/prisma",
+  "version": "1.0.0",
+  "type": "commonjs",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./client": {
+      "require": "./dist/client.js",
+      "types": "./dist/client.d.ts"
+    },
+    "./service": {
+      "require": "./dist/prisma.service.js",
+      "types": "./dist/prisma.service.d.ts"
+    },
+    "./module": {
+      "require": "./dist/prisma.module.js",
+      "types": "./dist/prisma.module.d.ts"
+    }
+  },
+  "files": ["dist", "schema.prisma"],
+  "scripts": {
+    "build": "prisma generate && tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:migrate": "dotenv -e ../../apps/backend/.env -- prisma migrate dev",
+    "db:studio": "dotenv -e ../../apps/backend/.env -- prisma studio"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.0.0",
+    "@nestjs/common": "^10.0.0"
+  },
+  "devDependencies": {
+    "prisma": "^5.0.0",
+    "typescript": "^5.0.0"
+  }
+}

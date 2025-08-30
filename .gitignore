@@ -28,3 +28,8 @@ dist-ssr
 .env.local
 .env.development
 .env.production
+
+
+apps/backend/.env
+apps/frontend/.env
+packages/prisma/.env

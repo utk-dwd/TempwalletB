@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "TempWallet" ALTER COLUMN "index" SET DATA TYPE BIGINT;

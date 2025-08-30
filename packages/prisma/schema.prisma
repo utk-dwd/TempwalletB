@@ -1,0 +1,91 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enum for supported networks, must match `SupportedNetwork` from shared/types.ts
+enum SupportedNetwork {
+  Avalanche
+  Ethereum
+  Base
+  Arbitrum
+}
+
+// Add this field to your User model
+model User {
+  id                    String           @id @default(uuid())
+  metamask_address      String           @unique
+  created_at            DateTime         @default(now())
+  last_login            DateTime         @updatedAt
+  total_wallets_created Int              @default(0)
+  mixpanel_id           String?
+  wallets               TempWallet[]
+  //iExec Telegram integration
+  telegram_protected_data String?        @db.VarChar(42) // Ethereum address length
+}
+
+// TempWallet model represents a user's smart account wallet
+model TempWallet {
+  id                       String           @id @default(uuid())
+  user_id                  String           // Foreign key for User
+  address                  String
+  wallet_number            Int
+  external_account_number  Int
+  index                    BigInt
+  network_key              SupportedNetwork // Uses the SupportedNetwork enum
+  created_at               DateTime         @default(now())
+  last_updated             DateTime         @updatedAt // Explicitly define for @updatedAt to be used by @@index
+  parent_metamask_address  String           // Address from which the smart account was created
+  deleted_at               DateTime?        // For soft deletes: null if not deleted, timestamp if deleted
+
+  user                     User             @relation(fields: [user_id], references: [id], onDelete: Cascade) // Relation to User model
+  balances                 Balance[]        // One-to-many relationship with Balance
+  transactions             Transaction[]    // One-to-many relationship with Transaction
+
+  // Ensure unique combination of address and network
+  @@unique([address, network_key])
+  // Index for efficient queries based on last_updated (e.g., for syncing)
+  @@index([last_updated])
+}
+
+// Balance model represents a token balance for a specific wallet
+model Balance {
+  id               String   @id @default(uuid())
+  temp_wallet_id   String   // Foreign key for TempWallet
+  token_address    String
+  chain_id         Int
+  amount           String   // Stored as string to accommodate large numbers (BigInt)
+  decimals         Int
+  formatted_amount String
+  symbol           String?
+  icon_url         String?
+  last_updated     DateTime @updatedAt // Automatically updates on record modification
+  deleted_at       DateTime?  // Soft delete: null if not deleted, timestamp if deleted
+
+  temp_wallet      TempWallet @relation(fields: [temp_wallet_id], references: [id], onDelete: Cascade) // Relation to TempWallet model
+
+  @@unique([temp_wallet_id, token_address])
+}
+
+// Transaction model represents a transaction initiated from a wallet
+model Transaction {
+  id              String   @id @default(uuid())
+  temp_wallet_id  String   // Foreign key for TempWallet
+  tx_hash         String?  // Transaction hash on the blockchain
+  state           String   // 'idle'|'pending'|'success'|'error' - consider making this an enum if states are fixed
+  message         String?
+  token_symbol    String?
+  amount          String?  // Amount of token transferred
+  to_address      String?
+  created_at      DateTime @default(now())
+  deleted_at      DateTime?  // Soft delete: null if not deleted, timestamp if deleted
+
+  temp_wallet     TempWallet @relation(fields: [temp_wallet_id], references: [id], onDelete: Cascade) // Relation to TempWallet model
+}
