@@ -24,12 +24,17 @@ dist-ssr
 *.sw?
 
 # Environment variables
+*.env
 .env
-.env.local
-.env.development
-.env.production
+.env.*
+**/.env
+**/.env.*
 
 
 apps/backend/.env
 apps/frontend/.env
 packages/prisma/.env
+
+# Prevent accidental deployment of duplicate legacy folders
+backend/
+frontend/
