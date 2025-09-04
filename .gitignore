@@ -36,5 +36,4 @@ apps/frontend/.env
 packages/prisma/.env
 
 # Prevent accidental deployment of duplicate legacy folders
-backend/
-frontend/
+
