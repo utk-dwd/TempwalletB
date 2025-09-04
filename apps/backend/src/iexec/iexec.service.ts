@@ -1,18 +1,17 @@
 // apps/backend/src/iexec/iexec.service.ts
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-// Note: dynamic import of '@iexec/web3telegram' inside methods to support ESM-only package in CJS app
-import type { SendTelegramParams, SendTelegramResponse } from '@iexec/web3telegram';
 import type { IExec } from 'iexec';
 import { Wallet } from 'ethers';
+import { SendTelegramParams, SendTelegramResponse } from './iexec.types'; // Use separate types file
 
 @Injectable()
 export class IexecService implements OnModuleInit {
   private readonly logger = new Logger(IexecService.name);
   private web3telegram: any;
   private dataProtector: any;
-  private iexec: IExec;
-  private web3Provider: Wallet; // Add class property
+  private iexec: IExec | null = null;
+  private web3Provider: Wallet | null = null;
   private isInitialized = false;
 
   constructor(private configService: ConfigService) {}
@@ -25,22 +24,40 @@ export class IexecService implements OnModuleInit {
     try {
       const privateKey = this.configService.get<string>('IEXEC_BACKEND_PRIVATE_KEY');
       if (!privateKey) {
-        this.logger.error('IEXEC_BACKEND_PRIVATE_KEY not found. iExec notifications disabled.');
-        throw new Error('IEXEC_BACKEND_PRIVATE_KEY is required');
+        this.logger.warn('IEXEC_BACKEND_PRIVATE_KEY not found. iExec notifications disabled.');
+        return; // Allow partial initialization
       }
 
-  // Dynamically import ESM-only dataprotector bits
-  const { IExecDataProtectorCore, getWeb3Provider } = await import('@iexec/dataprotector');
-  this.web3Provider = getWeb3Provider(privateKey); // Store as class property
-  const { IExecWeb3telegram } = await import('@iexec/web3telegram');
-  this.web3telegram = new IExecWeb3telegram(this.web3Provider);
-  this.dataProtector = new IExecDataProtectorCore(this.web3Provider);
-  const { IExec } = await import('iexec');
-  this.iexec = new IExec({ ethProvider: this.web3Provider });
+      this.logger.debug('Attempting to load @iexec/dataprotector');
+      const { IExecDataProtectorCore, getWeb3Provider } = await import('@iexec/dataprotector').catch(
+        (err) => {
+          this.logger.error('Failed to import @iexec/dataprotector:', err.message, err.stack);
+          throw err;
+        },
+      );
+      this.logger.debug('Successfully loaded @iexec/dataprotector');
+      this.web3Provider = getWeb3Provider(privateKey);
+
+      this.logger.debug('Attempting to load @iexec/web3telegram');
+      const { IExecWeb3telegram } = await import('@iexec/web3telegram').catch((err) => {
+        this.logger.error('Failed to import @iexec/web3telegram:', err.message, err.stack);
+        throw err;
+      });
+      this.logger.debug('Successfully loaded @iexec/web3telegram');
+      this.web3telegram = new IExecWeb3telegram(this.web3Provider);
+      this.dataProtector = new IExecDataProtectorCore(this.web3Provider);
+
+      this.logger.debug('Attempting to load iexec');
+      const { IExec } = await import('iexec').catch((err) => {
+        this.logger.error('Failed to import iexec:', err.message, err.stack);
+        throw err;
+      });
+      this.logger.debug('Successfully loaded iexec');
+      this.iexec = new IExec({ ethProvider: this.web3Provider });
 
       const voucherAddress = this.configService.get<string>('IEXEC_VOUCHER_ADDRESS');
       if (voucherAddress) {
-        await this.iexec.account.approve(voucherAddress, "1000000");
+        await this.iexec.account.approve(voucherAddress, '1000000');
         this.logger.log(`Approved voucher ${voucherAddress}`);
       }
 
@@ -49,12 +66,14 @@ export class IexecService implements OnModuleInit {
       this.logger.log(`Connected with wallet: ${address}`);
     } catch (error) {
       this.logger.error(`Failed to initialize iExec: ${error.message}`, error.stack);
-      throw new Error('iExec initialization failed');
+      this.isInitialized = false; // Explicitly mark as not initialized
+      // Don't throw; allow the app to start without iExec
+      this.logger.warn('iExec initialization failed, but service will continue without iExec functionality.');
     }
   }
 
   async sendMessage(sendParams: SendTelegramParams): Promise<SendTelegramResponse> {
-    if (!this.isInitialized) {
+    if (!this.isInitialized || !this.web3telegram) {
       throw new Error('iExec service not initialized');
     }
     if (!sendParams.protectedData || !sendParams.senderName || !sendParams.telegramContent) {
@@ -66,9 +85,9 @@ export class IexecService implements OnModuleInit {
 
     try {
       if (!sendParams.useVoucher) {
-        const address = await this.web3Provider.getAddress();
-        const { stake } = await this.iexec.account.checkBalance(address);
-        const sRLC = stake.toString(); // Convert BN to string
+        const address = await this.web3Provider!.getAddress();
+        const { stake } = await this.iexec!.account.checkBalance(address);
+        const sRLC = stake.toString();
         if (parseInt(sRLC) === 0) {
           throw new Error('Insufficient sRLC balance');
         }
@@ -91,7 +110,10 @@ export class IexecService implements OnModuleInit {
   }
 
   async hasUserGrantedAccess(userAddress: string, protectedData: string): Promise<boolean> {
-    if (!this.isInitialized) return false;
+    if (!this.isInitialized || !this.dataProtector) {
+      this.logger.warn('iExec service not initialized; returning false for access check');
+      return false;
+    }
     try {
       const appAddress = this.configService.get<string>('IEXEC_APP_ADDRESS') || '0x192C6f5AccE52c81Fcc2670f10611a3665AAA98F';
       const grantedAccess = await this.dataProtector.getGrantedAccess({
@@ -107,9 +129,15 @@ export class IexecService implements OnModuleInit {
   }
 
   async checkBalance(): Promise<string> {
-    if (!this.isInitialized) throw new Error('iExec service not initialized');
-    const address = await this.web3Provider.getAddress();
+    if (!this.isInitialized || !this.iexec) {
+      throw new Error('iExec service not initialized');
+    }
+    const address = await this.web3Provider!.getAddress();
     const { stake } = await this.iexec.account.checkBalance(address);
-    return stake.toString(); // Convert BN to string
+    return stake.toString();
+  }
+
+  isServiceInitialized(): boolean {
+    return this.isInitialized;
   }
 }

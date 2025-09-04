@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "commonjs",
-    "moduleResolution": "node",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
     "strict": false,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
@@ -13,6 +13,11 @@
       "@tempwallet/backend/*": ["apps/backend/src/*"],
       "@tempwallet/shared/*": ["packages/shared/src/*"],
       "@tempwallet/prisma/*": ["packages/prisma/src/*"]
-    }
-  }
+    },
+    "outDir": "./dist",
+    "rootDir": ".",
+    "sourceMap": true
+  },
+  "include": ["apps/**/*", "packages/**/*"],
+  "exclude": ["node_modules", "dist"]
 }
