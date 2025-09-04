@@ -1,23 +1,14 @@
 {
-  "extends": "../../tsconfig.json",
+  "extends": "./tsconfig.json",
   "compilerOptions": {
-    "target": "ES2022",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-    "strict": false,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "esModuleInterop": true,
-    "resolveJsonModule": true,
-    "baseUrl": ".",
-    "paths": {
-      "@tempwallet/backend/*": ["apps/backend/src/*"],
-      "@tempwallet/shared/*": ["packages/shared/src/*"],
-      "@tempwallet/prisma/*": ["packages/prisma/src/*"]
-    },
     "outDir": "./dist",
-    "rootDir": "."
+    "rootDir": "./src",
+    "target": "ES2022",
+    "module": "CommonJS",           // Change from NodeNext to CommonJS
+    "moduleResolution": "node",     // Change from NodeNext to node
+    "declaration": false,
+    "removeComments": true
   },
-  "include": ["apps/**/*", "packages/**/*"],
-  "exclude": ["node_modules", "dist"]
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "test", "**/*spec.ts", "**/*test.ts"]
 }

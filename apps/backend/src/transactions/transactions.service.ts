@@ -266,9 +266,10 @@ export class TransactionsService {
       transport: http(network.rpcUrl),
     });
     return await publicClient.readContract({
-        address: tokenAddress as `0x${string}`,
-        abi: ERC20_ABI,
-        functionName: 'decimals',
+      address: tokenAddress as `0x${string}`,
+      abi: ERC20_ABI,
+      functionName: 'decimals',
+      authorizationList: [], 
     }) as number;
   }
 }
