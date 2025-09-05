@@ -17,7 +17,7 @@ import { PrepareTransactionDto, SubmitTransactionDto } from './dto/transaction.d
 import axios from 'axios';
 import { AbiCoder } from 'ethers';
 import { NETWORKS } from '@tempwallet/shared';
-import Mixpanel from 'mixpanel';
+import * as Mixpanel from 'mixpanel';
 import { SupportedNetwork, NetworkConfig } from '@tempwallet/shared';
 
 const ENTRY_POINT = '0x5ff137d4b0fdcd49dca30c7cf57e578a026d2789';

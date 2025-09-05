@@ -4,8 +4,14 @@
     "outDir": "./dist",
     "rootDir": "./src",
     "target": "ES2022",
-    "module": "CommonJS",           // Change from NodeNext to CommonJS
-    "moduleResolution": "node",     // Change from NodeNext to node
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "downlevelIteration": true,
+    "skipLibCheck": true,
     "declaration": false,
     "removeComments": true
   },

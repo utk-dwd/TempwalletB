@@ -65,9 +65,9 @@ export class IexecService implements OnModuleInit {
       const address = await this.web3Provider.getAddress();
       this.logger.log(`Connected with wallet: ${address}`);
     } catch (error) {
-      this.logger.error(`Failed to initialize iExec: ${error.message}`, error.stack);
-      this.isInitialized = false; // Explicitly mark as not initialized
-      // Don't throw; allow the app to start without iExec
+      const err = error as Error;
+      this.logger.error(`Failed to initialize iExec: ${err.message}`, err.stack);
+      this.isInitialized = false;
       this.logger.warn('iExec initialization failed, but service will continue without iExec functionality.');
     }
   }
@@ -104,7 +104,8 @@ export class IexecService implements OnModuleInit {
       this.logger.log(`Track task: https://explorer.iex.ec/bellecour/task/${response.taskId}`);
       return response;
     } catch (error) {
-      this.logger.error(`Failed to send Telegram message: ${error.message}`, error.stack);
+      const err = error as Error;
+      this.logger.error(`Failed to send Telegram message: ${err.message}`, err.stack);
       throw error;
     }
   }
@@ -123,7 +124,8 @@ export class IexecService implements OnModuleInit {
       });
       return !!grantedAccess;
     } catch (error) {
-      this.logger.error(`Error checking granted access for user ${userAddress}: ${error.message}`, error.stack);
+      const err = error as Error;
+      this.logger.error(`Error checking granted access for user ${userAddress}: ${err.message}`, err.stack);
       return false;
     }
   }

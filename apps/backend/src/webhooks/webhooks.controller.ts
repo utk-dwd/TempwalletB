@@ -49,7 +49,7 @@ export class WebhooksController {
         return { status: 'received_unsupported_network' };
       }
 
-      for (const [index, activity] of activities.entries()) {
+      activities.forEach(async (activity, index) => {
         try {
           this.logger.debug(`Processing activity ${index + 1}/${activities.length}`, activity);
           const toAddress = activity.toAddress; // Keep original case - no lowercase conversion
@@ -58,7 +58,7 @@ export class WebhooksController {
           // Skip if transaction hash was already processed
           if (this.processedTxHashes.has(txHash)) {
             this.logger.debug(`Skipping duplicate transaction: ${txHash}`);
-            continue;
+            return;
           }
 
           if (toAddress && (activity.category === 'token' || activity.category === 'internal' || activity.category === 'external')) {
@@ -122,7 +122,8 @@ export class WebhooksController {
                   this.logger.debug(`Wallet ${toAddress} owner has not registered Telegram notifications.`);
                 }
               } catch (iexecError) {
-                this.logger.error(`Failed to send iExec Telegram notification for wallet ${toAddress}: ${iexecError.message}`);
+                const err = iexecError as Error;
+                this.logger.error(`Failed to send iExec Telegram notification for wallet ${toAddress}: ${err.message}`);
               }
             } else {
               this.logger.debug(`Activity for ${toAddress} on ${networkKey} received, but wallet not found in DB.`);
@@ -131,9 +132,10 @@ export class WebhooksController {
             this.logger.debug(`Activity ${index + 1} ignored (not incoming funds or unsupported category)`, activity);
           }
         } catch (err) {
-          this.logger.error(`Error processing activity ${index + 1} for ${networkKey}: ${err.message}`);
+          const error = err as Error;
+          this.logger.error(`Error processing activity ${index + 1} for ${networkKey}: ${error.message}`);
         }
-      }
+      });
       this.logger.log(`Finished processing ${activities.length} activities for network ${networkKey}`);
     } else {
       this.logger.warn('Received Alchemy webhook with missing or invalid activities/network data.', { activities, network });

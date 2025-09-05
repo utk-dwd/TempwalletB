@@ -87,7 +87,8 @@ export class UsersService {
       });
       this.logger.log(`Telegram registration completed for user ${userId}: protectedData ${protectedData.address}`);
     } catch (error) {
-      this.logger.error(`Failed to register Telegram for user ${userId}: ${error.message}`, error.stack);
+      const err = error as Error;
+      this.logger.error(`Failed to register Telegram for user ${userId}: ${err.message}`, err.stack);
       throw error;
     }
   }
