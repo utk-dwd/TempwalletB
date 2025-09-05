@@ -1,11 +1,11 @@
 import { Injectable, NotFoundException, Logger, ConflictException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService, TempWallet, User} from '@tempwallet/prisma';
-import { BalancesService } from '../balances/balances.service';
-import { CreateWalletDto } from './dto/create-wallet.dto';
+import { BalancesService } from '../balances/balances.service.js';
+import { CreateWalletDto } from './dto/create-wallet.dto.js';
 import * as Mixpanel from 'mixpanel';
 import { NETWORKS } from '@tempwallet/shared';
-import { AlchemyService } from '../alchemy.service';
+import { AlchemyService } from '../alchemy.service.js';
 import { SupportedNetwork } from '@tempwallet/shared';
  
 @Injectable()

@@ -1,6 +1,6 @@
 import { Controller, Post, Param, UseGuards, Req, NotFoundException } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { BalancesService } from './balances.service';
+import { BalancesService } from './balances.service.js';
 import type { Request } from 'express';
 
 @Controller('balances')

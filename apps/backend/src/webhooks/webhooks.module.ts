@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
-import { WebhooksController } from './webhooks.controller';
-import { NotificationsModule } from '../notifications/notifications.module';
-import { BalancesModule } from '../balances/balances.module';
-import { IexecModule } from '../iexec/iexec.module';
+import { WebhooksController } from './webhooks.controller.js';
+import { NotificationsModule } from '../notifications/notifications.module.js';
+import { BalancesModule } from '../balances/balances.module.js';
+import { IexecModule } from '../iexec/iexec.module.js';
 
 @Module({
   imports: [NotificationsModule, BalancesModule, IexecModule],

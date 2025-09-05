@@ -3,7 +3,7 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { IExec } from 'iexec';
 import { Wallet } from 'ethers';
-import { SendTelegramParams, SendTelegramResponse } from './iexec.types'; // Use separate types file
+import { SendTelegramParams, SendTelegramResponse } from './iexec.types.js'; // Use separate types file
 
 @Injectable()
 export class IexecService implements OnModuleInit {

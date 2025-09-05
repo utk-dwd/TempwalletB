@@ -1,6 +1,6 @@
 // backend/src/main.ts
 import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
+import { AppModule } from './app.module.js';
 import { ValidationPipe } from '@nestjs/common';
 import { PrismaService } from '@tempwallet/prisma';
 
@@ -28,4 +28,5 @@ async function bootstrap() {
   
   console.log(`Application is running on: ${await app.getUrl()}`);
 }
+
 bootstrap();

@@ -12,8 +12,8 @@ import { Injectable, BadRequestException, NotFoundException } from '@nestjs/comm
 import { ConfigService } from '@nestjs/config';
 import { Cron, CronExpression } from '@nestjs/schedule'; 
 import { PrismaService } from '@tempwallet/prisma';
-import { BalancesService } from '../balances/balances.service';
-import { PrepareTransactionDto, SubmitTransactionDto } from './dto/transaction.dto';
+import { BalancesService } from '../balances/balances.service.js';
+import { PrepareTransactionDto, SubmitTransactionDto } from './dto/transaction.dto.js';
 import axios from 'axios';
 import { AbiCoder } from 'ethers';
 import { NETWORKS } from '@tempwallet/shared';

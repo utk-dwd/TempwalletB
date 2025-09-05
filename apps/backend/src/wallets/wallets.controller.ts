@@ -1,7 +1,7 @@
 import { Controller, Post, Get, Delete, Param, Body, UseGuards, Query, Req } from '@nestjs/common';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { WalletsService } from './wallets.service';
-import { CreateWalletDto } from './dto/create-wallet.dto'; // Will create this next
+import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
+import { WalletsService } from './wallets.service.js';
+import { CreateWalletDto } from './dto/create-wallet.dto.js'; // Will create this next
 import type { Request } from 'express'; // Use 'import type' for isolatedModules
 import { SupportedNetwork } from '@tempwallet/shared';
 

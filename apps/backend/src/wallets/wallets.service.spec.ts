@@ -3,9 +3,9 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '@tempwallet/prisma';
-import { BalancesService } from '../balances/balances.service';
+import { BalancesService } from '../balances/balances.service.js';
 import { TempWallet, User, SupportedNetwork, Prisma } from '@tempwallet/prisma';
-import { CreateWalletDto } from './dto/create-wallet.dto';
+import { CreateWalletDto } from './dto/create-wallet.dto.js';
 import Mixpanel from 'mixpanel';
 import { NETWORKS } from '@tempwallet/shared';
 

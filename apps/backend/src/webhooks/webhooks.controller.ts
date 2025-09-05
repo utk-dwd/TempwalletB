@@ -1,8 +1,8 @@
 // apps/backend/src/webhooks/webhooks.controller.ts
 import { Controller, Post, Body, HttpCode, Header, Logger } from '@nestjs/common';
-import { BalancesService } from '../balances/balances.service';
-import { NotificationsGateway } from '../notifications/notifications.gateway';
-import { IexecService } from '../iexec/iexec.service';
+import { BalancesService } from '../balances/balances.service.js';
+import { NotificationsGateway } from '../notifications/notifications.gateway.js';
+import { IexecService } from '../iexec/iexec.service.js';
 import { SupportedNetwork } from '@tempwallet/shared';
 
 @Controller('webhooks')

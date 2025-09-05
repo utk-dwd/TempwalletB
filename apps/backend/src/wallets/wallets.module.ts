@@ -1,15 +1,15 @@
 //  TempwalletsB/apps/backend/src/wallets/wallets.module.ts
 
 import { Module } from '@nestjs/common';
-import { WalletsController } from './wallets.controller';
-import { WalletsService } from './wallets.service';
-import { PrismaModule } from '@tempwallet/prisma'; 
-import { BalancesModule } from '../balances/balances.module';
-import { AlchemyModule } from '../alchemy.module';
+import { WalletsController } from './wallets.controller.js';        // ✅ ADD .js extension
+import { WalletsService } from './wallets.service.js';              // ✅ ADD .js extension
+import { PrismaService } from '@tempwallet/prisma';
+import { BalancesModule } from '../balances/balances.module.js';    // ✅ ADD missing import
+import { AlchemyModule } from '../alchemy.module.js';               // ✅ ADD missing import
 
 @Module({
-  imports: [PrismaModule, BalancesModule, AlchemyModule], 
+  imports: [BalancesModule, AlchemyModule],                         // ✅ ADD missing modules
   controllers: [WalletsController],
-  providers: [WalletsService],
+  providers: [WalletsService, PrismaService],
 })
 export class WalletsModule {}

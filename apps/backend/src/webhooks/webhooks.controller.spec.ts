@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { WebhooksController } from './webhooks.controller';
+import { WebhooksController } from './webhooks.controller.js';
 
 describe('WebhooksController', () => {
   let controller: WebhooksController;
