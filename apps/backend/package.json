@@ -8,8 +8,8 @@
   "main": "dist/main.js",
   "type": "module",
   "scripts": {
-    "prebuild": "pnpm --filter @tempwallet/shared run build && pnpm --filter @tempwallet/prisma run build",
-    "build": "nest build -p tsconfig.build.json",
+  "prebuild": "node ../../scripts/verify-nest.cjs || echo 'Nest CLI check warning' && pnpm --filter @tempwallet/shared run build && pnpm --filter @tempwallet/prisma run build",
+  "build": "pnpm exec nest build -p tsconfig.build.json",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch -p tsconfig.json",

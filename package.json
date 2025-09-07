@@ -2,12 +2,7 @@
   "name": "@tempwallet/root",
   "version": "1.0.0",
   "private": true,
-  "pnpm": {
-    "allowScripts": {
-      "@prisma/engines": true,
-      "prisma": true
-    }
-  },
+  "pnpm": {},
   "workspaces": [
     "packages/*",
     "apps/*"
@@ -23,9 +18,10 @@
     "start:backend": "pnpm --filter '@tempwallet/backend' run start:dev",
     "start:frontend": "pnpm --filter '@tempwallet/frontend' run dev",
     "start": "pnpm --filter '@tempwallet/backend' run start:prod",
-    "deploy:build": "pnpm run ensure:prisma && pnpm run build:shared && pnpm run build:prisma && pnpm run build:backend",
+  "deploy:build": "pnpm run build:shared && pnpm run build:prisma && pnpm run build:backend",
+  "prisma:generate": "pnpm --filter @tempwallet/prisma exec prisma generate",
     "predeploy:build": "node scripts/verify-railway.cjs || echo 'Verification completed with warnings'",
-    "ensure:prisma": "cd packages/prisma && pnpm prisma generate || pnpm prisma generate --schema=packages/prisma/schema.prisma",
+  "ensure:prisma": "pnpm run prisma:generate || pnpm --filter @tempwallet/prisma exec prisma generate --schema=packages/prisma/schema.prisma",
     "build:shared": "pnpm --filter @tempwallet/shared run build",
     "build:prisma": "pnpm --filter @tempwallet/prisma run build || (echo 'Prisma build failed, trying alternative...' && pnpm --filter @tempwallet/prisma exec pnpm prisma generate && pnpm --filter @tempwallet/prisma exec tsc)",
     "build:backend": "pnpm --filter @tempwallet/backend run build",
@@ -40,7 +36,9 @@
     "build:frontend:deploy": "pnpm --filter @tempwallet/shared run build && pnpm --filter @tempwallet/frontend run build",
     "build:backend:deploy": "pnpm --filter @tempwallet/shared run build && pnpm --filter @tempwallet/prisma run build && pnpm --filter @tempwallet/backend run build",
     "verify:shared": "node scripts/verify-shared-dist.cjs",
-    "verify:all": "node scripts/verify-all-deps.cjs"
+  "verify:all": "node scripts/verify-all-deps.cjs",
+  "verify:nest": "node scripts/verify-nest.cjs",
+  "verify:workspaces": "node scripts/verify-workspaces.cjs"
   },
   "devDependencies": {
     "@types/node": "^20.19.11",
