@@ -2,9 +2,12 @@
 import axios from 'axios';
 import { TelegramRegistrationPayload } from '../types/shared.js';
 
+// Get backend URL from environment variables
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+
 // Create a new Axios instance
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: API_BASE_URL,
 });
 
 // Add an interceptor to include the JWT in the Authorization header

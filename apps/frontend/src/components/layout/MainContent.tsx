@@ -12,6 +12,7 @@ import { HoverInfoBox } from '@/components/ui/HoverInfoBox';
 import * as Tooltip from "@radix-ui/react-tooltip";
 import { NETWORKS, NetworkConfig } from '@/utils/networks';
 import analyticsService from '@/services/analytics';
+import api from '@/services/api.js';
 import { EventName } from '@/utils/types';
 import {
   DropdownMenu,
@@ -76,22 +77,9 @@ export function MainContent({ walletAddress, wallets, onWalletCreated, onWalletD
         parent_metamask_address: walletData.parent_metamask_address || walletAddress,
       };
 
-      const response = await fetch('/api/wallets', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify(payload),
-      });
+      const response = await api.post('/wallets', payload);
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Failed to save wallet to backend');
-      }
-
-      const result = await response.json();
-      return result.data || result; // backend may return { data: ... } or the object itself
+      return response.data; // api service returns axios response, data is in .data
     } catch (error) {
       console.error('Error in sendWalletToBackend:', error);
       throw error;
@@ -215,20 +203,9 @@ const handleCreateNewTempWallet = async () => {
     // 2. Save the newly created wallet to your backend
     // Note: You will need to implement the sendWalletToBackend function
     
-    const savedWalletResponse = await fetch('/api/wallets', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}`
-        },
-        body: JSON.stringify(wallet)
-    });
-
-    if (!savedWalletResponse.ok) {
-        throw new Error('Failed to save wallet to backend.');
-    }
+    const savedWalletResponse = await api.post('/wallets', wallet);
     
-    const savedWallet = await savedWalletResponse.json();
+    const savedWallet = savedWalletResponse.data;
     setNotification({ brief: 'Success', full: `Wallet #${savedWallet.walletNumber} was created successfully.`, type: 'success' });
 
     // 3. Fetch its balances on the client-side using Zerion

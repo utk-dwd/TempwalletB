@@ -3,7 +3,7 @@ import { ethers } from 'ethers';
 import analyticsService from '../services/analytics';
 import { EventName, ConnectWalletResult } from '../utils/types';
 import { NetworkConfig } from './networks';
-import axios from 'axios';
+import api from '../services/api.js';
 
 
 const CONSTANT_MESSAGE = 'Welcome to TempwalletB! Please sign this message to authenticate, this will not cost you anything.';
@@ -109,8 +109,8 @@ export const connectWallet = async (): Promise<ConnectWalletResult> => {
     // Sign the consistent message
     const signature = await signer.signMessage(CONSTANT_MESSAGE);
 
-    // Post the address from the signer and the signature to your backend
-    const response = await axios.post('/api/auth/login', {
+    // Post the address from the signer and the signature to your backend using configured API service
+    const response = await api.post('/auth/login', {
       metamask_address: address, // <-- Using address from the signer
       signature,
     });
