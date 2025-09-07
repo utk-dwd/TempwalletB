@@ -14,6 +14,9 @@ importers:
       dotenv-cli:
         specifier: ^10.0.0
         version: 10.0.0
+      prisma:
+        specifier: ^5.22.0
+        version: 5.22.0
       typescript:
         specifier: ^5.8.3
         version: 5.8.3
@@ -8454,7 +8457,7 @@ snapshots:
       '@chainlink/contracts': 0.4.2(bufferutil@4.0.7)(ethers@5.8.0(bufferutil@4.0.7)(utf-8-validate@6.0.3))(utf-8-validate@6.0.3)
       '@ethersproject/abstract-signer': 5.8.0
       '@ethersproject/constants': 5.8.0
-      '@nomiclabs/hardhat-etherscan': 2.1.8(encoding@0.1.13)(hardhat@2.26.3(bufferutil@4.0.7)(ts-node@10.9.2(@types/node@22.18.1)(typescript@5.8.3))(typescript@4.9.5)(utf-8-validate@6.0.3))
+      '@nomiclabs/hardhat-etherscan': 2.1.8(encoding@0.1.13)(hardhat@2.26.3(bufferutil@4.0.7)(ts-node@10.9.2(@types/node@22.18.1)(typescript@5.8.3))(typescript@5.8.3)(utf-8-validate@6.0.3))
       '@openzeppelin/contracts': 4.9.6
       '@openzeppelin/contracts-upgradeable': 4.9.6
       '@typechain/hardhat': 2.3.1(hardhat@2.26.3(bufferutil@4.0.7)(ts-node@10.9.2(@types/node@22.18.1)(typescript@5.8.3))(typescript@5.8.3)(utf-8-validate@6.0.3))(lodash@4.17.21)(typechain@8.3.2(typescript@5.8.3))
@@ -10200,7 +10203,7 @@ snapshots:
       ethers: 6.15.0(bufferutil@4.0.7)(utf-8-validate@6.0.3)
       hardhat: 2.26.3(bufferutil@4.0.7)(ts-node@10.9.2(@types/node@22.18.1)(typescript@5.8.3))(typescript@4.9.5)(utf-8-validate@6.0.3)
 
-  '@nomiclabs/hardhat-etherscan@2.1.8(encoding@0.1.13)(hardhat@2.26.3(bufferutil@4.0.7)(ts-node@10.9.2(@types/node@22.18.1)(typescript@5.8.3))(typescript@4.9.5)(utf-8-validate@6.0.3))':
+  '@nomiclabs/hardhat-etherscan@2.1.8(encoding@0.1.13)(hardhat@2.26.3(bufferutil@4.0.7)(ts-node@10.9.2(@types/node@22.18.1)(typescript@5.8.3))(typescript@5.8.3)(utf-8-validate@6.0.3))':
     dependencies:
       '@ethersproject/abi': 5.8.0
       '@ethersproject/address': 5.8.0
