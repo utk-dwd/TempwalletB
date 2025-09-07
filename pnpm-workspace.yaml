@@ -1,2 +1,3 @@
 packages:
   - 'apps/*'
+  # packages/ directory removed - zero workspace dependencies achieved!
