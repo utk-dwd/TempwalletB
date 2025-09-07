@@ -1,43 +1,12 @@
 {
-  "name": "@tempwallet/prisma",
+  "name": "prisma",
   "version": "1.0.0",
-  "type": "commonjs",
+  "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "exports": {
-    ".": {
-      "import": "./dist/index.js",
-      "require": "./dist/index.js",
-      "types": "./dist/index.d.ts"
-    },
-    "./client": {
-      "import": "./dist/client.js",
-      "require": "./dist/client.js",
-      "types": "./dist/client.d.ts"
-    },
-    "./service": {
-      "import": "./dist/prisma.service.js",
-      "require": "./dist/prisma.service.js",
-      "types": "./dist/prisma.service.d.ts"
-    },
-    "./module": {
-      "import": "./dist/prisma.module.js",
-      "require": "./dist/prisma.module.js",
-      "types": "./dist/prisma.module.d.ts"
-    }
-  },
-  "files": ["dist", "schema.prisma"],
   "scripts": {
-    "build": "pnpm prisma generate && tsc",
-    "generate": "pnpm prisma generate",
-    "migrate": "pnpm prisma migrate deploy",
-    "studio": "pnpm prisma studio",
-    "dev": "tsc --watch",
-    "clean": "rm -rf dist",
-    "db:generate": "pnpm prisma generate",
-    "db:push": "pnpm prisma db push",
-    "db:migrate": "dotenv -e ../../apps/backend/.env -- pnpm prisma migrate dev",
-    "db:studio": "dotenv -e ../../apps/backend/.env -- pnpm prisma studio"
+    "build": "prisma generate && tsc",
+    "dev": "tsc --watch"
   },
   "dependencies": {
     "@prisma/client": "^5.0.0",

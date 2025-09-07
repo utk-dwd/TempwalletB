@@ -1,15 +1,10 @@
 {
-  "name": "@tempwallet/frontend",
-  "private": true,
-  "version": "0.0.0",
+  "name": "frontend",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "prebuild": "pnpm --filter @tempwallet/shared run build",
-    "build": "pnpm run prebuild && vite build",
-    "build:deps": "pnpm --filter @tempwallet/shared run build",
-    "build:full": "pnpm run build:deps && pnpm run build",
-    "lint": "eslint .",
+    "build": "vite build",
     "preview": "vite preview"
   },
   "dependencies": {

@@ -1,7 +1,7 @@
 import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Alchemy, Network } from 'alchemy-sdk';
-import { SupportedNetwork, NETWORKS } from '@tempwallet/shared';
+import { SupportedNetwork, NETWORKS } from '../../../packages/shared/dist/index.js';
 
 @Injectable()
 export class AlchemyService implements OnModuleInit {

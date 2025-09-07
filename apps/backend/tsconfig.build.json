@@ -4,21 +4,16 @@
     "outDir": "./dist",
     "rootDir": "./src",
     "target": "ES2022",
-    "module": "ES2022",
-    "moduleResolution": "bundler",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    "downlevelIteration": true,
     "skipLibCheck": true,
     "declaration": false,
     "removeComments": true
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "test", "**/*spec.ts", "**/*test.ts"],
-  "references": [
-    { "path": "../../packages/shared" },
-    { "path": "../../packages/prisma" }
-  ]
+  "exclude": ["node_modules", "dist", "test", "**/*spec.ts", "**/*test.ts"]
 }

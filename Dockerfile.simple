@@ -1,0 +1,24 @@
+# Simple Docker build for ESM backend
+FROM node:20-slim
+
+WORKDIR /app
+
+# Copy package files
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY packages/*/package.json ./packages/*/
+COPY apps/*/package.json ./apps/*/
+
+# Install dependencies
+RUN npm install -g pnpm && pnpm install
+
+# Copy source code
+COPY . .
+
+# Build all packages
+RUN pnpm -r build
+
+# Expose port
+EXPOSE 3000
+
+# Start backend
+CMD ["pnpm", "start"]
