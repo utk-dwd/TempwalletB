@@ -17,11 +17,14 @@
     "start:backend": "pnpm --filter '@tempwallet/backend' run start:dev",
     "start:frontend": "pnpm --filter '@tempwallet/frontend' run dev",
     "start": "pnpm --filter '@tempwallet/backend' run start:prod",
-    "deploy:build": "pnpm --filter @tempwallet/shared run build && pnpm --filter @tempwallet/prisma run build && pnpm --filter @tempwallet/backend run build",
-    "deploy:start": "pnpm --filter @tempwallet/prisma exec prisma migrate deploy && pnpm --filter @tempwallet/backend start:prod",
+    "deploy:build": "pnpm run predeploy:build && pnpm run build:shared && pnpm run build:prisma && pnpm run build:backend",
+    "predeploy:build": "node scripts/verify-prisma.cjs",
+    "build:shared": "pnpm --filter @tempwallet/shared run build",
+    "build:prisma": "pnpm --filter @tempwallet/prisma run build || (echo 'Prisma build failed, trying alternative...' && pnpm --filter @tempwallet/prisma exec pnpm prisma generate && pnpm --filter @tempwallet/prisma exec tsc)",
+    "build:backend": "pnpm --filter @tempwallet/backend run build",
+    "deploy:start": "pnpm --filter @tempwallet/prisma exec pnpm prisma migrate deploy && pnpm --filter @tempwallet/backend start:prod",
     "clean": "pnpm -r clean",
     "clean:packages": "pnpm --filter './packages/*' clean",
-    "build:shared": "pnpm --filter @tempwallet/shared run build",
     "build:frontend": "pnpm run build:shared && pnpm --filter @tempwallet/frontend run build",
     "build:all": "pnpm run build:shared && pnpm --filter @tempwallet/frontend run build",
     "verify:deps": "pnpm --filter @tempwallet/shared run build && pnpm --filter @tempwallet/prisma run build && pnpm --filter @tempwallet/backend run build",
@@ -35,6 +38,7 @@
   "devDependencies": {
     "@types/node": "^20.19.11",
     "dotenv-cli": "^10.0.0",
+    "prisma": "^5.22.0",
     "typescript": "^5.8.3"
   }
 }

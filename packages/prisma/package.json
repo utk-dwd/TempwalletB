@@ -28,13 +28,16 @@
   },
   "files": ["dist", "schema.prisma"],
   "scripts": {
-    "build": "prisma generate && tsc",
+    "build": "pnpm prisma generate && tsc",
+    "generate": "pnpm prisma generate",
+    "migrate": "pnpm prisma migrate deploy",
+    "studio": "pnpm prisma studio",
     "dev": "tsc --watch",
     "clean": "rm -rf dist",
-    "db:generate": "prisma generate",
-    "db:push": "prisma db push",
-    "db:migrate": "dotenv -e ../../apps/backend/.env -- prisma migrate dev",
-    "db:studio": "dotenv -e ../../apps/backend/.env -- prisma studio"
+    "db:generate": "pnpm prisma generate",
+    "db:push": "pnpm prisma db push",
+    "db:migrate": "dotenv -e ../../apps/backend/.env -- pnpm prisma migrate dev",
+    "db:studio": "dotenv -e ../../apps/backend/.env -- pnpm prisma studio"
   },
   "dependencies": {
     "@prisma/client": "^5.0.0",

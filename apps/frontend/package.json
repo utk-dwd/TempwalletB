@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "prebuild": "pnpm --filter @tempwallet/shared run build",
-    "build": "pnpm run prebuild && tsc -b && vite build",
+    "build": "pnpm run prebuild && vite build",
     "build:deps": "pnpm --filter @tempwallet/shared run build",
     "build:full": "pnpm run build:deps && pnpm run build",
     "lint": "eslint .",

@@ -18,6 +18,9 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 # Install dependencies
 RUN npm install -g pnpm && pnpm install --frozen-lockfile
 
+# Add node_modules/.bin to PATH for Prisma CLI access
+ENV PATH="${PATH}:/app/node_modules/.bin"
+
 # Copy source code
 COPY . .
 

@@ -24,7 +24,9 @@
       "@/services/*": ["./src/services/*"],
       "@/lib/*": ["./src/lib/*"],
       "@/hooks/*": ["./src/hooks/*"],
-      "@/server/*": ["./src/server/*"]
+      "@/server/*": ["./src/server/*"],
+      "@tempwallet/shared": ["../../packages/shared/dist/index.d.ts"],
+      "@tempwallet/shared/*": ["../../packages/shared/dist/*"]
     }
   },
   "include": ["src"],

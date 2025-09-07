@@ -1,0 +1,10 @@
+{
+  "build": {
+    "builder": "dockerfile",
+    "dockerfilePath": "Dockerfile"
+  },
+  "deploy": {
+    "startCommand": "pnpm run deploy:start",
+    "healthcheckPath": "/health"
+  }
+}
