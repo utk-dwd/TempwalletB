@@ -399,8 +399,6 @@ importers:
         specifier: ^5.0.0
         version: 5.8.3
 
-  shared: {}
-
 packages:
 
   '@account-abstraction/contracts@0.5.0':
@@ -8430,7 +8428,7 @@ snapshots:
       '@account-abstraction/contracts': 0.6.0
       '@biconomy/core-types': 2.0.2(bufferutil@4.0.7)(encoding@0.1.13)(utf-8-validate@6.0.3)
       '@gnosis.pm/safe-core-sdk-utils': 1.5.0(encoding@0.1.13)
-      '@nomiclabs/hardhat-ethers': 2.2.3(ethers@6.15.0(bufferutil@4.0.7)(utf-8-validate@6.0.3))(hardhat@2.26.3(bufferutil@4.0.7)(ts-node@10.9.2(@types/node@22.18.1)(typescript@5.8.3))(typescript@5.8.3)(utf-8-validate@6.0.3))
+      '@nomiclabs/hardhat-ethers': 2.2.3(ethers@6.15.0(bufferutil@4.0.7)(utf-8-validate@6.0.3))(hardhat@2.26.3(bufferutil@4.0.7)(ts-node@10.9.2(@types/node@22.18.1)(typescript@5.8.3))(typescript@4.9.5)(utf-8-validate@6.0.3))
       '@openzeppelin/contracts': 4.9.6
       ethers: 6.15.0(bufferutil@4.0.7)(utf-8-validate@6.0.3)
       fallback-contracts-v1.0.0: '@biconomy/fallback-gastank-contracts@1.0.0(@ethersproject/hardware-wallets@5.8.0(bufferutil@4.0.7)(utf-8-validate@6.0.3))(bufferutil@4.0.7)(chai@4.5.0)(encoding@0.1.13)(lodash@4.17.21)(ts-node@10.9.2(@types/node@22.18.1)(typescript@5.8.3))(typechain@8.3.2(typescript@5.8.3))(utf-8-validate@6.0.3)'
@@ -10197,7 +10195,7 @@ snapshots:
       ethers: 5.8.0(bufferutil@4.0.7)(utf-8-validate@6.0.3)
       hardhat: 2.26.3(bufferutil@4.0.7)(ts-node@10.9.2(@types/node@22.18.1)(typescript@5.8.3))(typescript@4.9.5)(utf-8-validate@6.0.3)
 
-  '@nomiclabs/hardhat-ethers@2.2.3(ethers@6.15.0(bufferutil@4.0.7)(utf-8-validate@6.0.3))(hardhat@2.26.3(bufferutil@4.0.7)(ts-node@10.9.2(@types/node@22.18.1)(typescript@5.8.3))(typescript@5.8.3)(utf-8-validate@6.0.3))':
+  '@nomiclabs/hardhat-ethers@2.2.3(ethers@6.15.0(bufferutil@4.0.7)(utf-8-validate@6.0.3))(hardhat@2.26.3(bufferutil@4.0.7)(ts-node@10.9.2(@types/node@22.18.1)(typescript@5.8.3))(typescript@4.9.5)(utf-8-validate@6.0.3))':
     dependencies:
       ethers: 6.15.0(bufferutil@4.0.7)(utf-8-validate@6.0.3)
       hardhat: 2.26.3(bufferutil@4.0.7)(ts-node@10.9.2(@types/node@22.18.1)(typescript@5.8.3))(typescript@4.9.5)(utf-8-validate@6.0.3)

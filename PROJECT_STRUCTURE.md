@@ -219,4 +219,61 @@ shared/
 - **TypeScript**: Strict type checking enabled
 - **Tailwind CSS**: Utility-first CSS framework
 
+## Build Order and Dependencies
+
+### Build Sequence
+The monorepo follows a specific build order to ensure dependencies are available:
+1. **Shared Package** (`packages/shared/`): Builds first, generates TypeScript declarations
+2. **Prisma Package** (`packages/prisma/`): Builds second, generates Prisma client
+3. **Backend** (`apps/backend/`): Builds third, depends on shared and prisma
+4. **Frontend** (`apps/frontend/`): Builds last, depends on shared
+
+### Nix System Dependencies
+For Railway/Nixpacks deployment, the following system packages are required:
+- `nodejs_20`: Node.js runtime
+- `pnpm-9_x`: Package manager
+- `python3`: For native module compilation
+- `gcc`: C compiler
+- `gnumake`: Make utility
+- `pkg-config`: Package configuration tool
+- `libusb1`: USB library headers
+- `openssl`: SSL/TLS library
+- `systemd`: System and service manager (provides libudev)
+
+### Environment Variables
+- `PRISMA_SCHEMA`: Path to Prisma schema file (`packages/prisma/schema.prisma`)
+
+## Build Order and Verification
+
+### Build Sequence Requirements
+The monorepo has strict build dependencies that must be followed:
+
+1. **Shared Package** (`packages/shared/`): Must build first - generates TypeScript declarations
+2. **Prisma Package** (`packages/prisma/`): Depends on shared - generates Prisma client
+3. **Backend** (`apps/backend/`): Depends on shared + prisma - compiles NestJS application
+4. **Frontend** (`apps/frontend/`): Depends on shared - builds React application
+
+### Build Scripts
+- `pnpm run build:frontend:deploy`: Builds shared → frontend
+- `pnpm run build:backend:deploy`: Builds shared → prisma → backend
+- `pnpm run deploy:build`: Full backend deployment build
+
+### Verification Scripts
+- `pnpm run verify:shared`: Checks if shared package is built
+- `pnpm run verify:all`: Checks all packages are built
+- `pnpm run smoke:test`: Comprehensive build verification
+
+### Troubleshooting TS2307 Errors
+If you encounter "Cannot find module '@tempwallet/shared'" errors:
+
+1. **Check build order**: Ensure shared package builds before dependent packages
+2. **Verify dist files**: Run `pnpm run verify:shared` to check if declarations exist
+3. **Clean rebuild**: Run `pnpm -r clean && pnpm run deploy:build`
+4. **Check .pnpmrc**: Ensure `ignore-scripts=false` is set
+
+### Development Setup
+1. Install dependencies: `pnpm install`
+2. Build shared packages: `pnpm run build:shared`
+3. Start development: `pnpm run dev`
+
 This structure represents a well-organized monorepo with clear separation of concerns between frontend, backend, and shared code.

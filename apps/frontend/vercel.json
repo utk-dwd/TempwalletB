@@ -10,8 +10,8 @@
             "destination": "/index.html"
         }
     ],
-    "buildCommand": "cd ../.. && pnpm install && pnpm --filter @tempwallet/shared run build && cd apps/frontend && pnpm run build",
-    "installCommand": "cd ../.. && pnpm install",
+    "buildCommand": "cd ../.. && PNPM_IGNORE_SCRIPTS=false pnpm install && pnpm run build:frontend:deploy",
+    "installCommand": "cd ../.. && PNPM_IGNORE_SCRIPTS=false pnpm install",
     "framework": "vite",
     "outputDirectory": "dist"
 }

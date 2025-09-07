@@ -1,11 +1,14 @@
 [phases.setup]
-nixPkgs = ["nodejs_20", "pnpm-9_x", "openssl", "python3", "gcc", "gnumake", "pkg-config", "libusb1", "libudev"]
+nixPkgs = ["nodejs_20", "pnpm-9_x", "python3", "gcc", "gnumake", "pkg-config", "libusb1", "openssl", "systemd"]
 
 [phases.install]
 cmds = ["pnpm i --frozen-lockfile"]
 
 [phases.build]
 cmds = ["pnpm run deploy:build"]
+
+[env]
+PRISMA_SCHEMA = "packages/prisma/schema.prisma"
 
 [start]
 cmd = "pnpm run deploy:start"

@@ -24,7 +24,13 @@
     "build:shared": "pnpm --filter @tempwallet/shared run build",
     "build:frontend": "pnpm run build:shared && pnpm --filter @tempwallet/frontend run build",
     "build:all": "pnpm run build:shared && pnpm --filter @tempwallet/frontend run build",
-    "verify:deps": "pnpm --filter @tempwallet/shared run build && pnpm --filter @tempwallet/prisma run build && pnpm --filter @tempwallet/backend run build"
+    "verify:deps": "pnpm --filter @tempwallet/shared run build && pnpm --filter @tempwallet/prisma run build && pnpm --filter @tempwallet/backend run build",
+    "verify:prebuild": "node scripts/verify-shared-dist.cjs || pnpm --filter @tempwallet/shared run build",
+    "smoke:test": "pnpm run verify:prebuild && node scripts/smoke-test.cjs",
+    "build:frontend:deploy": "pnpm --filter @tempwallet/shared run build && pnpm --filter @tempwallet/frontend run build",
+    "build:backend:deploy": "pnpm --filter @tempwallet/shared run build && pnpm --filter @tempwallet/prisma run build && pnpm --filter @tempwallet/backend run build",
+    "verify:shared": "node scripts/verify-shared-dist.cjs",
+    "verify:all": "node scripts/verify-all-deps.cjs"
   },
   "devDependencies": {
     "@types/node": "^20.19.11",
