@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "CommonJS",
-    "moduleResolution": "node",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "experimentalDecorators": true,
@@ -11,16 +11,12 @@
     "strict": false,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "declaration": true,
+    "declaration": false,
     "removeComments": true,
     "noImplicitAny": false,
     "strictNullChecks": false,
     "noImplicitReturns": false,
-    "resolveJsonModule": true,
-    "outDir": "./dist",
-    "baseUrl": "./",
-    "incremental": true,
-    "sourceMap": true
+    "resolveJsonModule": true
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist", "test", "**/*spec.ts", "**/*test.ts"]
