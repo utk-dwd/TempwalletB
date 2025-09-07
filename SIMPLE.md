@@ -12,7 +12,12 @@
 TempwalletB/
 ├── package.json                 # 3 SIMPLE SCRIPTS ONLY
 ├── pnpm-workspace.yaml         # Workspace config
+├── pnpm-lock.yaml              # Dependency lockfile
 ├── Dockerfile.simple           # Single-stage Docker build
+├── .gitignore                  # Git ignore rules
+├── .dockerignore               # Docker ignore rules
+├── SIMPLE.md                   # This guide (your north star!)
+├── FAQ.md                      # Deployment troubleshooting
 │
 ├── apps/
 │   ├── backend/                # NestJS API (ESM)
@@ -195,7 +200,7 @@ import { MyService } from './my-service.js';
 
 **❌ Complex Fix:** Multi-stage builds, complex copying
 
-**✅ Simple Fix:** Use `Dockerfile.simple`
+**✅ Simple Fix:** Use `Dockerfile.simple` (Railway auto-detects)
 ```dockerfile
 FROM node:20-slim
 WORKDIR /app

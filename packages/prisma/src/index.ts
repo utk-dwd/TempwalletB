@@ -6,8 +6,8 @@ export { PrismaClient } from '@prisma/client';
 export type * from '@prisma/client';
 
 // Re-export our custom services and modules
-export { PrismaService } from './prisma.service';
-export { PrismaModule } from './prisma.module';
+export { PrismaService } from './prisma.service.js';
+export { PrismaModule } from './prisma.module.js';
 
 // Re-export from client for convenience
-export * from './client';
+export * from './client.js';
