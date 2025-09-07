@@ -38,23 +38,49 @@ try {
     }
   }
 
-  // Check Prisma client generation status
-  const prismaClientPath = path.join('packages', 'prisma', 'node_modules', '@prisma', 'client');
-  const prismaSchemaPath = path.join('packages', 'prisma', 'schema.prisma');
+  // Check Prisma client generation status (Docker-aware)
+  const isDockerBuild = process.env.DOCKER_BUILD || process.cwd().includes('/app') || isDocker;
+  const possibleClientPaths = [
+    path.join('packages', 'prisma', 'node_modules', '@prisma', 'client'),
+    path.join('packages', 'prisma', 'node_modules', '.pnpm', '@prisma+client*/node_modules', '@prisma', 'client'),
+    path.join('node_modules', '.pnpm', '@prisma+client*/node_modules', '@prisma', 'client'),
+    path.join('node_modules', '@prisma', 'client')
+  ];
 
-  if (fs.existsSync(prismaClientPath)) {
-    console.log('✅ Prisma client already generated');
+  let clientFound = false;
+  for (const clientPath of possibleClientPaths) {
+    // Handle glob patterns for pnpm
+    if (clientPath.includes('*')) {
+      try {
+        const glob = require('glob');
+        const matches = glob.sync(clientPath.replace('*', '*'));
+        if (matches.length > 0 && fs.existsSync(matches[0])) {
+          clientFound = true;
+          break;
+        }
+      } catch (e) {
+        // glob not available, skip
+      }
+    } else if (fs.existsSync(clientPath)) {
+      clientFound = true;
+      break;
+    }
+  }
+
+  if (clientFound) {
+    console.log('✅ Prisma client found');
   } else {
-    if (isBuildTime) {
+    if (isBuildTime || isDockerBuild) {
       console.log('⚠️  Prisma client not found - will be generated during build');
-      console.log('💡 This is normal during Railway deployment');
+      console.log('💡 This is normal during Docker/Railway deployment');
     } else {
       console.log('❌ Prisma client missing in runtime environment');
-      console.log('💡 Run: pnpm --filter @tempwallet/prisma run generate');
+      console.log('💡 Run: cd packages/prisma && pnpm prisma generate');
     }
   }
 
   // Check Prisma schema exists
+  const prismaSchemaPath = path.join('packages', 'prisma', 'schema.prisma');
   if (fs.existsSync(prismaSchemaPath)) {
     console.log('✅ Prisma schema found');
   } else {

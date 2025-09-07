@@ -9,7 +9,7 @@ cmds = [
 
 [phases.build]
 cmds = [
-  "pnpm --filter @tempwallet/prisma run generate || DATABASE_URL='postgresql://placeholder' pnpm --filter @tempwallet/prisma run generate",
+  "cd packages/prisma && pnpm prisma generate || pnpm prisma generate --schema=packages/prisma/schema.prisma || DATABASE_URL='postgresql://placeholder' pnpm prisma generate --schema=packages/prisma/schema.prisma",
   "pnpm run deploy:build"
 ]
 

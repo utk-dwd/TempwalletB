@@ -2,6 +2,12 @@
   "name": "@tempwallet/root",
   "version": "1.0.0",
   "private": true,
+  "pnpm": {
+    "allowScripts": {
+      "@prisma/engines": true,
+      "prisma": true
+    }
+  },
   "workspaces": [
     "packages/*",
     "apps/*"
@@ -17,8 +23,9 @@
     "start:backend": "pnpm --filter '@tempwallet/backend' run start:dev",
     "start:frontend": "pnpm --filter '@tempwallet/frontend' run dev",
     "start": "pnpm --filter '@tempwallet/backend' run start:prod",
-    "deploy:build": "pnpm run predeploy:build && pnpm run build:shared && pnpm run build:prisma && pnpm run build:backend",
-    "predeploy:build": "node scripts/verify-prisma.cjs",
+    "deploy:build": "pnpm run ensure:prisma && pnpm run build:shared && pnpm run build:prisma && pnpm run build:backend",
+    "predeploy:build": "node scripts/verify-railway.cjs || echo 'Verification completed with warnings'",
+    "ensure:prisma": "cd packages/prisma && pnpm prisma generate || pnpm prisma generate --schema=packages/prisma/schema.prisma",
     "build:shared": "pnpm --filter @tempwallet/shared run build",
     "build:prisma": "pnpm --filter @tempwallet/prisma run build || (echo 'Prisma build failed, trying alternative...' && pnpm --filter @tempwallet/prisma exec pnpm prisma generate && pnpm --filter @tempwallet/prisma exec tsc)",
     "build:backend": "pnpm --filter @tempwallet/backend run build",

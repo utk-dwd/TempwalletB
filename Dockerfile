@@ -22,9 +22,9 @@ RUN npm install -g pnpm && pnpm install --frozen-lockfile
 ENV PATH="${PATH}:/app/node_modules/.bin"
 
 # Generate Prisma client (with fallback for missing DATABASE_URL)
-RUN pnpm --filter @tempwallet/prisma run generate || \
-    (echo "DATABASE_URL not available, using placeholder..." && \
-     DATABASE_URL="postgresql://placeholder" pnpm --filter @tempwallet/prisma run generate)
+RUN cd packages/prisma && pnpm prisma generate || \
+    pnpm prisma generate --schema=packages/prisma/schema.prisma || \
+    (echo "Using placeholder DATABASE_URL..." && DATABASE_URL="postgresql://placeholder:5432/placeholder" pnpm prisma generate --schema=packages/prisma/schema.prisma)
 
 # Copy source code
 COPY . .
