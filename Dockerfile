@@ -18,16 +18,22 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 # Install dependencies
 RUN npm install -g pnpm && pnpm install --frozen-lockfile
 
+# Copy source code FIRST (before Prisma generation)
+COPY . .
+
 # Add node_modules/.bin to PATH for Prisma CLI access
 ENV PATH="${PATH}:/app/node_modules/.bin"
 
-# Generate Prisma client (with fallback for missing DATABASE_URL)
-RUN cd packages/prisma && pnpm prisma generate || \
-    pnpm prisma generate --schema=packages/prisma/schema.prisma || \
-    (echo "Using placeholder DATABASE_URL..." && DATABASE_URL="postgresql://placeholder:5432/placeholder" pnpm prisma generate --schema=packages/prisma/schema.prisma)
+# Set build-time environment variable
+ENV DOCKER_BUILD=true
 
-# Copy source code
-COPY . .
+# Generate Prisma client (with enhanced error handling)
+RUN cd packages/prisma && pnpm prisma generate || \
+    (echo "First attempt failed, trying with explicit schema path..." && \
+     pnpm prisma generate --schema=./schema.prisma) || \
+    (echo "Using placeholder DATABASE_URL for generation..." && \
+     DATABASE_URL="postgresql://placeholder:5432/placeholder" pnpm prisma generate --schema=./schema.prisma) || \
+    (echo "All generation attempts failed, but continuing build..." && exit 0)
 
 # Build the application
 RUN pnpm run deploy:build

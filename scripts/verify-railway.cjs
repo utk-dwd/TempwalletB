@@ -6,9 +6,9 @@ console.log('🔍 Railway Deployment Verification');
 
 // Detect build environment
 const isRailway = process.env.RAILWAY_ENVIRONMENT || process.env.RAILWAY_PROJECT_ID;
-const isDocker = process.env.DOCKER_CONTAINER || fs.existsSync('/.dockerenv');
+const isDocker = process.env.DOCKER_CONTAINER || fs.existsSync('/.dockerenv') || process.env.DOCKER_BUILD;
 const isCI = process.env.CI || process.env.CONTINUOUS_INTEGRATION;
-const isBuildTime = !process.env.NODE_ENV || process.env.NODE_ENV === 'production';
+const isBuildTime = !process.env.NODE_ENV || process.env.NODE_ENV === 'production' || process.env.DOCKER_BUILD;
 
 console.log(`📍 Environment: ${isRailway ? 'Railway' : isDocker ? 'Docker' : 'Local'}`);
 console.log(`🏗️  Phase: ${isBuildTime ? 'Build' : 'Runtime'}`);
@@ -94,6 +94,24 @@ try {
     console.log('✅ Prisma found in root devDependencies');
   }
 
+  // Check build scripts for Docker compatibility
+  if (packageJson.scripts) {
+    const hasBuildScript = packageJson.scripts.build || packageJson.scripts['build:docker'];
+    const hasPrismaScript = packageJson.scripts['prisma:generate'] || packageJson.scripts['db:generate'];
+
+    if (hasBuildScript) {
+      console.log('✅ Build script found');
+    } else if (isDocker) {
+      console.log('⚠️  No build script found - Docker builds may fail');
+    }
+
+    if (hasPrismaScript) {
+      console.log('✅ Prisma generation script found');
+    } else if (isDocker) {
+      console.log('⚠️  No Prisma generation script found - client generation may fail');
+    }
+  }
+
   // Environment-specific checks
   if (isRailway) {
     console.log(`✅ Railway environment: ${process.env.RAILWAY_ENVIRONMENT || 'detected'}`);
@@ -106,6 +124,22 @@ try {
 
   if (isDocker) {
     console.log('✅ Docker environment detected');
+
+    // Check for Docker-specific files
+    const dockerfileExists = fs.existsSync('Dockerfile');
+    const nixpacksExists = fs.existsSync('nixpacks.toml');
+
+    if (dockerfileExists) {
+      console.log('✅ Dockerfile found');
+    } else {
+      console.log('⚠️  Dockerfile not found - Railway may use Nixpacks instead');
+    }
+
+    if (nixpacksExists) {
+      console.log('✅ nixpacks.toml found');
+    } else {
+      console.log('ℹ️  nixpacks.toml not found - Railway will use default configuration');
+    }
   }
 
   console.log('🎉 Railway deployment verification passed');
