@@ -1,7 +1,17 @@
 const { execSync } = require('child_process');
 const fs = require('fs');
+const path = require('path');
 
 console.log('🔍 Railway Deployment Verification');
+
+// Detect build environment
+const isRailway = process.env.RAILWAY_ENVIRONMENT || process.env.RAILWAY_PROJECT_ID;
+const isDocker = process.env.DOCKER_CONTAINER || fs.existsSync('/.dockerenv');
+const isCI = process.env.CI || process.env.CONTINUOUS_INTEGRATION;
+const isBuildTime = !process.env.NODE_ENV || process.env.NODE_ENV === 'production';
+
+console.log(`📍 Environment: ${isRailway ? 'Railway' : isDocker ? 'Docker' : 'Local'}`);
+console.log(`🏗️  Phase: ${isBuildTime ? 'Build' : 'Runtime'}`);
 
 try {
   // Check if lockfile exists and is valid
@@ -15,13 +25,41 @@ try {
     execSync('pnpm install --frozen-lockfile --dry-run', { stdio: 'pipe' });
     console.log('✅ Lockfile is synchronized with package.json');
   } catch (error) {
-    console.log('⚠️  Lockfile mismatch detected, will regenerate during install');
-    console.log('Error details:', error.message.split('\n')[0]);
+    const isLocalDev = !isRailway && !isDocker && !isCI;
+    if (isLocalDev) {
+      console.log('ℹ️  Lockfile sync check skipped in local development');
+      console.log('💡 This is normal - lockfile will be updated when you run pnpm install');
+    } else {
+      console.log('⚠️  Lockfile mismatch detected, will regenerate during install');
+      console.log('💡 This ensures dependencies are correctly resolved for deployment');
+    }
+    if (error.message.includes('ERR_PNPM_OUTDATED_LOCKFILE')) {
+      console.log('📝 Lockfile is outdated but will be updated automatically');
+    }
   }
 
-  // Check for Railway-specific environment
-  if (process.env.RAILWAY_ENVIRONMENT) {
-    console.log(`✅ Railway environment: ${process.env.RAILWAY_ENVIRONMENT}`);
+  // Check Prisma client generation status
+  const prismaClientPath = path.join('packages', 'prisma', 'node_modules', '@prisma', 'client');
+  const prismaSchemaPath = path.join('packages', 'prisma', 'schema.prisma');
+
+  if (fs.existsSync(prismaClientPath)) {
+    console.log('✅ Prisma client already generated');
+  } else {
+    if (isBuildTime) {
+      console.log('⚠️  Prisma client not found - will be generated during build');
+      console.log('💡 This is normal during Railway deployment');
+    } else {
+      console.log('❌ Prisma client missing in runtime environment');
+      console.log('💡 Run: pnpm --filter @tempwallet/prisma run generate');
+    }
+  }
+
+  // Check Prisma schema exists
+  if (fs.existsSync(prismaSchemaPath)) {
+    console.log('✅ Prisma schema found');
+  } else {
+    console.error('❌ Prisma schema not found at packages/prisma/schema.prisma');
+    process.exit(1);
   }
 
   // Check for required dependencies
@@ -30,9 +68,31 @@ try {
     console.log('✅ Prisma found in root devDependencies');
   }
 
+  // Environment-specific checks
+  if (isRailway) {
+    console.log(`✅ Railway environment: ${process.env.RAILWAY_ENVIRONMENT || 'detected'}`);
+
+    if (!process.env.DATABASE_URL && isBuildTime) {
+      console.log('⚠️  DATABASE_URL not set during build - using placeholder for client generation');
+      console.log('💡 Real DATABASE_URL will be used at runtime');
+    }
+  }
+
+  if (isDocker) {
+    console.log('✅ Docker environment detected');
+  }
+
   console.log('🎉 Railway deployment verification passed');
 
 } catch (error) {
   console.error('❌ Railway verification failed:', error.message);
+
+  if (error.message.includes('prisma')) {
+    console.log('\n💡 Prisma-specific troubleshooting:');
+    console.log('1. Ensure DATABASE_URL is set (or use placeholder during build)');
+    console.log('2. Run: pnpm --filter @tempwallet/prisma run generate');
+    console.log('3. Check packages/prisma/schema.prisma exists');
+  }
+
   process.exit(1);
 }
