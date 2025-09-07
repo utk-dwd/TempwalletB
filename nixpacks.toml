@@ -2,7 +2,10 @@
 nixPkgs = ["nodejs_20", "pnpm-9_x", "python3", "gcc", "gnumake", "pkg-config", "libusb1", "openssl", "systemd"]
 
 [phases.install]
-cmds = ["pnpm i --frozen-lockfile"]
+cmds = [
+  "node scripts/verify-railway.cjs",
+  "pnpm i --frozen-lockfile || (echo 'Frozen lockfile failed, regenerating...' && pnpm i && echo 'Lockfile regenerated successfully')"
+]
 
 [phases.build]
 cmds = ["pnpm run deploy:build"]
