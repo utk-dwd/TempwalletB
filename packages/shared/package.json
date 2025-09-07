@@ -25,7 +25,8 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "postinstall": "tsc -b || true"
   },
   "devDependencies": {
     "typescript": "^5.0.0"

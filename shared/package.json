@@ -1,8 +1,0 @@
-{
-    "name": "@project/shared",
-    "version": "1.0.0",
-    "description": "Shared types and utilities for the monorepo",
-    "main": "index.js",
-    "types": "types.ts",
-    "license": "MIT"
-  }

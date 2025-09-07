@@ -8,6 +8,7 @@
   "main": "dist/main.js",
   "type": "module",
   "scripts": {
+    "prebuild": "pnpm --filter @tempwallet/shared run build && pnpm --filter @tempwallet/prisma run build",
     "build": "nest build -p tsconfig.build.json",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",

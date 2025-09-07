@@ -1,8 +1,7 @@
 packages:
-  # New structure (packages and apps)
+  # Primary workspaces
   - 'packages/*'
   - 'apps/*'
-  # Legacy structure (during migration)
+  # Legacy single-folder apps kept temporarily during migration (remove when unused)
   - 'frontend'
   - 'backend'
-  - 'shared'

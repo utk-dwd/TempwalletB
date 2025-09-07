@@ -16,5 +16,9 @@
     "removeComments": true
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "test", "**/*spec.ts", "**/*test.ts"]
+  "exclude": ["node_modules", "dist", "test", "**/*spec.ts", "**/*test.ts"],
+  "references": [
+    { "path": "../../packages/shared" },
+    { "path": "../../packages/prisma" }
+  ]
 }
