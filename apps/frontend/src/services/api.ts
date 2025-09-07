@@ -1,6 +1,6 @@
 // frontend/src/services/api.ts
 import axios from 'axios';
-import { TelegramRegistrationPayload } from '@tempwallet/shared';
+import { TelegramRegistrationPayload } from '../types/shared.js';
 
 // Create a new Axios instance
 const api = axios.create({

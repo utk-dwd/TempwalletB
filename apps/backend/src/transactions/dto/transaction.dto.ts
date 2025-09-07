@@ -1,5 +1,5 @@
 import { IsString, IsOptional, IsNumber, IsNotEmpty, IsNumberString, IsEnum, IsObject } from 'class-validator';
-import { SupportedNetwork } from '@tempwallet/shared';
+import { SupportedNetwork } from '../../types/shared.js';
 
 export class PrepareTransactionDto {
   @IsString()

@@ -1,6 +1,6 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { PrismaService } from '@tempwallet/prisma';
+import { PrismaService } from '../types/prisma.js';
 import { verifyMessage } from 'ethers'; // or use viem
 
 @Injectable()

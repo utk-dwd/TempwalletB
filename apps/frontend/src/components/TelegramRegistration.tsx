@@ -1,7 +1,7 @@
 // frontend/src/components/TelegramRegistration.tsx
 import React, { useState } from 'react';
 import { registerTelegram } from '../services/api';
-import { TelegramRegistrationPayload } from '@tempwallet/shared';
+import { TelegramRegistrationPayload } from '../types/shared.js';
 
 const TelegramRegistration: React.FC = () => {
   const [chatId, setChatId] = useState('');

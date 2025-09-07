@@ -1,7 +1,2 @@
 packages:
-  # Primary workspaces
-  - 'packages/*'
   - 'apps/*'
-  # Legacy single-folder apps kept temporarily during migration (remove when unused)
-  - 'frontend'
-  - 'backend'

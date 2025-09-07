@@ -11,14 +11,14 @@ import {
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Cron, CronExpression } from '@nestjs/schedule'; 
-import { PrismaService } from '@tempwallet/prisma';
+import { PrismaService } from '../types/prisma.js';
 import { BalancesService } from '../balances/balances.service.js';
 import { PrepareTransactionDto, SubmitTransactionDto } from './dto/transaction.dto.js';
 import axios from 'axios';
 import { AbiCoder } from 'ethers';
-import { NETWORKS } from '@tempwallet/shared';
+import { NETWORKS } from '../types/shared.js';
 import * as Mixpanel from 'mixpanel';
-import { SupportedNetwork, NetworkConfig } from '@tempwallet/shared';
+import { SupportedNetwork, NetworkConfig } from '../types/shared.js';
 
 const ENTRY_POINT = '0x5ff137d4b0fdcd49dca30c7cf57e578a026d2789';
 const DUMMY_SIGNATURE = '0x00000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000001c5b32F37F5beA87BDD5374eB2aC54eA8e000000000000000000000000000000000000000000000000000000000000004181d4b4981670cb18f99f0b4a66446df1bf5b204d24cfcb659bf38ba27a4359b5711649ec2423c5e1247245eba2964679b6a1dbb85c992ae40b9b00c6935b02ff1b00000000000000000000000000000000000000000000000000000000000000';

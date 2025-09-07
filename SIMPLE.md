@@ -1,17 +1,17 @@
 # TempWallet Simple Architecture Guide
 
-## 🎯 **Core Principle: KEEP IT SIMPLE**
+## 🎯 **Core Principle: ZERO WORKSPACE DEPENDENCIES**
 
-**Golden Rule**: If you're adding complexity, you're doing it wrong. This guide helps you debug without breaking simplicity.
+**Golden Rule**: Maximum simplification achieved - each app builds completely independently. No workspace dependencies, no complex build orchestration.
 
 ---
 
-## 📁 **Directory Structure**
+## 📁 **Current Directory Structure**
 
 ```
 TempwalletB/
 ├── package.json                 # 3 SIMPLE SCRIPTS ONLY
-├── pnpm-workspace.yaml         # Workspace config
+├── pnpm-workspace.yaml         # Workspace config (for development only)
 ├── pnpm-lock.yaml              # Dependency lockfile
 ├── Dockerfile.simple           # Single-stage Docker build
 ├── .gitignore                  # Git ignore rules
@@ -20,22 +20,30 @@ TempwalletB/
 ├── FAQ.md                      # Deployment troubleshooting
 │
 ├── apps/
-│   ├── backend/                # NestJS API (ESM)
+│   ├── backend/                # NestJS API (ESM + Zero Dependencies)
 │   │   ├── package.json        # 3 scripts: dev, build, start
-│   │   ├── tsconfig.build.json # NodeNext ESM config
+│   │   ├── tsconfig.json       # CommonJS for simplicity
+│   │   ├── prisma/
+│   │   │   └── schema.prisma   # Local database schema
 │   │   └── src/
 │   │       ├── main.ts         # Entry point
 │   │       ├── app.module.ts   # Main app module
+│   │       ├── database/       # LOCAL Prisma setup
+│   │       │   ├── prisma.service.ts
+│   │       │   └── prisma.module.ts
+│   │       ├── types/          # LOCAL shared types
+│   │       │   ├── shared.ts   # Networks, enums, interfaces
+│   │       │   └── prisma.ts   # Prisma re-exports
 │   │       ├── alchemy.service.ts    # Webhook processing
 │   │       ├── auth/           # User authentication
 │   │       ├── balances/       # Balance tracking
-│   │       ├── iexec/          # Telegram notifications
+│   │       ├── iexec/          # Telegram notifications (ESM required)
 │   │       ├── temp-wallets/   # Wallet management
 │   │       ├── transactions/   # Transaction processing
 │   │       ├── users/          # User management
 │   │       └── webhooks/       # Alchemy webhooks
 │   │
-│   └── frontend/               # React + Vite (ESM)
+│   └── frontend/               # React + Vite (Independent)
 │       ├── package.json        # 3 scripts: dev, build, preview
 │       ├── vite.config.ts      # Vite configuration
 │       └── src/
@@ -43,25 +51,12 @@ TempwalletB/
 │           ├── components/     # React components
 │           ├── hooks/          # React hooks
 │           ├── services/       # API calls
+│           ├── types/          # LOCAL TypeScript types
 │           └── utils/          # Utilities
 │
-└── packages/
-    ├── shared/                 # Shared types (ESM)
-    │   ├── package.json        # 2 scripts: build, dev
-    │   ├── tsconfig.json       # NodeNext ESM config
-    │   └── src/
-    │       ├── index.ts        # Main exports
-    │       ├── types.ts        # TypeScript types
-    │       └── networks.ts     # Network configurations
-    │
-    └── prisma/                 # Database (ESM)
-        ├── package.json        # 2 scripts: build, dev
-        ├── schema.prisma       # Database schema
-        ├── tsconfig.json       # NodeNext ESM config
-        └── src/
-            ├── index.ts        # Prisma exports
-            ├── client.ts       # Prisma client
-            └── prisma.service.ts # NestJS service
+└── packages/                   # LEGACY - Not used by apps
+    ├── shared/                 # ⚠️ DEPRECATED - Use local types
+    └── prisma/                 # ⚠️ DEPRECATED - Use local setup
 ```
 
 ---
@@ -74,10 +69,12 @@ TempwalletB/
 |--------|----------|---------|
 | `main.ts` | Bootstrap NestJS app | Entry point, starts server on port 3000 |
 | `app.module.ts` | Root module | Imports all feature modules |
+| `database/` | **LOCAL Prisma setup** | `prisma.service.ts` + `prisma.module.ts` |
+| `types/` | **LOCAL shared types** | `shared.ts` (networks/enums) + `prisma.ts` (re-exports) |
 | `alchemy.service.ts` | Webhook processing | Receives balance updates from Alchemy |
 | `auth/` | User authentication | JWT tokens, user login/signup |
 | `balances/` | Balance tracking | Store and retrieve user balances |
-| `iexec/` | Telegram notifications | Send messages via iExec SDK |
+| `iexec/` | Telegram notifications | Send messages via iExec SDK (ESM required) |
 | `temp-wallets/` | Wallet management | Create and manage temporary wallets |
 | `transactions/` | Transaction processing | Handle blockchain transactions |
 | `users/` | User management | CRUD operations for users |
@@ -91,23 +88,8 @@ TempwalletB/
 | `components/` | UI components | Reusable React components |
 | `hooks/` | React hooks | Custom hooks for state management |
 | `services/` | API calls | HTTP requests to backend |
+| `types/` | **LOCAL TypeScript types** | Independent type definitions |
 | `utils/` | Utilities | Helper functions, constants |
-
-### **Shared (packages/shared/src/)**
-
-| File | Function | Purpose |
-|------|----------|---------|
-| `index.ts` | Main exports | Re-exports all shared code |
-| `types.ts` | TypeScript types | Shared interfaces and types |
-| `networks.ts` | Network configs | Blockchain network configurations |
-
-### **Prisma (packages/prisma/src/)**
-
-| File | Function | Purpose |
-|------|----------|---------|
-| `index.ts` | Prisma exports | Re-exports client and services |
-| `client.ts` | Database client | Prisma client instance |
-| `prisma.service.ts` | NestJS service | Injectable Prisma service |
 
 ---
 
@@ -125,131 +107,97 @@ pnpm run build      # Builds all packages
 pnpm start          # Runs backend only
 ```
 
-### **Testing Individual Packages**
+### **Testing Individual Apps (Zero Dependencies)**
 ```bash
-cd apps/backend && pnpm run dev      # Backend only
-cd apps/frontend && pnpm run dev     # Frontend only  
-cd packages/shared && pnpm run build # Shared only
-cd packages/prisma && pnpm run build # Prisma only
+cd apps/backend && pnpm run dev      # Backend only (completely independent)
+cd apps/frontend && pnpm run dev     # Frontend only (completely independent)
 ```
 
 ---
 
-## 🏥 **Debugging Guide: KEEP IT SIMPLE**
+## 🏥 **Debugging Guide: ZERO WORKSPACE DEPENDENCIES**
 
-### **Rule #1: Don't Touch Build Scripts**
+### **Rule #1: Each App is Completely Independent**
 
-**❌ NEVER DO THIS:**
-- Add verification scripts
-- Create complex build orchestration
-- Add multiple deployment configs
-- Create workspace filters with `@tempwallet/*` 
-- Add prebuild/postbuild hooks
-- Create custom build ordering
+**✅ CURRENT ARCHITECTURE:**
+- Backend has local `src/database/` for Prisma
+- Backend has local `src/types/` for shared types
+- Frontend has local `src/types/` for its types
+- **NO** `@tempwallet/*` imports anywhere
+- Each app builds without any workspace packages
 
-**✅ ALWAYS DO THIS:**
-- Use `pnpm run dev` for development
-- Use `pnpm run build` for production
-- Keep package.json scripts to 3 max
-- Use relative imports instead of workspace dependencies
+**❌ NEVER GO BACK TO:**
+- Workspace dependencies (`@tempwallet/shared`, `@tempwallet/prisma`)
+- Complex build orchestration
+- Cross-package imports
+
+### **Current Working Import Patterns**
+
+#### **Backend Internal Imports (with .js for ESM)**
+```typescript
+// ✅ Correct - Local imports with .js extension
+import { SupportedNetwork } from './types/shared.js';
+import { PrismaService } from './types/prisma.js';
+import { AuthService } from './auth/auth.service.js';
+
+// ✅ Correct - External packages without .js
+import { Injectable } from '@nestjs/common';
+import { PrismaClient } from '@prisma/client';
+```
+
+#### **Frontend Internal Imports**
+```typescript
+// ✅ Correct - Local imports without .js (Vite handles it)
+import { ApiService } from '../services/api';
+import { UserType } from '../types/user';
+
+// ✅ Correct - External packages
+import { useState } from 'react';
+```
 
 ### **Common Error Types & Simple Fixes**
 
-#### **1. Module Resolution Errors (TS2307)**
+#### **1. Build Errors After Changes**
 
-**Error:** `Cannot find module '@tempwallet/shared'`
+**Error:** `Cannot find module './something'`
 
-**❌ Complex Fix:** Add TypeScript project references, workspace configurations
-
-**✅ Simple Fix:** Use relative imports
-```typescript
-// Instead of:
-import { SupportedNetwork } from '@tempwallet/shared';
-
-// Use:
-import { SupportedNetwork } from '../../../packages/shared/dist/index.js';
-```
-
-#### **2. Build Order Issues**
-
-**Error:** Package builds fail because dependencies aren't built
-
-**❌ Complex Fix:** Create complex build orchestration scripts
-
-**✅ Simple Fix:** 
+**✅ Simple Fix:**
 ```bash
-# Just rebuild everything
-pnpm -r build
+cd apps/backend && pnpm run build  # Test backend independently
+cd apps/frontend && pnpm run build # Test frontend independently
 ```
 
-#### **3. ESM Import Errors**
+#### **2. ESM Import Errors**
 
-**Error:** `ERR_MODULE_NOT_FOUND` or extension errors
+**Error:** `Cannot find module './service.js'`
 
-**❌ Complex Fix:** Complex module resolution configurations
-
-**✅ Simple Fix:** Use `.js` extensions in imports
+**✅ Fix:** Add `.js` extension to local TypeScript imports in backend:
 ```typescript
-// For local files, always use .js extension
+// ❌ Wrong
+import { MyService } from './my-service';
+
+// ✅ Correct
 import { MyService } from './my-service.js';
 ```
 
-#### **4. Docker Build Failures**
+#### **3. Accidental Workspace Dependencies**
 
-**Error:** Docker build fails with complex errors
+**Error:** `Cannot find module '@tempwallet/something'`
 
-**❌ Complex Fix:** Multi-stage builds, complex copying
+**✅ Fix:** Use local imports instead:
+```typescript
+// ❌ Wrong
+import { SupportedNetwork } from '@tempwallet/shared';
 
-**✅ Simple Fix:** Use `Dockerfile.simple` (Railway auto-detects)
-```dockerfile
-FROM node:20-slim
-WORKDIR /app
-COPY package*.json pnpm-*.yaml ./
-COPY packages/*/package.json ./packages/*/
-COPY apps/*/package.json ./apps/*/
-RUN npm install -g pnpm && pnpm install
-COPY . .
-RUN pnpm -r build
-EXPOSE 3000
-CMD ["pnpm", "start"]
-```
-
-#### **5. Railway Deployment Issues**
-
-**Error:** Railway deployment fails
-
-**❌ Complex Fix:** Custom nixpacks.toml, railway.json configs
-
-**✅ Simple Fix:** Let Railway auto-detect
-```bash
-# Railway will automatically:
-# 1. Detect pnpm workspace
-# 2. Run: pnpm install
-# 3. Run: pnpm run build  
-# 4. Run: pnpm start
-```
-
-#### **6. Vercel Frontend Issues**
-
-**Error:** Vercel build fails
-
-**❌ Complex Fix:** Custom build configurations
-
-**✅ Simple Fix:** Use standard Vite settings
-```json
-// vercel.json (if needed)
-{
-  "buildCommand": "pnpm run build",
-  "outputDirectory": "dist",
-  "framework": "vite"
-}
+// ✅ Correct
+import { SupportedNetwork } from './types/shared.js';
 ```
 
 ---
 
 ## 🔧 **Package.json Templates**
 
-### **Root package.json (NEVER EXCEED 5 SCRIPTS)**
+### **Root package.json (EXACTLY 3 SCRIPTS)**
 ```json
 {
   "name": "tempwallet-simple",
@@ -262,20 +210,20 @@ CMD ["pnpm", "start"]
 }
 ```
 
-### **Backend package.json**
+### **Backend package.json (Zero Dependencies)**
 ```json
 {
   "name": "backend",
   "type": "module",
   "scripts": {
     "dev": "nest start --watch",
-    "build": "nest build",
+    "build": "prisma generate && nest build",
     "start": "node dist/main.js"
   }
 }
 ```
 
-### **Frontend package.json**
+### **Frontend package.json (Independent)**
 ```json
 {
   "name": "frontend", 
@@ -290,33 +238,73 @@ CMD ["pnpm", "start"]
 
 ---
 
-## 🚨 **Red Flags: When You're Overcomplicating**
+## 🚨 **Red Flags: When You're Adding Complexity**
 
 **🚩 WARNING SIGNS:**
-- More than 5 scripts in any package.json
-- Creating verification scripts (verify-*.cjs)
-- Adding prebuild/postbuild hooks
-- Using complex workspace filters
-- Creating custom build orchestration
-- Adding TypeScript project references
-- Multiple Docker stages
-- Custom Railway/Vercel configs
+- Adding `@tempwallet/*` imports back
+- Creating new packages in `packages/`
+- More than 3 scripts in any package.json
+- Complex build orchestration
+- TypeScript project references
+- Custom build verification scripts
 
 **🛑 STOP AND SIMPLIFY:**
-If you see any red flags above, step back and use this guide to simplify.
+If you see any red flags above, use local imports and keep each app independent.
 
 ---
 
 ## 🎯 **Core User Flow (What Actually Matters)**
 
-1. **User Signs Up** → Backend stores in database via Prisma
-2. **Alchemy Webhook** → Backend processes balance changes  
-3. **Balance Update** → Frontend displays new balance
-4. **Transaction** → iExec sends Telegram notification
+1. **User Signs Up** → Backend stores in local database via local Prisma
+2. **Alchemy Webhook** → Backend processes balance changes using local types  
+3. **Balance Update** → Frontend displays new balance via API calls
+4. **Transaction** → iExec sends Telegram notification (ESM working)
 
-**That's it. Everything else is infrastructure.**
+**That's it. Everything else is infrastructure that now works independently.**
 
 ---
+
+## ✅ **Success Metrics (All Currently Working)**
+
+**✅ You know it's working when:**
+- `cd apps/backend && pnpm run build` works independently ✅
+- `cd apps/frontend && pnpm run build` works independently ✅
+- No `@tempwallet/*` imports anywhere ✅
+- iExec SDK works (ESM compatibility) ✅
+- Railway deployment works without workspace issues ✅
+
+**❌ You've broken it when:**
+- Apps can't build independently
+- Workspace dependencies creep back in
+- Complex build orchestration returns
+
+**🔬 Quick Verification Commands:**
+```bash
+# Verify zero workspace dependencies
+cd apps/backend && grep -r "@tempwallet/" src/ 
+# Should return nothing
+
+# Test independent builds
+cd apps/backend && pnpm run build   # Should work alone
+cd apps/frontend && pnpm run build  # Should work alone
+
+# Verify local imports are working
+cd apps/backend && grep -r "from './types/" src/
+# Should show local type imports
+```
+
+---
+
+## 🚀 **Final Reminder**
+
+**The goal was MAXIMUM SIMPLIFICATION - and we achieved it!**
+
+- **✅ Zero workspace dependencies** - Each app is completely independent
+- **✅ ESM compatibility** - iExec SDK works perfectly
+- **✅ Simple deployment** - Railway and Vercel work out of the box
+- **✅ Maintainable** - New developers can understand it instantly
+
+**If it builds independently and deploys reliably, you're done. Ship it!** 🚀
 
 ## 📝 **LLM Context Template**
 
@@ -369,34 +357,3 @@ Please provide the SIMPLEST solution that maintains the architecture above.
 ```
 
 ---
-
-## 🎉 **Success Metrics**
-
-**✅ You're doing it right when:**
-- New developers can run `pnpm run dev` and it works
-- Build process is explainable in one sentence
-- No custom verification scripts needed
-- Deployments work on first try
-- Adding features doesn't require build changes
-
-**❌ You're overcomplicating when:**
-- Need multiple commands to start development
-- Build process requires documentation
-- Custom scripts for "fixing" builds
-- Deployment requires custom configurations
-- New features break existing builds
-
----
-
-## 🚀 **Final Reminder**
-
-**The goal is a working prototype, not enterprise architecture.**
-
-- **Don't** optimize for theoretical scale
-- **Don't** add tools "just in case"  
-- **Don't** create custom solutions for standard problems
-- **Do** keep it simple and working
-- **Do** add complexity only when proven necessary
-- **Do** prioritize shipping over perfect architecture
-
-**If it builds and deploys reliably, you're done. Ship it!** 🚀

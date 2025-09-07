@@ -1,5 +1,5 @@
 import { IsString, IsInt, IsEnum, IsPositive } from 'class-validator';
-import { SupportedNetwork } from '@tempwallet/shared';
+import { SupportedNetwork } from '../../types/shared.js';
 
 export class CreateWalletDto {
   @IsString()

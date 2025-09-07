@@ -9,8 +9,8 @@ import {
   ConnectedSocket,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { TempWallet } from '@tempwallet/prisma';
-import { SupportedNetwork } from '@tempwallet/shared'; // Import SupportedNetwork enum
+import { TempWallet } from '../types/prisma.js';
+import { SupportedNetwork } from '../types/shared.js'; // Import SupportedNetwork enum
 
 // Define the shape of our balance update message
 // --- UPDATED INTERFACE ---

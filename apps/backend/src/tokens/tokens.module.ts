@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TokensService } from './tokens.service.js';
 import { TokensController } from './tokens.controller.js';
-import { PrismaModule } from '@tempwallet/prisma'; 
+import { PrismaModule } from '../types/prisma.js'; 
 
 @Module({
   imports: [PrismaModule], 

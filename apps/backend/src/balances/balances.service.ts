@@ -1,8 +1,8 @@
 import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 // import { ConfigService } from '@nestjs/config'; // Removed Zerion API Key dependency
 // import axios from 'axios'; // Removed Zerion API client dependency
-import { PrismaService, TempWallet, SupportedNetwork } from '@tempwallet/prisma';
-// import { TokenDetails, NETWORKS, NetworkConfig } from '@tempwallet/shared'; // Removed Zerion related imports
+import { PrismaService, TempWallet, SupportedNetwork } from '../types/prisma.js';
+// import { TokenDetails, NETWORKS, NetworkConfig } from '../types/shared.js'; // Removed Zerion related imports
 
 @Injectable()
 export class BalancesService {

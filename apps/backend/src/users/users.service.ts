@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '@tempwallet/prisma';
+import { PrismaService } from '../types/prisma.js';
 import { ConfigService } from '@nestjs/config';
-import { TelegramRegistrationPayload } from '@tempwallet/shared';
+import { TelegramRegistrationPayload } from '../types/shared.js';
 
 @Injectable()
 export class UsersService {
