@@ -16,11 +16,14 @@
     "backend:dev": "pnpm --filter '@tempwallet/backend' run start:dev",
     "start:backend": "pnpm --filter '@tempwallet/backend' run start:dev",
     "start:frontend": "pnpm --filter '@tempwallet/frontend' run dev",
-  "start": "pnpm --filter '@tempwallet/backend' run start:prod",
-  "deploy:build": "pnpm --filter @tempwallet/backend... build",
-  "deploy:start": "pnpm --filter @tempwallet/prisma exec prisma migrate deploy && pnpm --filter @tempwallet/backend start:prod",
-  "clean": "pnpm -r clean",
-    "clean:packages": "pnpm --filter './packages/*' clean"
+    "start": "pnpm --filter '@tempwallet/backend' run start:prod",
+    "deploy:build": "pnpm --filter @tempwallet/backend... build",
+    "deploy:start": "pnpm --filter @tempwallet/prisma exec prisma migrate deploy && pnpm --filter @tempwallet/backend start:prod",
+    "clean": "pnpm -r clean",
+    "clean:packages": "pnpm --filter './packages/*' clean",
+    "build:shared": "pnpm --filter @tempwallet/shared run build",
+    "build:frontend": "pnpm run build:shared && pnpm --filter @tempwallet/frontend run build",
+    "build:all": "pnpm run build:shared && pnpm --filter @tempwallet/frontend run build"
   },
   "devDependencies": {
     "@types/node": "^20.19.11",

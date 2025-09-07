@@ -640,7 +640,7 @@ function App() {
     } else {
       setNotification({
         brief: 'Connection failed',
-        full: result.error,
+        full: 'error' in result ? result.error : 'Failed to connect wallet',
         type: 'error',
       });
       return false;

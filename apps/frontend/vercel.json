@@ -9,5 +9,9 @@
             "source": "/(.*)",
             "destination": "/index.html"
         }
-    ]
+    ],
+    "buildCommand": "cd ../.. && pnpm install && pnpm --filter @tempwallet/shared run build && cd apps/frontend && pnpm run build",
+    "installCommand": "cd ../.. && pnpm install",
+    "framework": "vite",
+    "outputDirectory": "dist"
 }

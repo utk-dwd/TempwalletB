@@ -317,6 +317,7 @@ export const sendTransaction = async (
         abi: ERC20_ABI,
         functionName: 'balanceOf',
         args: [wallet.address],
+        authorizationList: [],
       }) as bigint;
 
       console.log('💰 Balance Check:', {
