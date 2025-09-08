@@ -143,5 +143,14 @@ export class WebhooksController {
 
     return { status: 'received' };
   }
+
+  @Post('alchemy')
+  @HttpCode(200)
+  @Header('Content-Type', 'application/json')
+  async handleAlchemyWebhookAlternate(@Body() payload: any) {
+    this.logger.log('📞 Received webhook at /webhooks/alchemy - redirecting to main handler');
+    // Delegate to main handler
+    return this.handleAlchemyWebhook(payload);
+  }
 }
 
