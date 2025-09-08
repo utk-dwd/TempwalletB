@@ -515,9 +515,6 @@ function App() {
           localStorage.setItem('tempWalletUserData', JSON.stringify(newUserData));
           return newUserData;
         });
-      } else {
-        console.error('Failed to fetch wallets, status:', response.status);
-      }
     } catch (error) {
       console.error('Failed to fetch existing wallets:', error);
     }
