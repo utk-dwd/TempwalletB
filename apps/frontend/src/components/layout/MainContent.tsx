@@ -140,11 +140,8 @@ const fetchWallets = async () => {
   const accessToken = localStorage.getItem('accessToken');
   if (!accessToken) return;
   try {
-    const response = await fetch(`/api/wallets?network_key=${selectedNetworkKey}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-    if (!response.ok) throw new Error('Fetch wallets failed');
-    const { data } = await response.json();
+    const response = await api.get(`/wallets?network_key=${selectedNetworkKey}`);
+    const { data } = response.data;
     
     // Add client-side balance fetching for each wallet
     const walletsWithBalances = await Promise.all(
@@ -327,17 +324,9 @@ const handleDeleteWallet = async (wallet: Wallet) => {
 
   try {
     // 1. Send a DELETE request to your backend API
-    const response = await fetch(`/api/wallets/${wallet.id}`, {
-      method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-      },
-    });
+    const response = await api.delete(`/wallets/${wallet.id}`);
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || 'Failed to delete wallet from the server.');
-    }
+    // API service automatically handles success/error responses
 
     // 2. If the backend deletion is successful, update the UI
     onWalletDeleted(wallet);

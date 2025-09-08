@@ -17,6 +17,7 @@ import { BlogListing } from '@/components/pages/BlogListing';
 import PresalePage from './components/pages/PresalePage';
 import { connectWallet } from './utils/provider';
 import Settings from './components/pages/Settings';
+import api from '@/services/api.js';
 
 const toCamel = (s: string) => {
   return s.replace(/([-_][a-z])/ig, ($1) => {
@@ -476,23 +477,17 @@ function App() {
       }
 
       console.log('Fetching wallets for address:', walletAddress);
-      // NOTE: The URL might be relative ('/api/wallets') in your actual production code.
-      const response = await fetch('http://localhost:3001/wallets', { 
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      // Use API service instead of hardcoded localhost URL
+      const response = await api.get('/wallets');
 
-      if (response.ok) {
-        const { data } = await response.json();
-        // --- KEY CHANGE: Transform each wallet object ---
-        const wallets: Wallet[] = data.map(transformWalletData);
-        // ---------------------------------------------
-        
-        console.log('Fetched and transformed wallets from backend:', wallets);
-        
-        setUserData(prevUserData => {
+      const { data } = response.data;
+      // --- KEY CHANGE: Transform each wallet object ---
+      const wallets: Wallet[] = data.map(transformWalletData);
+      // ---------------------------------------------
+      
+      console.log('Fetched and transformed wallets from backend:', wallets);
+      
+      setUserData(prevUserData => {
           const newUserData = { ...prevUserData };
           if (!newUserData.accounts) {
             newUserData.accounts = [];
@@ -545,30 +540,23 @@ function App() {
       const signer = await provider.getSigner();
       const signature = await signer.signMessage(message);
 
-      const authResponse = await fetch('http://localhost:3001/auth/authenticate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ walletAddress, signature, message }),
+      const authResponse = await api.post('/auth/authenticate', {
+        walletAddress, 
+        signature, 
+        message
       });
 
-      if (authResponse.ok) {
-        const { accessToken } = await authResponse.json();
-        localStorage.setItem('accessToken', accessToken);
-        console.log('Authentication successful, fetching wallets...');
+      const { accessToken } = authResponse.data;
+      localStorage.setItem('accessToken', accessToken);
+      console.log('Authentication successful, fetching wallets...');
 
-        const walletsResponse = await fetch('http://localhost:3001/wallets', {
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Content-Type': 'application/json',
-          },
-        });
+      const walletsResponse = await api.get('/wallets');
 
-        if (walletsResponse.ok) {
-          const { data } = await walletsResponse.json();
-          // --- KEY CHANGE: Transform each wallet object ---
-          const wallets: Wallet[] = data.map(transformWalletData);
-          // ---------------------------------------------
-          console.log('Fetched and transformed wallets after authentication:', wallets);
+      const { data } = walletsResponse.data;
+      // --- KEY CHANGE: Transform each wallet object ---
+      const wallets: Wallet[] = data.map(transformWalletData);
+      // ---------------------------------------------
+      console.log('Fetched and transformed wallets after authentication:', wallets);
           
           setUserData(prevUserData => {
             const newUserData = { ...prevUserData };
@@ -596,8 +584,6 @@ function App() {
             localStorage.setItem('tempWalletUserData', JSON.stringify(newUserData));
             return newUserData;
           });
-        }
-      }
     } catch (error) {
       console.error('Failed to authenticate and fetch wallets:', error);
     }
@@ -785,18 +771,10 @@ function App() {
       if (!accessToken) throw new Error('No access token found');
 
       // Call backend to soft-delete wallet
-      const response = await fetch(`http://localhost:3001/wallets/${wallet.id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await api.delete(`/wallets/${wallet.id}`);
 
-      if (!response.ok) {
-        throw new Error('Failed to delete wallet in backend');
-      }
-
+      // API service handles response automatically (throws on error)
+      
       // Update local state after successful backend deletion
       setUserData(prevUserData => {
         const newUserData = { ...prevUserData };
