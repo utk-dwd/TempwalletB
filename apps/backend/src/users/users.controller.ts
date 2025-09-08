@@ -17,8 +17,12 @@ export class UsersController {
   }
 
   @Post('register-telegram')
+  @UseGuards(JwtAuthGuard)
   async registerTelegram(@Req() req: Request, @Body() payload: TelegramRegistrationPayload) {
     const user = req.user;
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
     await this.usersService.registerTelegram(user.id, payload);
     return { status: 'success', message: 'Telegram chat ID registered' };
   }
