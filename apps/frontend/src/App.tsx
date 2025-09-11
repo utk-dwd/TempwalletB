@@ -1,5 +1,5 @@
 // src/App.tsx
-import { exportUserData, importUserData } from './utils/exportImport';
+
 import '@/index.css';
 import { AlertCircle, CheckCircle } from 'lucide-react';
 import * as Tooltip from "@radix-ui/react-tooltip";
@@ -14,8 +14,6 @@ import { Wallet, UserData, TransactionStatus } from '@/utils/types';
 import { exportUserData, importUserData } from './utils/exportImport';
 import '@/index.css';
 import { Image } from 'lucide-react';
-import { AlertCircle, CheckCircle } from 'lucide-react';
-import * as Tooltip from "@radix-ui/react-tooltip";
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { BlogListing } from '@/components/pages/BlogListing';
 import PresalePage from './components/pages/PresalePage';
