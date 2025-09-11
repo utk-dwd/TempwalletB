@@ -135,19 +135,24 @@ export function MainContent({ walletAddress, wallets, onWalletCreated, onWalletD
     }
   }, [wallets, sortType, selectedNetworkKey, selectedWallet]);
 
-// Keep this - fetches wallets from backend
+// Fetch all wallets once on mount - filtering by network happens locally
 const fetchWallets = async () => {
   const accessToken = localStorage.getItem('accessToken');
   if (!accessToken) return;
   try {
-    const response = await api.get(`/wallets?network_key=${selectedNetworkKey}`);
+    // Fetch ALL wallets, not just for selected network
+    const response = await api.get('/wallets');
     const { data } = response.data;
     
     // Add client-side balance fetching for each wallet
     const walletsWithBalances = await Promise.all(
       data.map(async (wallet: Wallet) => {
-        const balances = await fetchWalletAllBalances(wallet.address, selectedNetwork);
-        return { ...wallet, allTokenBalances: balances };
+        const network = NETWORKS[wallet.networkKey as keyof typeof NETWORKS];
+        if (network) {
+          const balances = await fetchWalletAllBalances(wallet.address, network);
+          return { ...wallet, allTokenBalances: balances };
+        }
+        return wallet;
       })
     );
     
@@ -157,10 +162,10 @@ const fetchWallets = async () => {
   }
 };
 
-// Keep this useEffect
+// Fetch wallets only once when component mounts - not when network changes
 useEffect(() => {
   fetchWallets();
-}, [selectedNetworkKey]);
+}, []); // Empty dependency array = run only once on mount
 
 const handleSortChange = () => {
   const newSortType = sortType === 'original' ? 'walletNumber' : sortType === 'walletNumber' ? 'balance' : 'original';
