@@ -18,6 +18,8 @@ import PresalePage from './components/pages/PresalePage';
 import { connectWallet } from './utils/provider';
 import Settings from './components/pages/Settings';
 import api from '@/services/api.js';
+import { NETWORKS } from '@/utils/networks';
+import { fetchWalletAllBalances } from '@/utils/walletUtils';
 
 const toCamel = (s: string) => {
   return s.replace(/([-_][a-z])/ig, ($1) => {
@@ -279,7 +281,8 @@ function AppRoutes({
   onWalletCreated,
   onWalletDeleted,
   onTransactionSent,
-  setNotification
+  setNotification,
+  onRefreshWallets
 }: {
   walletAddress: string | null;
   currentAccountWallets: Wallet[];
@@ -287,6 +290,7 @@ function AppRoutes({
   onWalletDeleted: (wallet: Wallet) => void;
   onTransactionSent: (wallet: Wallet, status: TransactionStatus) => void;
   setNotification: (notification: { brief: string; full: string; type: 'error' | 'success' } | null) => void;
+  onRefreshWallets: () => Promise<void>;
 }) {
   return (
     <Routes>
@@ -301,6 +305,7 @@ function AppRoutes({
             onWalletDeleted={onWalletDeleted}
             onTransactionSent={onTransactionSent}
             setNotification={setNotification}
+            onRefreshWallets={onRefreshWallets}
           />
         }
       />
@@ -435,6 +440,7 @@ function AppRouterContent(props: any) {
         onWalletDeleted={props.handleWalletDeleted}
         onTransactionSent={props.handleTransactionSent}
         setNotification={props.setNotification}
+        onRefreshWallets={props.onRefreshWallets}
       />
     </AppLayout>
   );
@@ -481,11 +487,22 @@ function App() {
       const response = await api.get('/wallets');
 
       const { data } = response.data;
-      // --- KEY CHANGE: Transform each wallet object ---
-      const wallets: Wallet[] = data.map(transformWalletData);
+      // --- KEY CHANGE: Transform each wallet object and fetch balances ---
+      const walletsWithBalances = await Promise.all(
+        data.map(async (wallet: any) => {
+          const transformedWallet = transformWalletData(wallet);
+          
+          const network = NETWORKS[transformedWallet.networkKey as keyof typeof NETWORKS];
+          if (network) {
+            const balances = await fetchWalletAllBalances(transformedWallet.address, network);
+            return { ...transformedWallet, allTokenBalances: balances };
+          }
+          return transformedWallet;
+        })
+      );
       // ---------------------------------------------
       
-      console.log('Fetched and transformed wallets from backend:', wallets);
+      console.log('Fetched and transformed wallets from backend with balances:', walletsWithBalances);
       
       setUserData(prevUserData => {
           const newUserData = { ...prevUserData };
@@ -499,13 +516,13 @@ function App() {
               account: walletAddress,
               name: walletName,
               externalAccountNumber: 1,
-              wallets: wallets || []
+              wallets: walletsWithBalances || []
             };
             newUserData.accounts = [...newUserData.accounts, newAccount];
             console.log('Created new account with wallets:', newAccount);
           } else {
             const account = { ...newUserData.accounts[accountIndex] };
-            account.wallets = wallets || [];
+            account.wallets = walletsWithBalances || [];
             newUserData.accounts = newUserData.accounts.map((acc, index) =>
               index === accountIndex ? account : acc
             );
@@ -550,10 +567,21 @@ function App() {
       const walletsResponse = await api.get('/wallets');
 
       const { data } = walletsResponse.data;
-      // --- KEY CHANGE: Transform each wallet object ---
-      const wallets: Wallet[] = data.map(transformWalletData);
+      // --- KEY CHANGE: Transform each wallet object and fetch balances ---
+      const walletsWithBalances = await Promise.all(
+        data.map(async (wallet: any) => {
+          const transformedWallet = transformWalletData(wallet);
+          
+          const network = NETWORKS[transformedWallet.networkKey as keyof typeof NETWORKS];
+          if (network) {
+            const balances = await fetchWalletAllBalances(transformedWallet.address, network);
+            return { ...transformedWallet, allTokenBalances: balances };
+          }
+          return transformedWallet;
+        })
+      );
       // ---------------------------------------------
-      console.log('Fetched and transformed wallets after authentication:', wallets);
+      console.log('Fetched and transformed wallets after authentication with balances:', walletsWithBalances);
           
           setUserData(prevUserData => {
             const newUserData = { ...prevUserData };
@@ -942,6 +970,7 @@ function App() {
         setNotification={setNotification}
         isNotificationExpanded={isNotificationExpanded}
         setIsNotificationExpanded={setIsNotificationExpanded}
+        onRefreshWallets={fetchExistingWallets}
       />
     </Router>
   );

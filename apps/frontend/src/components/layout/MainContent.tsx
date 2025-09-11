@@ -30,6 +30,7 @@ interface MainContentProps {
   onWalletDeleted: (wallet: Wallet) => void;
   onTransactionSent: (wallet: Wallet, status: TransactionStatus) => void;
   setNotification: (notification: { brief: string; full: string; type: 'error' | 'success' } | null) => void;
+  onRefreshWallets: () => Promise<void>;
 }
 
 type SortType = 'original' | 'walletNumber' | 'balance';
@@ -40,7 +41,7 @@ interface Notification {
   type: 'error' | 'success';
 }
 
-export function MainContent({ walletAddress, wallets, onWalletCreated, onWalletDeleted, onTransactionSent, setNotification }: MainContentProps) {
+export function MainContent({ walletAddress, wallets, onWalletCreated, onWalletDeleted, onTransactionSent, setNotification, onRefreshWallets }: MainContentProps) {
   const [isCustomWalletModalOpen, setIsCustomWalletModalOpen] = useState(false);
   const [isSendModalOpen, setIsSendModalOpen] = useState(false);
   const [selectedWallet, setSelectedWallet] = useState<Wallet | null>(null);
@@ -140,23 +141,9 @@ const fetchWallets = async () => {
   const accessToken = localStorage.getItem('accessToken');
   if (!accessToken) return;
   try {
-    // Fetch ALL wallets, not just for selected network
-    const response = await api.get('/wallets');
-    const { data } = response.data;
-    
-    // Add client-side balance fetching for each wallet
-    const walletsWithBalances = await Promise.all(
-      data.map(async (wallet: Wallet) => {
-        const network = NETWORKS[wallet.networkKey as keyof typeof NETWORKS];
-        if (network) {
-          const balances = await fetchWalletAllBalances(wallet.address, network);
-          return { ...wallet, allTokenBalances: balances };
-        }
-        return wallet;
-      })
-    );
-    
-    walletsWithBalances.forEach((wallet: Wallet) => onWalletCreated(wallet));
+    // Instead of calling onWalletCreated for each wallet (which causes state issues),
+    // we'll call the parent's refresh function which properly handles the full wallet list
+    await onRefreshWallets();
   } catch (err: any) {
     setNotification({ brief: 'Fetch failed', full: err.message, type: 'error' });
   }
@@ -214,8 +201,11 @@ const handleCreateNewTempWallet = async () => {
     const balances = await fetchWalletAllBalances(savedWallet.address, selectedNetwork);
     const walletWithBalances = { ...savedWallet, allTokenBalances: balances };
     
-    // 4. Update the UI state - no need to refresh full list since we already have the new wallet
+    // 4. Update the UI state - add the new wallet AND refresh the full list to ensure consistency
     onWalletCreated(walletWithBalances);
+    
+    // 5. Refresh the full wallet list to ensure everything is in sync
+    await onRefreshWallets();
     
   } catch (err: any) {
     console.error('Wallet creation error:', err);
@@ -248,8 +238,9 @@ const handleCreateRandomTempWallet = async () => {
     // 3. Send the new wallet to the backend
     const savedWallet = await sendWalletToBackend(wallet, accessToken);
 
-    // 4. Update UI immediately - no need to refresh full list
+    // 4. Update UI immediately and refresh the full list to ensure consistency
     onWalletCreated(savedWallet);
+    await onRefreshWallets();
     setNotification({ brief: 'Success', full: `Random Wallet #${savedWallet.walletNumber} created.`, type: 'success' });
 
   } catch (err: any) {
@@ -294,8 +285,9 @@ const handleCreateCustomTempWallet = async () => {
     // 3. Send the new wallet to the backend
     const savedWallet = await sendWalletToBackend(wallet, accessToken);
 
-    // 4. Update UI immediately and close the modal - no need to refresh full list
+    // 4. Update UI immediately and close the modal, then refresh the full list
     onWalletCreated(savedWallet);
+    await onRefreshWallets();
     setIsCustomWalletModalOpen(false);
     setCustomIndex('');
     setNotification({ brief: 'Success', full: `Custom Wallet #${savedWallet.walletNumber} created.`, type: 'success' });
