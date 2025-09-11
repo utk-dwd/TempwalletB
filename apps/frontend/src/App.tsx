@@ -1,4 +1,7 @@
-// src/App.tsx
+// src/Apimport { exportUserData, importUserData } from './utils/exportImport';
+import '@/index.css';
+import { AlertCircle, CheckCircle } from 'lucide-react';
+import * as Tooltip from "@radix-ui/react-tooltip";
 import { useState, useEffect, useRef, Dispatch, SetStateAction } from 'react';
 import { ethers } from 'ethers';
 import { Header } from '@/components/layout/Header';
@@ -359,53 +362,7 @@ function AppRouterContent(props: any) {
     }
   };
 
-  if (!props.hasSubmittedName) {
-    return (
-      <>
-        {/* Background wrapper with dynamic image */}
-        <div className="app-background" style={{ backgroundImage: `url(${props.backgroundImages[props.bgIndex]})` }} />
-        <div className="app-container relative min-h-screen flex items-center justify-center">
-          <div className="name-form bg-[var(--overlay)] backdrop-blur-[var(--blur)] rounded-xl p-6 shadow-lg max-w-md w-full">
-            <h1 className="text-4xl font-bold text-white mb-4">Temp Wallet dApp</h1>
-            <form onSubmit={props.handleNameSubmit} className="space-y-4">
-              <label htmlFor="name-input" className="text-lg font-medium text-white">
-                Enter Your Name
-              </label>
-              <input
-                id="name-input"
-                type="text"
-                value={props.name}
-                onChange={(e) => props.setName(e.target.value)}
-                placeholder="Your Name"
-                autoFocus
-                className="w-full px-3 py-2 bg-transparent text-white placeholder-white/50 border border-white/20 rounded-[var(--radius)] focus:outline-none focus:ring-2 focus:ring-white"
-              />
-              <button
-                type="submit"
-                className="w-full px-4 py-2 bg-primary text-primary-foreground rounded-[var(--radius)] hover:bg-gray-400/50 hover:scale-105 hover:shadow-md transition-all duration-200"
-              >
-                Submit
-              </button>
-            </form>
-          </div>
-          {/* Background switcher button */}
-          <button
-            className="fixed bottom-4 right-4 p-2 bg-primary text-primary-foreground rounded-full shadow-md hover:bg-[#3C3AB4] z-10"
-            onClick={props.handleSwitchBackground}
-            aria-label="Switch background image"
-          >
-            <Image className="w-6 h-6" />
-          </button>
-        </div>
-        <NotificationComponent
-          notification={props.notification}
-          isExpanded={props.isNotificationExpanded}
-          setIsExpanded={props.setIsNotificationExpanded}
-        />
-      </>
-    );
-  }
-
+  // Skip name form - go directly to AppLayout
   return (
     <AppLayout
       activeItem={props.activeItem}
@@ -449,12 +406,11 @@ function AppRouterContent(props: any) {
 // Replace your existing App function with this corrected version
 function App() {
   // 1. All state declarations first
-  const [showLandingPage, setShowLandingPage] = useState<boolean>(true);
+  const [showLandingPage, setShowLandingPage] = useState<boolean>(false); // Skip landing page for now
   const [isDesktop, setIsDesktop] = useState<boolean>(true);
   const [showProfile, setShowProfile] = useState<boolean>(false);
   const [activeItem, setActiveItem] = useState<string>('Dashboard');
-  const [hasSubmittedName, setHasSubmittedName] = useState<boolean>(false);
-  const [name, setName] = useState<string>('');
+  const [name, setName] = useState<string>('USER'); // Default name, no prompt needed
   const [profilePicture, setProfilePicture] = useState<string | null>(null);
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [walletName, setWalletName] = useState<string>('wallet-name');
@@ -704,8 +660,7 @@ function App() {
 
 
   const handleLogout = () => {
-    setHasSubmittedName(false);
-    setName('');
+    setName('USER'); // Reset to default name
     setProfilePicture(null);
     setWalletAddress(null);
     setWalletName('wallet-name');
@@ -715,14 +670,6 @@ function App() {
     localStorage.removeItem('tempWalletProfile');
     localStorage.removeItem('tempWalletNames');
     localStorage.setItem('tempWalletUserData', JSON.stringify({ accounts: [], activeAccount: null, walletNames: {} }));
-  };
-
-  const handleNameSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (name.trim()) {
-      setHasSubmittedName(true);
-      localStorage.setItem('tempWalletProfile', JSON.stringify({ name, profilePicture }));
-    }
   };
 
   const handleEditProfile = (newName: string, newProfilePicture: string | null) => {
@@ -868,8 +815,10 @@ function App() {
       if (storedName) {
         setName(storedName);
         setProfilePicture(storedProfilePicture || null);
-        setHasSubmittedName(true);
       }
+    } else {
+      // Auto-create profile with default name "USER" for new users
+      localStorage.setItem('tempWalletProfile', JSON.stringify({ name: 'USER', profilePicture: null }));
     }
 
     const storedUserData = localStorage.getItem('tempWalletUserData');
@@ -939,10 +888,8 @@ function App() {
   return (
     <Router>
       <AppRouterContent
-        hasSubmittedName={hasSubmittedName}
         name={name}
         setName={setName}
-        handleNameSubmit={handleNameSubmit}
         backgroundImages={backgroundImages}
         bgIndex={bgIndex}
         handleSwitchBackground={handleSwitchBackground}
