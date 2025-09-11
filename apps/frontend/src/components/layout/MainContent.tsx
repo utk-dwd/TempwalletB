@@ -209,9 +209,8 @@ const handleCreateNewTempWallet = async () => {
     const balances = await fetchWalletAllBalances(savedWallet.address, selectedNetwork);
     const walletWithBalances = { ...savedWallet, allTokenBalances: balances };
     
-    // 4. Update the UI state and refresh the wallet list from the backend
+    // 4. Update the UI state - no need to refresh full list since we already have the new wallet
     onWalletCreated(walletWithBalances);
-    await fetchWallets(); // Refresh the full list to ensure consistency
     
   } catch (err: any) {
     console.error('Wallet creation error:', err);
@@ -244,9 +243,8 @@ const handleCreateRandomTempWallet = async () => {
     // 3. Send the new wallet to the backend
     const savedWallet = await sendWalletToBackend(wallet, accessToken);
 
-    // 4. Update UI and refresh the list from the backend
+    // 4. Update UI immediately - no need to refresh full list
     onWalletCreated(savedWallet);
-    await fetchWallets();
     setNotification({ brief: 'Success', full: `Random Wallet #${savedWallet.walletNumber} created.`, type: 'success' });
 
   } catch (err: any) {
@@ -291,9 +289,8 @@ const handleCreateCustomTempWallet = async () => {
     // 3. Send the new wallet to the backend
     const savedWallet = await sendWalletToBackend(wallet, accessToken);
 
-    // 4. Update UI, refresh list, and close the modal
+    // 4. Update UI immediately and close the modal - no need to refresh full list
     onWalletCreated(savedWallet);
-    await fetchWallets();
     setIsCustomWalletModalOpen(false);
     setCustomIndex('');
     setNotification({ brief: 'Success', full: `Custom Wallet #${savedWallet.walletNumber} created.`, type: 'success' });

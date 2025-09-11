@@ -3,7 +3,7 @@ import { Controller, Post, Body, HttpCode, Header, Logger } from '@nestjs/common
 import { BalancesService } from '../balances/balances.service.js';
 import { NotificationsGateway } from '../notifications/notifications.gateway.js';
 import { IexecService } from '../iexec/iexec.service.js';
-import { SupportedNetwork } from '../types/shared.js';
+import { SupportedNetwork, NETWORKS } from '../types/shared.js';
 
 @Controller('webhooks')
 export class WebhooksController {
@@ -15,6 +15,22 @@ export class WebhooksController {
     private readonly notificationsGateway: NotificationsGateway,
     private readonly iexecService: IexecService,
   ) {}
+
+  /**
+   * Maps NATIVE token to actual network currency symbol
+   */
+  private getNativeTokenSymbol(networkKey: SupportedNetwork): string {
+    const networkConfig = NETWORKS[networkKey];
+    return networkConfig?.symbol || 'NATIVE';
+  }
+
+  /**
+   * Gets the explorer URL for the network
+   */
+  private getExplorerUrl(networkKey: SupportedNetwork): string {
+    const networkConfig = NETWORKS[networkKey];
+    return networkConfig?.explorerUrl || '';
+  }
 
   private mapAlchemyNetworkToEnum(network: string): SupportedNetwork | null {
     switch (network) {
@@ -100,13 +116,24 @@ export class WebhooksController {
                 if (protectedData) {
                   this.logger.log(`Sending Telegram notification for wallet ${toAddress} to protectedData ${protectedData}`);
                   
-                  // Format the message with better formatting
-                  const messageContent = `🔔 New Transaction on ${networkKey}!\n\n` +
-                                         `💰 Amount: ${tokenInfo.amount} ${tokenInfo.symbol}\n` +
-                                         `📬 To: ${toAddress.slice(0, 10)}...${toAddress.slice(-8)}\n` +
-                                         `📤 From: ${activity.fromAddress?.slice(0, 10)}...${activity.fromAddress?.slice(-8)}\n` +
-                                         `🔗 TxHash: ${activity.hash?.slice(0, 10)}...${activity.hash?.slice(-8)}\n` +
-                                         `📋 Type: ${activity.category}`;
+                  // Map NATIVE token to actual network currency
+                  let displayTokenSymbol = tokenInfo.symbol;
+                  if (tokenInfo.symbol === 'NATIVE') {
+                    displayTokenSymbol = this.getNativeTokenSymbol(networkKey);
+                  }
+
+                  // Construct explorer link
+                  const explorerUrl = this.getExplorerUrl(networkKey);
+                  const explorerLink = explorerUrl ? `${explorerUrl}/tx/${activity.hash}` : activity.hash;
+
+                  // Format the message with the new desired format
+                  const messageContent = `✅ Hello, you've received crypto in your TempWallet. Check your account from desktop now!\n\n\n` +
+                                         `Token Received: ${displayTokenSymbol}\n` +
+                                         `Amount: ${tokenInfo.amount}\n` +
+                                         `Network: ${networkKey}\n` +
+                                         `Your TempWallet Address: ${toAddress}\n` +
+                                         `Sender Wallet Address: ${activity.fromAddress || 'Unknown'}\n` +
+                                         `TxHash: ${explorerLink}`;
                   
                   // Send via iExec with error handling
                   const response = await this.iexecService.sendMessage({

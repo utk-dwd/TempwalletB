@@ -3,6 +3,7 @@ import { PrismaService } from '../types/prisma.js';
 import { ConfigService } from '@nestjs/config';
 import { TelegramRegistrationPayload } from '../types/shared.js';
 import { TelegramIntegrationService } from '../telegram-integration/telegram-integration.service.js';
+import { IexecService } from '../iexec/iexec.service.js';
 
 @Injectable()
 export class UsersService {
@@ -12,6 +13,7 @@ export class UsersService {
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
     private readonly telegramIntegrationService: TelegramIntegrationService,
+    private readonly iexecService: IexecService,
   ) {}
 
   async findOneByMetamaskAddress(metamask_address: string) {
@@ -98,6 +100,31 @@ export class UsersService {
       });
 
       this.logger.log(`Telegram registration completed for user ${userId}: protectedData ${protectedData.address}`);
+
+      // Send welcome message to user's Telegram
+      try {
+        const welcomeMessage = `🎉 Welcome to TempWallets.com!\n\n` +
+                               `Your Telegram ID is successfully registered for transaction alerts. ` +
+                               `You're all set to receive notifications for your TempWallets!\n\n` +
+                               `You will now be notified whenever you receive crypto in any of your TempWallets. ` +
+                               `Happy trading! 🚀`;
+
+        const welcomeResponse = await this.iexecService.sendMessage({
+          protectedData: protectedData.address,
+          senderName: 'TempWallet Welcome',
+          telegramContent: welcomeMessage,
+          useVoucher: true,
+        });
+
+        this.logger.log(`Welcome message sent successfully to user ${userId}. Task ID: ${welcomeResponse.taskId}`);
+      } catch (welcomeError) {
+        const err = welcomeError as Error;
+        this.logger.error(
+          `Failed to send welcome message to user ${userId}: ${err.message}`,
+          err.stack
+        );
+        // Don't throw here - the registration was successful, welcome message is just a bonus
+      }
 
       // If this is the first time registering telegram, register all existing wallets with Alchemy
       if (isFirstRegistration) {
