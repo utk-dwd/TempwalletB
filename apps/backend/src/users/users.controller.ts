@@ -1,13 +1,17 @@
 // apps/backend/src/users/users.controller.ts
-import { Controller, Get, Post, Body, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Req, UseGuards, Param } from '@nestjs/common';
 import { Request } from 'express';
 import { UsersService } from './users.service.js';              // ✅ ADD .js extension
 import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';       // ✅ ADD .js extension
 import { TelegramRegistrationPayload } from './dto/telegram-registration.dto.js'; // ✅ ADD .js extension
+import { TelegramIntegrationService } from '../telegram-integration/telegram-integration.service.js';
 
 @Controller('users')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly telegramIntegrationService: TelegramIntegrationService,
+  ) {}
 
   @Get('me')
   async getProfile(@Req() req: Request) {
@@ -25,5 +29,25 @@ export class UsersController {
     }
     await this.usersService.registerTelegram(user.id, payload);
     return { status: 'success', message: 'Telegram chat ID registered' };
+  }
+
+  @Post('trigger-wallet-registration')
+  @UseGuards(JwtAuthGuard)
+  async triggerWalletRegistration(@Req() req: Request) {
+    const user = req.user;
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+    
+    // Trigger manual retroactive registration for testing/edge cases
+    this.telegramIntegrationService.registerUserWalletsWithAlchemy(user.id)
+      .catch((error) => {
+        console.error(`Manual wallet registration failed for user ${user.id}:`, error);
+      });
+    
+    return { 
+      status: 'success', 
+      message: 'Manual wallet registration triggered in background' 
+    };
   }
 }

@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../types/prisma.js';
 import { ConfigService } from '@nestjs/config';
 import { TelegramRegistrationPayload } from '../types/shared.js';
+import { TelegramIntegrationService } from '../telegram-integration/telegram-integration.service.js';
 
 @Injectable()
 export class UsersService {
@@ -10,6 +11,7 @@ export class UsersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
+    private readonly telegramIntegrationService: TelegramIntegrationService,
   ) {}
 
   async findOneByMetamaskAddress(metamask_address: string) {
@@ -50,6 +52,13 @@ export class UsersService {
       if (!payload.chatId || typeof payload.chatId !== 'string') {
         throw new Error('Invalid Telegram Chat ID');
       }
+
+      // Check if this is the user's first telegram registration
+      const isFirstRegistration = await this.telegramIntegrationService.isFirstTelegramRegistration(
+        userId, 
+        payload.chatId
+      );
+
       // Dynamically import ESM-only iExec dataprotector when needed
       const { IExecDataProtectorCore, getWeb3Provider } = await import('@iexec/dataprotector');
       const privateKey = this.configService.get<string>('IEXEC_BACKEND_PRIVATE_KEY');
@@ -81,11 +90,32 @@ export class UsersService {
           this.logger.log(`GrantAccess status: ${title} - ${isDone ? 'Done' : 'In progress'}`);
         },
       });
+
+      // Update user's telegram_protected_data
       await this.prisma.user.update({
         where: { id: userId },
         data: { telegram_protected_data: protectedData.address },
       });
+
       this.logger.log(`Telegram registration completed for user ${userId}: protectedData ${protectedData.address}`);
+
+      // If this is the first time registering telegram, register all existing wallets with Alchemy
+      if (isFirstRegistration) {
+        this.logger.log(`First-time telegram registration detected for user ${userId}. Triggering retroactive wallet registration...`);
+        
+        // Run this asynchronously to avoid blocking the main telegram registration response
+        this.telegramIntegrationService.registerUserWalletsWithAlchemy(userId)
+          .catch((error) => {
+            this.logger.error(
+              `Background wallet registration failed for user ${userId} after telegram registration:`,
+              error
+            );
+            // Don't throw here - the main telegram registration was successful
+          });
+      } else {
+        this.logger.log(`User ${userId} has previously registered telegram. Skipping retroactive wallet registration.`);
+      }
+
     } catch (error) {
       const err = error as Error;
       this.logger.error(`Failed to register Telegram for user ${userId}: ${err.message}`, err.stack);

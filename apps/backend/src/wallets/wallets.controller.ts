@@ -1,3 +1,5 @@
+// apps/backend/src/wallets/wallets.controller.ts
+
 import { Controller, Post, Get, Delete, Param, Body, UseGuards, Query, Req } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
 import { WalletsService } from './wallets.service.js';

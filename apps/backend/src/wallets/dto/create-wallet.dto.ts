@@ -1,3 +1,5 @@
+// apps/backend/src/wallets/dto/create-wallet.dto.ts
+
 import { IsString, IsInt, IsEnum, IsPositive } from 'class-validator';
 import { SupportedNetwork } from '../../types/shared.js';
 

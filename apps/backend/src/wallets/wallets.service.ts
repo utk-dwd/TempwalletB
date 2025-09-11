@@ -1,3 +1,5 @@
+// apps/backend/src/wallets/wallets.service.ts
+
 import { Injectable, NotFoundException, Logger, ConflictException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService, TempWallet, User} from '../types/prisma.js';
