@@ -1,4 +1,5 @@
-// src/Apimport { exportUserData, importUserData } from './utils/exportImport';
+// src/App.tsx
+import { exportUserData, importUserData } from './utils/exportImport';
 import '@/index.css';
 import { AlertCircle, CheckCircle } from 'lucide-react';
 import * as Tooltip from "@radix-ui/react-tooltip";
@@ -406,7 +407,7 @@ function AppRouterContent(props: any) {
 // Replace your existing App function with this corrected version
 function App() {
   // 1. All state declarations first
-  const [showLandingPage, setShowLandingPage] = useState<boolean>(false); // Skip landing page for now
+  const [showLandingPage, setShowLandingPage] = useState<boolean>(true); // Show animation loading first
   const [isDesktop, setIsDesktop] = useState<boolean>(true);
   const [showProfile, setShowProfile] = useState<boolean>(false);
   const [activeItem, setActiveItem] = useState<string>('Dashboard');
