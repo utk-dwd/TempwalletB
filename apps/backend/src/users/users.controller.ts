@@ -1,5 +1,5 @@
 // apps/backend/src/users/users.controller.ts
-import { Controller, Get, Post, Body, Req, UseGuards, Param } from '@nestjs/common';
+import { Controller, Get, Post, Put, Body, Req, UseGuards, Param } from '@nestjs/common';
 import { Request } from 'express';
 import { UsersService } from './users.service.js';              // ✅ ADD .js extension
 import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';       // ✅ ADD .js extension
@@ -20,6 +20,16 @@ export class UsersController {
     return user;
   }
 
+  @Get('telegram/status')
+  @UseGuards(JwtAuthGuard)
+  async getTelegramStatus(@Req() req: Request) {
+    const user = req.user;
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+    return await this.usersService.getTelegramStatus(user.id);
+  }
+
   @Post('register-telegram')
   @UseGuards(JwtAuthGuard)
   async registerTelegram(@Req() req: Request, @Body() payload: TelegramRegistrationPayload) {
@@ -29,6 +39,17 @@ export class UsersController {
     }
     await this.usersService.registerTelegram(user.id, payload);
     return { status: 'success', message: 'Telegram chat ID registered' };
+  }
+
+  @Put('telegram')
+  @UseGuards(JwtAuthGuard)
+  async updateTelegram(@Req() req: Request, @Body() payload: TelegramRegistrationPayload) {
+    const user = req.user;
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+    await this.usersService.updateTelegram(user.id, payload);
+    return { status: 'success', message: 'Telegram chat ID updated' };
   }
 
   @Post('trigger-wallet-registration')

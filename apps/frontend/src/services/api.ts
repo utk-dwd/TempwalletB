@@ -27,4 +27,14 @@ export const registerTelegram = async (payload: TelegramRegistrationPayload) => 
   return response.data;
 };
 
+export const getTelegramStatus = async () => {
+  const response = await api.get('/users/telegram/status');
+  return response.data;
+};
+
+export const updateTelegram = async (payload: TelegramRegistrationPayload) => {
+  const response = await api.put('/users/telegram', payload);
+  return response.data;
+};
+
 export default api;

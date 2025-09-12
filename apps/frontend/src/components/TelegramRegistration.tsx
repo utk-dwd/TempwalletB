@@ -1,12 +1,12 @@
 // frontend/src/components/TelegramRegistration.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, ExternalLink, CheckCircle, AlertCircle } from 'lucide-react';
-import api from '../services/api';
+import { Loader2, ExternalLink, CheckCircle, AlertCircle, Edit3, MessageCircle } from 'lucide-react';
+import { getTelegramStatus, updateTelegram } from '../services/api';
 import { TelegramRegistrationPayload } from '../types/shared.js';
 
 // Telegram Logo SVG Component with official Telegram blue
@@ -20,11 +20,38 @@ const TelegramLogo = () => (
   </svg>
 );
 
+interface TelegramStatus {
+  isRegistered: boolean;
+  chatId?: string;
+}
+
 const TelegramRegistration: React.FC = () => {
   const [chatId, setChatId] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [telegramStatus, setTelegramStatus] = useState<TelegramStatus>({ isRegistered: false });
+  const [isCheckingStatus, setIsCheckingStatus] = useState(true);
+  const [isUpdateMode, setIsUpdateMode] = useState(false);
+
+  // Check telegram status on component mount
+  useEffect(() => {
+    checkTelegramStatus();
+  }, []);
+
+  const checkTelegramStatus = async () => {
+    try {
+      setIsCheckingStatus(true);
+      const status = await getTelegramStatus();
+      setTelegramStatus(status);
+    } catch (err) {
+      console.error('Failed to check telegram status:', err);
+      // If status check fails, assume not registered
+      setTelegramStatus({ isRegistered: false });
+    } finally {
+      setIsCheckingStatus(false);
+    }
+  };
 
   // Validation function for Chat ID
   const validateChatId = (value: string): boolean => {
@@ -69,88 +96,176 @@ const TelegramRegistration: React.FC = () => {
         chatId: chatId.trim(),
         protectedData: '' // Add protectedData to match interface
       };
-      await api.post('/auth/register-telegram', payload);
-      setMessage('Telegram Chat ID registered successfully!');
+
+      if (isUpdateMode) {
+        await updateTelegram(payload);
+        setMessage('Telegram Chat ID updated successfully!');
+        setIsUpdateMode(false);
+      } else {
+        // This would be the original registration logic
+        // For now, we'll use the update endpoint for consistency
+        await updateTelegram(payload);
+        setMessage('Telegram Chat ID registered successfully!');
+      }
+      
       setChatId('');
+      // Refresh status after successful operation
+      await checkTelegramStatus();
     } catch (err) {
-      setError('Failed to register Telegram Chat ID. Please try again.');
+      setError(`Failed to ${isUpdateMode ? 'update' : 'register'} Telegram Chat ID. Please try again.`);
       console.error(err);
     } finally {
       setIsLoading(false);
     }
   };
 
+  const handleUpdateClick = () => {
+    setIsUpdateMode(true);
+    setMessage('');
+    setError('');
+    setChatId('');
+  };
+
+  const handleCancelUpdate = () => {
+    setIsUpdateMode(false);
+    setChatId('');
+    setMessage('');
+    setError('');
+  };
+
+  // Show loading state while checking status
+  if (isCheckingStatus) {
+    return (
+      <Card className="w-80 shadow-xl border border-white/20 bg-white/10 backdrop-blur-sm">
+        <CardContent className="p-6">
+          <div className="flex items-center justify-center space-x-2">
+            <Loader2 className="h-5 w-5 animate-spin text-white/80" />
+            <span className="text-white/80">Checking Telegram status...</span>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
-    <Card className="w-90 shadow-xl border border-white/20 bg-white/10 backdrop-blur-sm">
+    <Card className="w-80 shadow-xl border border-white/20 bg-white/10 backdrop-blur-sm">
       <CardHeader className="text-center">
-        <div className="flex items-center">
-          {/* <div className="w-15 h-10 bg-white/30 rounded-full flex items-center justify-center border border-white/20">
+        <div className="flex flex-col items-center gap-3 mb-2">
+          <div className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center border border-white/20">
             <TelegramLogo />
-          </div> */}
+          </div>
           <div className="text-center">
             <CardTitle className="text-xl font-semibold text-white mb-1">
               Telegram Notifications
             </CardTitle>
             <CardDescription className="text-sm text-white/80">
-              Connect your Telegram to receive wallet notifications
+              {telegramStatus.isRegistered && !isUpdateMode
+                ? 'Your Telegram notifications are active'
+                : 'Connect your Telegram to receive wallet notifications'}
             </CardDescription>
           </div>
         </div>
       </CardHeader>
 
       <CardContent className="space-y-4">
-        {/* Instructions */}
-        <div className="bg-white/10 rounded-lg p-4 border border-white/20">
-          <p className="text-sm text-white/80 text-center leading-relaxed">
-            Get your Chat ID from{' '}
-            <a
-              href="https://t.me/iEXECweb3TelegramBot"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-blue-400 hover:text-blue-300 font-medium transition-colors"
+        {/* Registered Status Display */}
+        {telegramStatus.isRegistered && !isUpdateMode && (
+          <>
+            <div className="bg-green-500/10 rounded-lg p-4 border border-green-400/30">
+              <div className="flex items-center gap-3">
+                <CheckCircle className="h-5 w-5 text-green-400" />
+                <div className="flex-1">
+                  <p className="text-green-300 font-medium text-sm">
+                    Telegram Notifications Enabled
+                  </p>
+                  <p className="text-green-300/80 text-xs mt-1">
+                    Chat ID: ••••••••••
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            <Button
+              onClick={handleUpdateClick}
+              className="w-full h-10 bg-blue-600/80 hover:bg-blue-600 text-white text-sm font-medium transition-all duration-200 hover:transform hover:translateY(-1px) hover:shadow-md"
             >
-              @iEXECweb3TelegramBot
-              <ExternalLink className="w-4 h-4" />
-            </a>
-          </p>
-        </div>
+              <Edit3 className="mr-2 h-4 w-4" />
+              Update Chat ID
+            </Button>
+          </>
+        )}
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="chatId" className="text-sm font-medium text-white/90 block text-center">
-              Telegram Chat ID
-            </Label>
-            <Input
-              id="chatId"
-              type="tel"
-              value={chatId}
-              onChange={handleChatIdChange}
-              placeholder="Enter 10-digit Chat ID"
-              className="h-10 text-sm px-4 border-white/30 focus:border-blue-400/30 focus:ring-blue-400/30 bg-white/10 text-white placeholder:text-white/60 text-center"
-              disabled={isLoading}
-              maxLength={10}
-            />
-          </div>
+        {/* Registration/Update Form */}
+        {(!telegramStatus.isRegistered || isUpdateMode) && (
+          <>
+            {/* Instructions */}
+            <div className="bg-white/10 rounded-lg p-4 border border-white/20">
+              <p className="text-sm text-white/80 text-center leading-relaxed">
+                Get your Chat ID from{' '}
+                <a
+                  href="https://t.me/iEXECweb3TelegramBot"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-blue-400 hover:text-blue-300 font-medium transition-colors"
+                >
+                  @iEXECweb3TelegramBot
+                  <ExternalLink className="w-4 h-4" />
+                </a>
+              </p>
+            </div>
 
-          <Button
-            type="submit"
-            className="w-full h-10 bg-[#0088cc] hover:bg-[#0077b3] text-white text-sm font-medium transition-all duration-200 hover:transform hover:translateY(-1px) hover:shadow-md"
-            disabled={isLoading || !chatId.trim()}
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Registering...
-              </>
-            ) : (
-              <>
-                <TelegramLogo />
-                <span className="mr-5">Register Telegram</span>
-              </>
-            )}
-          </Button>
-        </form>
+            {/* Form */}
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="chatId" className="text-sm font-medium text-white/90 block text-center">
+                  {isUpdateMode ? 'New Telegram Chat ID' : 'Telegram Chat ID'}
+                </Label>
+                <Input
+                  id="chatId"
+                  type="tel"
+                  value={chatId}
+                  onChange={handleChatIdChange}
+                  placeholder="Enter 10-digit Chat ID"
+                  className="h-10 text-sm px-4 border-white/30 focus:border-blue-400/30 focus:ring-blue-400/30 bg-white/10 text-white placeholder:text-white/60 text-center"
+                  disabled={isLoading}
+                  maxLength={10}
+                />
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  type="submit"
+                  className="flex-1 h-10 bg-[#0088cc] hover:bg-[#0077b3] text-white text-sm font-medium transition-all duration-200 hover:transform hover:translateY(-1px) hover:shadow-md"
+                  disabled={isLoading || !chatId.trim() || !validateChatId(chatId)}
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      {isUpdateMode ? 'Updating...' : 'Registering...'}
+                    </>
+                  ) : (
+                    <>
+                      <TelegramLogo />
+                      <span className="ml-2">{isUpdateMode ? 'Update' : 'Register'}</span>
+                    </>
+                  )}
+                </Button>
+                
+                {isUpdateMode && (
+                  <Button
+                    type="button"
+                    onClick={handleCancelUpdate}
+                    variant="outline"
+                    className="h-10 px-4 bg-white/10 border-white/30 text-white/80 hover:bg-white/20 hover:text-white"
+                    disabled={isLoading}
+                  >
+                    Cancel
+                  </Button>
+                )}
+              </div>
+            </form>
+          </>
+        )}
 
         {/* Success Message */}
         {message && (
