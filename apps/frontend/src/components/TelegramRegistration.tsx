@@ -178,16 +178,13 @@ const TelegramRegistration: React.FC = () => {
                   <p className="text-green-300 font-medium text-sm">
                     Telegram Notifications Enabled
                   </p>
-                  <p className="text-green-300/80 text-xs mt-1">
-                    Chat ID: ••••••••••
-                  </p>
                 </div>
               </div>
             </div>
             
             <Button
               onClick={handleUpdateClick}
-              className="w-full h-10 bg-blue-600/80 hover:bg-blue-600 text-white text-sm font-medium transition-all duration-200 hover:transform hover:translateY(-1px) hover:shadow-md"
+              className="w-full h-10 bg-[#0088cc] hover:bg-[#0077b3] text-white text-sm font-medium transition-all duration-200 hover:transform hover:translateY(-1px) hover:shadow-md"
             >
               <Edit3 className="mr-2 h-4 w-4" />
               Update Chat ID
