@@ -36,17 +36,95 @@ export class WalletsService {
   }
 
   async createWallet(user: User, dto: CreateWalletDto): Promise<TempWallet> {
-    // Prevent case-variant duplicates for the same network (DB unique is case-sensitive)
+    // Check if wallet already exists (including soft-deleted ones for recovery)
     const existing = await this.prisma.tempWallet.findFirst({
       where: {
         address: { equals: dto.address, mode: 'insensitive' },
         network_key: dto.networkKey,
+        user_id: user.id, // Ensure wallet belongs to the same user
+        // Remove deleted_at filter to include soft-deleted wallets
+      },
+      include: {
+        balances: true,
+        transactions: true,
       },
     });
+
+    // If wallet exists, restore it (recovery scenario)
     if (existing) {
-      throw new ConflictException('Wallet already exists for this address and network');
+      // Check if wallet was soft-deleted and restore it
+      if (existing.deleted_at) {
+        // Restore the wallet by setting deleted_at to null
+        const restoredWallet = await this.prisma.$transaction(async (tx) => {
+          // Restore wallet
+          const wallet = await tx.tempWallet.update({
+            where: { id: existing.id },
+            data: { 
+              deleted_at: null,
+              last_updated: new Date(), // Update timestamp
+            },
+            include: {
+              balances: true,
+              transactions: true,
+            },
+          });
+
+          // Restore associated balances
+          await tx.balance.updateMany({
+            where: { temp_wallet_id: existing.id },
+            data: { deleted_at: null },
+          });
+
+          // Restore associated transactions
+          await tx.transaction.updateMany({
+            where: { temp_wallet_id: existing.id },
+            data: { deleted_at: null },
+          });
+
+          return wallet;
+        });
+
+        this.logger.log(`Deleted wallet restored: ${dto.address} on ${dto.networkKey} for user ${user.id}`);
+        
+        // Track restoration event
+        this.mixpanel.track('WALLET_RESTORATION', {
+          userId: user.id,
+          walletAddress: existing.address,
+          network: dto.networkKey,
+        });
+
+        // Re-register with Alchemy webhook (best-effort)
+        try {
+          await this.alchemyService.addAddressToWebhook(restoredWallet.address, restoredWallet.network_key as SupportedNetwork);
+          this.logger.log(`Re-registered restored wallet ${restoredWallet.address} for ${restoredWallet.network_key} notifications.`);
+        } catch (err) {
+          this.logger.error(`Failed to re-register restored wallet ${restoredWallet.address} for ${restoredWallet.network_key} notifications: ${err}`);
+        }
+
+        // Trigger balance refresh for restored wallet
+        try {
+          await this.balancesService.refreshBalances(restoredWallet.id);
+        } catch (err) {
+          this.logger.error(`Failed to trigger balance refresh for restored wallet ${restoredWallet.id}: ${err}`);
+        }
+
+        return restoredWallet;
+      } else {
+        // Wallet exists and is active - simple recovery
+        this.logger.log(`Active wallet recovered: ${dto.address} on ${dto.networkKey} for user ${user.id}`);
+        
+        // Track recovery event
+        this.mixpanel.track('WALLET_RECOVERY', {
+          userId: user.id,
+          walletAddress: existing.address,
+          network: dto.networkKey,
+        });
+        
+        return existing;
+      }
     }
 
+    // Create new wallet if it doesn't exist
     const wallet = await this.prisma.$transaction(async (tx) => {
       await tx.user.update({
         where: { id: user.id },
@@ -87,6 +165,8 @@ export class WalletsService {
       this.logger.error(`Failed to trigger balance refresh for wallet ${wallet.id}: ${err}`);
     }
 
+    this.logger.log(`Wallet created: ${dto.address} on ${dto.networkKey} for user ${user.id}`);
+    
     this.mixpanel.track('WALLET_CREATION_SUCCESS', {
       userId: user.id,
       walletAddress: wallet.address,

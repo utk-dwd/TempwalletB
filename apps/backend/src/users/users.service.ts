@@ -106,8 +106,7 @@ export class UsersService {
         const welcomeMessage = `🎉 Welcome to TempWallets.com!\n\n` +
                                `Your Telegram ID is successfully registered for transaction alerts. ` +
                                `You're all set to receive notifications for your TempWallets!\n\n` +
-                               `You will now be notified whenever you receive crypto in any of your TempWallets. ` +
-                               `Happy trading! 🚀`;
+                               `You will now be notified whenever you receive crypto in any of your TempWallets.`;
 
         const welcomeResponse = await this.iexecService.sendMessage({
           protectedData: protectedData.address,
