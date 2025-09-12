@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, ExternalLink, CheckCircle, AlertCircle, Edit3, MessageCircle } from 'lucide-react';
-import { getTelegramStatus, updateTelegram } from '../services/api';
+import { getTelegramStatus, updateTelegram, registerTelegram } from '../services/api';
 import { TelegramRegistrationPayload } from '../types/shared.js';
 
 // Telegram Logo SVG Component with official Telegram blue
@@ -102,9 +102,8 @@ const TelegramRegistration: React.FC = () => {
         setMessage('Telegram Chat ID updated successfully!');
         setIsUpdateMode(false);
       } else {
-        // This would be the original registration logic
-        // For now, we'll use the update endpoint for consistency
-        await updateTelegram(payload);
+        // Use the correct registration endpoint for new registrations
+        await registerTelegram(payload);
         setMessage('Telegram Chat ID registered successfully!');
       }
       
