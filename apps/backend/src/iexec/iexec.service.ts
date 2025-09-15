@@ -101,7 +101,7 @@ export class IexecService implements OnModuleInit {
         workerpoolMaxPrice: sendParams.workerpoolMaxPrice ?? 42,
       });
       this.logger.log(`Telegram message sent. Task ID: ${response.taskId}`);
-      this.logger.log(`Track task: https://explorer.iex.ec/bellecour/task/${response.taskId}`);
+      this.logger.log(`Track task: https://explorer.iex.ec/arbitrum-mainnet/task/${response.taskId}`);
       return response;
     } catch (error) {
       const err = error as Error;
@@ -116,7 +116,7 @@ export class IexecService implements OnModuleInit {
       return false;
     }
     try {
-      const appAddress = this.configService.get<string>('IEXEC_APP_ADDRESS') || '0x192C6f5AccE52c81Fcc2670f10611a3665AAA98F';
+      const appAddress = this.configService.get<string>('IEXEC_APP_ADDRESS') || '0xb1C58D942BDD6890FB2945e78ff482280955c8C7';
       const grantedAccess = await this.dataProtector.getGrantedAccess({
         protectedData,
         authorizedApp: appAddress,
