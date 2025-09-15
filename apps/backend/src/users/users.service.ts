@@ -113,6 +113,7 @@ export class UsersService {
       const protectedData = await dataProtector.protectData({
         data: { telegram_chatId: payload.chatId },
         name: `Updated Telegram Chat ID for user ${userId}`,
+        uploadMode: 'arweave',
         onStatusUpdate: ({ title, isDone }) => {
           this.logger.log(`UpdateProtectData status: ${title} - ${isDone ? 'Done' : 'In progress'}`);
         },
@@ -198,6 +199,7 @@ export class UsersService {
       const protectedData = await dataProtector.protectData({
         data: { telegram_chatId: payload.chatId },
         name: `Telegram Chat ID for user ${userId}`,
+        uploadMode: 'arweave',
         onStatusUpdate: ({ title, isDone }) => {
           this.logger.log(`ProtectData status: ${title} - ${isDone ? 'Done' : 'In progress'}`);
         },
