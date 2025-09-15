@@ -44,8 +44,19 @@ export class IexecService implements OnModuleInit {
         throw err;
       });
       this.logger.debug('Successfully loaded @iexec/web3telegram');
-      this.web3telegram = new IExecWeb3telegram(this.web3Provider);
-      this.dataProtector = new IExecDataProtectorCore(this.web3Provider);
+      
+      // Configure for Arbitrum network explicitly
+      const arbitrumConfig = {
+        iexecOptions: {
+          iexecGatewayURL: 'https://gateway.iex.ec',
+          resultProxyURL: 'https://result.iex.ec',
+          smsURL: 'https://sms.iex.ec',
+          chainId: 42161, // Arbitrum One
+        },
+      };
+      
+      this.web3telegram = new IExecWeb3telegram(this.web3Provider, arbitrumConfig);
+      this.dataProtector = new IExecDataProtectorCore(this.web3Provider, arbitrumConfig);
 
       this.logger.debug('Attempting to load iexec');
       const { IExec } = await import('iexec').catch((err) => {
@@ -53,7 +64,9 @@ export class IexecService implements OnModuleInit {
         throw err;
       });
       this.logger.debug('Successfully loaded iexec');
-      this.iexec = new IExec({ ethProvider: this.web3Provider });
+      this.iexec = new IExec({ 
+        ethProvider: this.web3Provider,
+      });
 
       const voucherAddress = this.configService.get<string>('IEXEC_VOUCHER_ADDRESS');
       if (voucherAddress) {
@@ -63,7 +76,15 @@ export class IexecService implements OnModuleInit {
 
       this.isInitialized = true;
       const address = await this.web3Provider.getAddress();
-      this.logger.log(`Connected with wallet: ${address}`);
+      this.logger.log(`Connected with wallet: ${address} on Arbitrum network`);
+      
+      // Verify network connectivity
+      try {
+        const network = await this.web3Provider.provider?.getNetwork();
+        this.logger.log(`Network confirmed: Chain ID ${network?.chainId}`);
+      } catch (networkError) {
+        this.logger.warn('Could not verify network, but continuing initialization');
+      }
     } catch (error) {
       const err = error as Error;
       this.logger.error(`Failed to initialize iExec: ${err.message}`, err.stack);
@@ -95,10 +116,12 @@ export class IexecService implements OnModuleInit {
       this.logger.log(`Sending Telegram message to protectedData: ${sendParams.protectedData}`);
       const response = await this.web3telegram.sendTelegram({
         ...sendParams,
-        useVoucher: sendParams.useVoucher ?? true,
+        useVoucher: sendParams.useVoucher ?? false, // No vouchers on Arbitrum
         dataMaxPrice: sendParams.dataMaxPrice ?? 42,
         appMaxPrice: sendParams.appMaxPrice ?? 42,
         workerpoolMaxPrice: sendParams.workerpoolMaxPrice ?? 42,
+        // Use Arbitrum production workerpool
+        workerpool: '0x2C06263943180Cc024dAFfeEe15612DB6e5fD248',
       });
       this.logger.log(`Telegram message sent. Task ID: ${response.taskId}`);
       this.logger.log(`Track task: https://explorer.iex.ec/arbitrum-mainnet/task/${response.taskId}`);
@@ -116,7 +139,7 @@ export class IexecService implements OnModuleInit {
       return false;
     }
     try {
-      const appAddress = this.configService.get<string>('IEXEC_APP_ADDRESS') || '0xe649e6a1f2afc63ca268c2363691cecaf75cf47c';
+      const appAddress = this.configService.get<string>('IEXEC_APP_ADDRESS') || '0x53AFc09a647e7D5Fa9BDC784Eb3623385C45eF89';
       const grantedAccess = await this.dataProtector.getGrantedAccess({
         protectedData,
         authorizedApp: appAddress,
