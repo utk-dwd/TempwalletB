@@ -108,7 +108,18 @@ export class UsersService {
         this.logger.error('IEXEC_BACKEND_PRIVATE_KEY not found');
         throw new Error('IEXEC_BACKEND_PRIVATE_KEY is required');
       }
-      const dataProtector = new IExecDataProtectorCore(getWeb3Provider(privateKey));
+      
+      // Configure DataProtector for Arbitrum network
+      const arbitrumConfig = {
+        iexecOptions: {
+          iexecGatewayURL: 'https://gateway.iex.ec',
+          resultProxyURL: 'https://result.iex.ec',
+          smsURL: 'https://sms.iex.ec',
+          chainId: 42161, // Arbitrum One
+        },
+      };
+      
+      const dataProtector = new IExecDataProtectorCore(getWeb3Provider(privateKey), arbitrumConfig);
 
       const protectedData = await dataProtector.protectData({
         data: { telegram_chatId: payload.chatId },
@@ -120,7 +131,7 @@ export class UsersService {
       });
 
       const backendWallet = this.configService.get<string>('IEXEC_BACKEND_WALLET_ADDRESS');
-      const appAddress = this.configService.get<string>('IEXEC_APP_ADDRESS') || '0x192C6f5AccE52c81Fcc2670f10611a3665AAA98F';
+      const appAddress = this.configService.get<string>('IEXEC_APP_ADDRESS') || '0x53AFc09a647e7D5Fa9BDC784Eb3623385C45eF89';
       if (!backendWallet) {
         throw new Error('IEXEC_BACKEND_WALLET_ADDRESS not configured');
       }
@@ -194,7 +205,18 @@ export class UsersService {
         this.logger.error('IEXEC_BACKEND_PRIVATE_KEY not found');
         throw new Error('IEXEC_BACKEND_PRIVATE_KEY is required');
       }
-      const dataProtector = new IExecDataProtectorCore(getWeb3Provider(privateKey));
+      
+      // Configure DataProtector for Arbitrum network
+      const arbitrumConfig = {
+        iexecOptions: {
+          iexecGatewayURL: 'https://gateway.iex.ec',
+          resultProxyURL: 'https://result.iex.ec',
+          smsURL: 'https://sms.iex.ec',
+          chainId: 42161, // Arbitrum One
+        },
+      };
+      
+      const dataProtector = new IExecDataProtectorCore(getWeb3Provider(privateKey), arbitrumConfig);
 
       const protectedData = await dataProtector.protectData({
         data: { telegram_chatId: payload.chatId },
@@ -205,7 +227,7 @@ export class UsersService {
         },
       });
       const backendWallet = this.configService.get<string>('IEXEC_BACKEND_WALLET_ADDRESS');
-      const appAddress = this.configService.get<string>('IEXEC_APP_ADDRESS') || '0x192C6f5AccE52c81Fcc2670f10611a3665AAA98F';
+      const appAddress = this.configService.get<string>('IEXEC_APP_ADDRESS') || '0x53AFc09a647e7D5Fa9BDC784Eb3623385C45eF89';
       if (!backendWallet) {
         throw new Error('IEXEC_BACKEND_WALLET_ADDRESS not configured');
       }
