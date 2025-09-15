@@ -116,7 +116,7 @@ export class IexecService implements OnModuleInit {
       return false;
     }
     try {
-      const appAddress = this.configService.get<string>('IEXEC_APP_ADDRESS') || '0xb1C58D942BDD6890FB2945e78ff482280955c8C7';
+      const appAddress = this.configService.get<string>('IEXEC_APP_ADDRESS') || '0xe649e6a1f2afc63ca268c2363691cecaf75cf47c';
       const grantedAccess = await this.dataProtector.getGrantedAccess({
         protectedData,
         authorizedApp: appAddress,
