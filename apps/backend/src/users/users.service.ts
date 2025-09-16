@@ -4,7 +4,6 @@ import { ConfigService } from '@nestjs/config';
 import { TelegramRegistrationPayload } from '../types/shared.js';
 import { TelegramIntegrationService } from '../telegram-integration/telegram-integration.service.js';
 import { IexecService } from '../iexec/iexec.service.js';
-import { RetryUtil } from '../utils/retry.util.js';
 
 @Injectable()
 export class UsersService {
@@ -110,14 +109,12 @@ export class UsersService {
         throw new Error('IEXEC_BACKEND_PRIVATE_KEY is required');
       }
       
-      // Configure DataProtector for Arbitrum network
-      const arbitrumConfig = {
-        iexecOptions: {
-          chainId: 42161, // Arbitrum One
-        },
-      };
+      // Initialize provider and DataProtector for Arbitrum
+      const ethProvider = getWeb3Provider(privateKey, {
+        host: 42161, // Arbitrum One
+      });
       
-      const dataProtector = new IExecDataProtectorCore(getWeb3Provider(privateKey), arbitrumConfig);
+      const dataProtector = new IExecDataProtectorCore(ethProvider);
 
       const protectedData = await dataProtector.protectData({
         data: { telegram_chatId: payload.chatId },
@@ -203,14 +200,12 @@ export class UsersService {
         throw new Error('IEXEC_BACKEND_PRIVATE_KEY is required');
       }
       
-      // Configure DataProtector for Arbitrum network
-      const arbitrumConfig = {
-        iexecOptions: {
-          chainId: 42161, // Arbitrum One
-        },
-      };
+      // Initialize provider and DataProtector for Arbitrum
+      const ethProvider = getWeb3Provider(privateKey, {
+        host: 42161, // Arbitrum One
+      });
       
-      const dataProtector = new IExecDataProtectorCore(getWeb3Provider(privateKey), arbitrumConfig);
+      const dataProtector = new IExecDataProtectorCore(ethProvider);
 
       const protectedData = await dataProtector.protectData({
         data: { telegram_chatId: payload.chatId },
@@ -225,28 +220,16 @@ export class UsersService {
       if (!backendWallet) {
         throw new Error('IEXEC_BACKEND_WALLET_ADDRESS not configured');
       }
-      // Grant access with retry logic to handle temporary iExec service issues
-      await RetryUtil.withRetry(
-        async () => {
-          return await dataProtector.grantAccess({
-            protectedData: protectedData.address,
-            authorizedApp: appAddress,
-            authorizedUser: backendWallet,
-            pricePerAccess: 0,
-            numberOfAccess: 1000,
-            onStatusUpdate: ({ title, isDone }) => {
-              this.logger.log(`GrantAccess status: ${title} - ${isDone ? 'Done' : 'In progress'}`);
-            },
-          });
+      await dataProtector.grantAccess({
+        protectedData: protectedData.address,
+        authorizedApp: appAddress,
+        authorizedUser: backendWallet,
+        pricePerAccess: 0,
+        numberOfAccess: 1000,
+        onStatusUpdate: ({ title, isDone }) => {
+          this.logger.log(`GrantAccess status: ${title} - ${isDone ? 'Done' : 'In progress'}`);
         },
-        {
-          maxAttempts: 3,
-          delayMs: 2000,
-          backoffMultiplier: 2,
-          maxDelayMs: 10000
-        },
-        `grantAccess for user ${userId}`
-      );
+      });
 
       // Update user's telegram_protected_data
       await this.prisma.user.update({

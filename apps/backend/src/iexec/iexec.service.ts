@@ -41,7 +41,11 @@ export class IexecService implements OnModuleInit {
         },
       );
       this.logger.debug('Successfully loaded @iexec/dataprotector');
-      this.web3Provider = getWeb3Provider(privateKey);
+      
+      // Initialize providers with Arbitrum host
+      this.web3Provider = getWeb3Provider(privateKey, {
+        host: 42161, // Arbitrum One
+      });
 
       this.logger.debug('Attempting to load @iexec/web3telegram');
       const { IExecWeb3telegram } = await import('@iexec/web3telegram').catch((err) => {
@@ -50,18 +54,12 @@ export class IexecService implements OnModuleInit {
       });
       this.logger.debug('Successfully loaded @iexec/web3telegram');
       
-      // Configure for Arbitrum network explicitly
-      const arbitrumConfig = {
-        iexecOptions: {
-          iexecGatewayURL: 'https://gateway.iex.ec',
-          resultProxyURL: 'https://result.iex.ec',
-          smsURL: 'https://sms.iex.ec',
-          chainId: 42161, // Arbitrum One
-        },
-      };
+      // Configure Web3Telegram and DataProtector for Arbitrum
+      this.web3telegram = new IExecWeb3telegram(this.web3Provider, {
+        dappWhitelistAddress: '0x53AFc09a647e7D5Fa9BDC784Eb3623385C45eF89',
+      });
       
-      this.web3telegram = new IExecWeb3telegram(this.web3Provider, arbitrumConfig);
-      this.dataProtector = new IExecDataProtectorCore(this.web3Provider, arbitrumConfig);
+      this.dataProtector = new IExecDataProtectorCore(this.web3Provider);
 
       this.logger.debug('Attempting to load iexec');
       const { IExec } = await import('iexec').catch((err) => {
