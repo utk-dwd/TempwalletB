@@ -3,6 +3,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module.js';
 import { ValidationPipe } from '@nestjs/common';
 import { PrismaService } from './types/prisma.js';
+import { SSLConfig } from './config/ssl.config.js';
 
 declare global {
   interface BigInt {
@@ -16,6 +17,9 @@ BigInt.prototype.toJSON = function() {
 
 
 async function bootstrap() {
+  // Configure SSL/TLS settings before any network calls
+  SSLConfig.configureHttpsAgent();
+  
   const app = await NestFactory.create(AppModule);
 
   app.enableCors();

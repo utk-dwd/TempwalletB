@@ -28,6 +28,11 @@ export class IexecService implements OnModuleInit {
         return; // Allow partial initialization
       }
 
+      // Handle SSL/TLS issues in production
+      if (process.env.NODE_ENV === 'production' && process.env.NODE_TLS_REJECT_UNAUTHORIZED !== '0') {
+        this.logger.warn('Production environment detected. If SSL errors occur, consider setting NODE_TLS_REJECT_UNAUTHORIZED=0');
+      }
+
       this.logger.debug('Attempting to load @iexec/dataprotector');
       const { IExecDataProtectorCore, getWeb3Provider } = await import('@iexec/dataprotector').catch(
         (err) => {
