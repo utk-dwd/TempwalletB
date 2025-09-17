@@ -49,21 +49,17 @@ export class IexecService implements OnModuleInit {
       });
       this.logger.debug('Successfully loaded @iexec/web3telegram');
       
-      // Initialize providers with Arbitrum host
-      const dataProtectorProvider = getWeb3ProviderDataProtector(privateKey, {
-        host: 42161, // Arbitrum One
-      });
-      
+      // KISS: Use single provider for both services (as per official example)
       this.web3Provider = getWeb3Provider(privateKey, {
         host: 42161, // Arbitrum One
       });
 
-      // Configure Web3Telegram and DataProtector for Arbitrum
+      // Configure Web3Telegram and DataProtector with same provider
       this.web3telegram = new IExecWeb3telegram(this.web3Provider, {
         dappWhitelistAddress: '0x53AFc09a647e7D5Fa9BDC784Eb3623385C45eF89',
       });
       
-      this.dataProtector = new IExecDataProtectorCore(dataProtectorProvider);
+      this.dataProtector = new IExecDataProtectorCore(this.web3Provider);
 
       this.isInitialized = true;
       const address = await this.web3Provider.getAddress();
