@@ -106,8 +106,11 @@ export class IexecService implements OnModuleInit {
         throw new Error("No contacts available. Ensure you have been granted access to protected data.");
       }
       
-      // Find the specific protected data in contacts
-      const targetContact = contacts.find(contact => contact.address === sendParams.protectedData);
+      // FIXED: Case-insensitive comparison (KISS principle)
+      const targetContact = contacts.find(contact => 
+        contact.address.toLowerCase() === sendParams.protectedData.toLowerCase()
+      );
+      
       if (!targetContact) {
         this.logger.error(`Protected data ${sendParams.protectedData} not found in contacts. Available contacts: ${contacts.map(c => c.address).join(', ')}`);
         throw new Error(`No access to protected data ${sendParams.protectedData}. Contact not found in authorized list.`);
