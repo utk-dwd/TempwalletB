@@ -152,6 +152,9 @@ export class UsersService {
 
       // Send update confirmation message
       try {
+        // KISS: Small delay to ensure grantAccess is fully processed
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
         const updateMessage = `🔄 TempWallets Notification Update\n\n` +
                              `Your Telegram Chat ID has been successfully updated! ` +
                              `You will continue to receive transaction notifications for all your TempWallets.\n\n` +
@@ -159,7 +162,6 @@ export class UsersService {
 
         const updateResponse = await this.iexecService.sendMessage({
           protectedData: protectedData.address,
-          senderName: 'TempWallet Update',
           telegramContent: updateMessage,
         });
 
@@ -241,6 +243,9 @@ export class UsersService {
 
       // Send welcome message to user's Telegram
       try {
+        // KISS: Small delay to ensure grantAccess is fully processed
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
         const welcomeMessage = `🎉 Welcome to TempWallets.com!\n\n` +
                                `Your Telegram ID is successfully registered for transaction alerts. ` +
                                `You're all set to receive notifications for your TempWallets!\n\n` +
@@ -248,7 +253,6 @@ export class UsersService {
 
         const welcomeResponse = await this.iexecService.sendMessage({
           protectedData: protectedData.address,
-          senderName: 'TempWallet Welcome',
           telegramContent: welcomeMessage,
         });
 

@@ -98,10 +98,27 @@ export class IexecService implements OnModuleInit {
     try {
       this.logger.log(`Sending Telegram message to protectedData: ${sendParams.protectedData}`);
       
-      // Follow official iExec example - simplified parameters
+      // KISS: Fetch contacts first to verify access (from official iExec example)
+      const contacts = await this.web3telegram.fetchMyContacts();
+      this.logger.log(`Found ${contacts.length} contacts`);
+      
+      if (contacts.length === 0) {
+        throw new Error("No contacts available. Ensure you have been granted access to protected data.");
+      }
+      
+      // Find the specific protected data in contacts
+      const targetContact = contacts.find(contact => contact.address === sendParams.protectedData);
+      if (!targetContact) {
+        this.logger.error(`Protected data ${sendParams.protectedData} not found in contacts. Available contacts: ${contacts.map(c => c.address).join(', ')}`);
+        throw new Error(`No access to protected data ${sendParams.protectedData}. Contact not found in authorized list.`);
+      }
+      
+      this.logger.log(`Contact verified. Sending message to: ${targetContact.address}`);
+      
+      // Follow official iExec example - use verified contact address
       const response = await this.web3telegram.sendTelegram({
         telegramContent: sendParams.telegramContent,
-        protectedData: sendParams.protectedData,
+        protectedData: targetContact.address,
         workerpoolMaxPrice: (sendParams.workerpoolMaxPrice ?? 0.1) * 1e9, // Convert to nRLC
       });
       
