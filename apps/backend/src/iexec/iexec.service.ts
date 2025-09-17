@@ -34,48 +34,36 @@ export class IexecService implements OnModuleInit {
       }
 
       this.logger.debug('Attempting to load @iexec/dataprotector');
-      const { IExecDataProtectorCore, getWeb3Provider } = await import('@iexec/dataprotector').catch(
+      const { IExecDataProtectorCore, getWeb3Provider: getWeb3ProviderDataProtector } = await import('@iexec/dataprotector').catch(
         (err) => {
           this.logger.error('Failed to import @iexec/dataprotector:', err.message, err.stack);
           throw err;
         },
       );
       this.logger.debug('Successfully loaded @iexec/dataprotector');
-      
-      // Initialize providers with Arbitrum host
-      this.web3Provider = getWeb3Provider(privateKey, {
-        host: 42161, // Arbitrum One
-      });
 
       this.logger.debug('Attempting to load @iexec/web3telegram');
-      const { IExecWeb3telegram } = await import('@iexec/web3telegram').catch((err) => {
+      const { IExecWeb3telegram, getWeb3Provider } = await import('@iexec/web3telegram').catch((err) => {
         this.logger.error('Failed to import @iexec/web3telegram:', err.message, err.stack);
         throw err;
       });
       this.logger.debug('Successfully loaded @iexec/web3telegram');
       
+      // Initialize providers with Arbitrum host
+      const dataProtectorProvider = getWeb3ProviderDataProtector(privateKey, {
+        host: 42161, // Arbitrum One
+      });
+      
+      this.web3Provider = getWeb3Provider(privateKey, {
+        host: 42161, // Arbitrum One
+      });
+
       // Configure Web3Telegram and DataProtector for Arbitrum
       this.web3telegram = new IExecWeb3telegram(this.web3Provider, {
         dappWhitelistAddress: '0x53AFc09a647e7D5Fa9BDC784Eb3623385C45eF89',
       });
       
-      this.dataProtector = new IExecDataProtectorCore(this.web3Provider);
-
-      this.logger.debug('Attempting to load iexec');
-      const { IExec } = await import('iexec').catch((err) => {
-        this.logger.error('Failed to import iexec:', err.message, err.stack);
-        throw err;
-      });
-      this.logger.debug('Successfully loaded iexec');
-      this.iexec = new IExec({ 
-        ethProvider: this.web3Provider,
-      });
-
-      const voucherAddress = this.configService.get<string>('IEXEC_VOUCHER_ADDRESS');
-      if (voucherAddress) {
-        await this.iexec.account.approve(voucherAddress, '1000000');
-        this.logger.log(`Approved voucher ${voucherAddress}`);
-      }
+      this.dataProtector = new IExecDataProtectorCore(dataProtectorProvider);
 
       this.isInitialized = true;
       const address = await this.web3Provider.getAddress();
@@ -100,32 +88,23 @@ export class IexecService implements OnModuleInit {
     if (!this.isInitialized || !this.web3telegram) {
       throw new Error('iExec service not initialized');
     }
-    if (!sendParams.protectedData || !sendParams.senderName || !sendParams.telegramContent) {
-      throw new Error('Missing required parameters: protectedData, senderName, telegramContent');
+    if (!sendParams.protectedData || !sendParams.telegramContent) {
+      throw new Error('Missing required parameters: protectedData, telegramContent');
     }
     if (Buffer.from(sendParams.telegramContent).length > 512 * 1024) {
       throw new Error('telegramContent exceeds 512 KB limit');
     }
 
     try {
-      if (!sendParams.useVoucher) {
-        const address = await this.web3Provider!.getAddress();
-        const { stake } = await this.iexec!.account.checkBalance(address);
-        const sRLC = stake.toString();
-        if (parseInt(sRLC) === 0) {
-          throw new Error('Insufficient sRLC balance');
-        }
-      }
       this.logger.log(`Sending Telegram message to protectedData: ${sendParams.protectedData}`);
+      
+      // Follow official iExec example - simplified parameters
       const response = await this.web3telegram.sendTelegram({
-        ...sendParams,
-        useVoucher: sendParams.useVoucher ?? false, // No vouchers on Arbitrum
-        dataMaxPrice: sendParams.dataMaxPrice ?? 42,
-        appMaxPrice: sendParams.appMaxPrice ?? 42,
-        workerpoolMaxPrice: sendParams.workerpoolMaxPrice ?? 42,
-        // Use Arbitrum production workerpool
-        workerpool: '0x2C06263943180Cc024dAFfeEe15612DB6e5fD248',
+        telegramContent: sendParams.telegramContent,
+        protectedData: sendParams.protectedData,
+        workerpoolMaxPrice: (sendParams.workerpoolMaxPrice ?? 0.1) * 1e9, // Convert to nRLC
       });
+      
       this.logger.log(`Telegram message sent. Task ID: ${response.taskId}`);
       this.logger.log(`Track task: https://explorer.iex.ec/arbitrum-mainnet/task/${response.taskId}`);
       return response;
@@ -154,15 +133,6 @@ export class IexecService implements OnModuleInit {
       this.logger.error(`Error checking granted access for user ${userAddress}: ${err.message}`, err.stack);
       return false;
     }
-  }
-
-  async checkBalance(): Promise<string> {
-    if (!this.isInitialized || !this.iexec) {
-      throw new Error('iExec service not initialized');
-    }
-    const address = await this.web3Provider!.getAddress();
-    const { stake } = await this.iexec.account.checkBalance(address);
-    return stake.toString();
   }
 
   isServiceInitialized(): boolean {
