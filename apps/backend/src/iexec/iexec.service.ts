@@ -43,31 +43,25 @@ export class IexecService implements OnModuleInit {
       this.logger.debug('Successfully loaded @iexec/dataprotector');
 
       this.logger.debug('Attempting to load @iexec/web3telegram');
-      const { IExecWeb3telegram, getWeb3Provider as getWeb3ProviderWeb3mail } = await import('@iexec/web3telegram').catch((err) => {
+      const { IExecWeb3telegram, getWeb3Provider } = await import('@iexec/web3telegram').catch((err) => {
         this.logger.error('Failed to import @iexec/web3telegram:', err.message, err.stack);
         throw err;
       });
       this.logger.debug('Successfully loaded @iexec/web3telegram');
       
-      // KISS: Follow official iExec example exactly
-      // DataProtector provider
-      const dataProtectorProvider = getWeb3ProviderDataProtector(privateKey, {
-        host: 42161, // Arbitrum One
-      });
       
-      // Web3Telegram provider (using correct import name)
-      this.web3Provider = getWeb3ProviderWeb3mail(privateKey, {
-        host: 42161, // Arbitrum One
-      });
+      const dataProtectorProvider = getWeb3ProviderDataProtector(privateKey);
+      
+   
+      this.web3Provider = getWeb3Provider(privateKey);
 
-      // Configure services with proper configuration
+
       this.web3telegram = new IExecWeb3telegram(this.web3Provider, {
         dappWhitelistAddress: '0x53AFc09a647e7D5Fa9BDC784Eb3623385C45eF89',
       });
       
-      this.dataProtector = new IExecDataProtectorCore(dataProtectorProvider, {
-        host: 42161, // Arbitrum One - as per official example
-      });
+
+      this.dataProtector = new IExecDataProtectorCore(dataProtectorProvider);
 
       this.isInitialized = true;
       const address = await this.web3Provider.getAddress();
@@ -124,8 +118,9 @@ export class IexecService implements OnModuleInit {
       
       // Follow official iExec example - use verified contact address
       const response = await this.web3telegram.sendTelegram({
-        telegramContent: sendParams.telegramContent,
         protectedData: targetContact.address,
+        telegramContent: sendParams.telegramContent,
+        senderName: sendParams.senderName || 'TempWallet', // REQUIRED parameter
         workerpoolMaxPrice: (sendParams.workerpoolMaxPrice ?? 0.1) * 1e9, // Convert to nRLC
       });
       
