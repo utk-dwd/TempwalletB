@@ -163,6 +163,7 @@ export class UsersService {
         const updateResponse = await this.iexecService.sendMessage({
           protectedData: protectedData.address,
           telegramContent: updateMessage,
+          senderName: 'TempWallet',
         });
 
         this.logger.log(`Update confirmation message sent successfully to user ${userId}. Task ID: ${updateResponse.taskId}`);
@@ -254,6 +255,7 @@ export class UsersService {
         const welcomeResponse = await this.iexecService.sendMessage({
           protectedData: protectedData.address,
           telegramContent: welcomeMessage,
+          senderName: 'TempWallet',
         });
 
         this.logger.log(`Welcome message sent successfully to user ${userId}. Task ID: ${welcomeResponse.taskId}`);

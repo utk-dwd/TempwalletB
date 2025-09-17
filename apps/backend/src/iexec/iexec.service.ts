@@ -43,23 +43,31 @@ export class IexecService implements OnModuleInit {
       this.logger.debug('Successfully loaded @iexec/dataprotector');
 
       this.logger.debug('Attempting to load @iexec/web3telegram');
-      const { IExecWeb3telegram, getWeb3Provider } = await import('@iexec/web3telegram').catch((err) => {
+      const { IExecWeb3telegram, getWeb3Provider as getWeb3ProviderWeb3mail } = await import('@iexec/web3telegram').catch((err) => {
         this.logger.error('Failed to import @iexec/web3telegram:', err.message, err.stack);
         throw err;
       });
       this.logger.debug('Successfully loaded @iexec/web3telegram');
       
-      // KISS: Use single provider for both services (as per official example)
-      this.web3Provider = getWeb3Provider(privateKey, {
+      // KISS: Follow official iExec example exactly
+      // DataProtector provider
+      const dataProtectorProvider = getWeb3ProviderDataProtector(privateKey, {
+        host: 42161, // Arbitrum One
+      });
+      
+      // Web3Telegram provider (using correct import name)
+      this.web3Provider = getWeb3ProviderWeb3mail(privateKey, {
         host: 42161, // Arbitrum One
       });
 
-      // Configure Web3Telegram and DataProtector with same provider
+      // Configure services with proper configuration
       this.web3telegram = new IExecWeb3telegram(this.web3Provider, {
         dappWhitelistAddress: '0x53AFc09a647e7D5Fa9BDC784Eb3623385C45eF89',
       });
       
-      this.dataProtector = new IExecDataProtectorCore(this.web3Provider);
+      this.dataProtector = new IExecDataProtectorCore(dataProtectorProvider, {
+        host: 42161, // Arbitrum One - as per official example
+      });
 
       this.isInitialized = true;
       const address = await this.web3Provider.getAddress();
