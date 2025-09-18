@@ -109,10 +109,8 @@ export class UsersService {
         throw new Error('IEXEC_BACKEND_PRIVATE_KEY is required');
       }
       
-      // Initialize provider and DataProtector for Arbitrum
-      const ethProvider = getWeb3Provider(privateKey, {
-        host: 42161, // Arbitrum One
-      });
+      // Initialize provider and DataProtector
+      const ethProvider = getWeb3Provider(privateKey);
       
       const dataProtector = new IExecDataProtectorCore(ethProvider);
 
@@ -152,8 +150,9 @@ export class UsersService {
 
       // Send update confirmation message
       try {
-        // KISS: Small delay to ensure grantAccess is fully processed
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        // Wait longer for grantAccess to propagate and be available in contacts
+        this.logger.log(`Waiting for access grant propagation before sending update confirmation...`);
+        await new Promise(resolve => setTimeout(resolve, 5000)); // Increased from 2s to 5s
         
         const updateMessage = `🔄 TempWallets Notification Update\n\n` +
                              `Your Telegram Chat ID has been successfully updated! ` +
@@ -174,6 +173,9 @@ export class UsersService {
           err.stack
         );
         // Don't throw here - the update was successful, confirmation message is just a bonus
+        if (err.message.includes('No contacts available')) {
+          this.logger.warn(`Update confirmation failed due to access propagation delay. User ${userId} can still use updated Telegram notifications.`);
+        }
       }
 
     } catch (error) {
@@ -203,10 +205,8 @@ export class UsersService {
         throw new Error('IEXEC_BACKEND_PRIVATE_KEY is required');
       }
       
-      // Initialize provider and DataProtector for Arbitrum
-      const ethProvider = getWeb3Provider(privateKey, {
-        host: 42161, // Arbitrum One
-      });
+      // Initialize provider and DataProtector
+      const ethProvider = getWeb3Provider(privateKey);
       
       const dataProtector = new IExecDataProtectorCore(ethProvider);
 
@@ -244,8 +244,9 @@ export class UsersService {
 
       // Send welcome message to user's Telegram
       try {
-        // KISS: Small delay to ensure grantAccess is fully processed
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        // Wait longer for grantAccess to propagate and be available in contacts
+        this.logger.log(`Waiting for access grant propagation before sending welcome message...`);
+        await new Promise(resolve => setTimeout(resolve, 5000)); // Increased from 2s to 5s
         
         const welcomeMessage = `🎉 Welcome to TempWallets.com!\n\n` +
                                `Your Telegram ID is successfully registered for transaction alerts. ` +
@@ -266,6 +267,10 @@ export class UsersService {
           err.stack
         );
         // Don't throw here - the registration was successful, welcome message is just a bonus
+        // If it's a contacts/access issue, we'll retry later or user can still use the service
+        if (err.message.includes('No contacts available')) {
+          this.logger.warn(`Welcome message failed due to access propagation delay. User ${userId} can still use Telegram notifications.`);
+        }
       }
 
       // If this is the first time registering telegram, register all existing wallets with Alchemy
