@@ -49,19 +49,15 @@ export class IexecService implements OnModuleInit {
       });
       this.logger.debug('Successfully loaded @iexec/web3telegram');
       
-      
-      const dataProtectorProvider = getWeb3ProviderDataProtector(privateKey);
-      
-   
+      // KISS: Use single provider for both services (as per official example)
       this.web3Provider = getWeb3Provider(privateKey);
 
-
+      // Configure Web3Telegram and DataProtector with same provider
       this.web3telegram = new IExecWeb3telegram(this.web3Provider, {
         dappWhitelistAddress: '0x53AFc09a647e7D5Fa9BDC784Eb3623385C45eF89',
       });
       
-
-      this.dataProtector = new IExecDataProtectorCore(dataProtectorProvider);
+      this.dataProtector = new IExecDataProtectorCore(this.web3Provider);
 
       this.isInitialized = true;
       const address = await this.web3Provider.getAddress();
@@ -118,9 +114,9 @@ export class IexecService implements OnModuleInit {
       
       // Follow official iExec example - use verified contact address
       const response = await this.web3telegram.sendTelegram({
-        protectedData: targetContact.address,
         telegramContent: sendParams.telegramContent,
-        senderName: sendParams.senderName || 'TempWallet', // REQUIRED parameter
+        protectedData: targetContact.address,
+        senderName: sendParams.senderName || 'TempWallets',
         workerpoolMaxPrice: (sendParams.workerpoolMaxPrice ?? 0.1) * 1e9, // Convert to nRLC
       });
       
