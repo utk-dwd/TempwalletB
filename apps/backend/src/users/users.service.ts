@@ -109,10 +109,14 @@ export class UsersService {
         throw new Error('IEXEC_BACKEND_PRIVATE_KEY is required');
       }
       
-      // Initialize provider and DataProtector
-      const ethProvider = getWeb3Provider(privateKey);
+      // Initialize provider and DataProtector for Arbitrum (as per official iExec documentation)
+      const ethProvider = getWeb3Provider(privateKey, {
+        host: 42161, // Arbitrum One
+      });
       
-      const dataProtector = new IExecDataProtectorCore(ethProvider);
+      const dataProtector = new IExecDataProtectorCore(ethProvider, {
+        host: 42161, // Arbitrum One
+      });
 
       const protectedData = await dataProtector.protectData({
         data: { telegram_chatId: payload.chatId },
@@ -205,10 +209,14 @@ export class UsersService {
         throw new Error('IEXEC_BACKEND_PRIVATE_KEY is required');
       }
       
-      // Initialize provider and DataProtector
-      const ethProvider = getWeb3Provider(privateKey);
+      // Initialize provider and DataProtector for Arbitrum (as per official iExec documentation)
+      const ethProvider = getWeb3Provider(privateKey, {
+        host: 42161, // Arbitrum One
+      });
       
-      const dataProtector = new IExecDataProtectorCore(ethProvider);
+      const dataProtector = new IExecDataProtectorCore(ethProvider, {
+        host: 42161, // Arbitrum One
+      });
 
       const protectedData = await dataProtector.protectData({
         data: { telegram_chatId: payload.chatId },
