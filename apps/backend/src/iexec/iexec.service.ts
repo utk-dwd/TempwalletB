@@ -114,12 +114,13 @@ export class IexecService implements OnModuleInit {
       
       this.logger.log(`Contact verified. Sending message to: ${targetContact.address}`);
       
+      
       // Follow official iExec example - use verified contact address
       const response = await this.web3telegram.sendTelegram({
         telegramContent: sendParams.telegramContent,
         protectedData: targetContact.address,
         senderName: sendParams.senderName || 'TempWallets',
-        workerpoolMaxPrice: (sendParams.workerpoolMaxPrice ?? 0.1) * 1e9, // Convert to nRLC
+        workerpoolMaxPrice: 0.1 * 1e9, // Fixed value for testing
       });
       
       this.logger.log(`Telegram message sent. Task ID: ${response.taskId}`);
