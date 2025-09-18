@@ -114,9 +114,7 @@ export class UsersService {
         host: 42161, // Arbitrum One
       });
       
-      const dataProtector = new IExecDataProtectorCore(ethProvider, {
-        host: 42161, // Arbitrum One
-      });
+      const dataProtector = new IExecDataProtectorCore(ethProvider);
 
       const protectedData = await dataProtector.protectData({
         data: { telegram_chatId: payload.chatId },
@@ -214,9 +212,7 @@ export class UsersService {
         host: 42161, // Arbitrum One
       });
       
-      const dataProtector = new IExecDataProtectorCore(ethProvider, {
-        host: 42161, // Arbitrum One
-      });
+      const dataProtector = new IExecDataProtectorCore(ethProvider);
 
       const protectedData = await dataProtector.protectData({
         data: { telegram_chatId: payload.chatId },

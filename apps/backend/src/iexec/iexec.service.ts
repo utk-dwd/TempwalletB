@@ -59,9 +59,7 @@ export class IexecService implements OnModuleInit {
         dappWhitelistAddress: '0x53AFc09a647e7D5Fa9BDC784Eb3623385C45eF89', // Working app address
       });
       
-      this.dataProtector = new IExecDataProtectorCore(this.web3Provider, {
-        host: 42161, // Arbitrum One
-      });
+      this.dataProtector = new IExecDataProtectorCore(this.web3Provider);
 
       this.isInitialized = true;
       const address = await this.web3Provider.getAddress();
