@@ -13,6 +13,7 @@ import {
   History,
   Settings,
   Star,
+  Zap,
 } from 'lucide-react';
 import { FaTwitter, FaLinkedin, FaTelegramPlane, FaDiscord } from 'react-icons/fa';
 
@@ -37,8 +38,8 @@ interface SidebarProps {
   onNavClick?: (item: string) => void; // Make onNavClick optional for flexibility
 }
 export function Sidebar({ activeItem: propActiveItem, onNavClick }: SidebarProps) {
-  // Added 'Presale' to the navigation items
-  const navItems = ['Dashboard', 'FAQs', 'Address Book', 'History', 'Settings', '$TEMP Token Pre-Sale'];
+  // Added 'Lightning Node' and 'Presale' to the navigation items
+  const navItems = ['Dashboard', 'FAQs', 'Address Book', 'History', 'Lightning Node', 'Settings', '$TEMP Token Pre-Sale'];
   const [showComingSoonPopup, setShowComingSoonPopup] = useState<string | null>(null);
   const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 });
   const [showPolicyPopup, setShowPolicyPopup] = useState<string | null>(null);
@@ -50,6 +51,7 @@ export function Sidebar({ activeItem: propActiveItem, onNavClick }: SidebarProps
       FAQs: <BookText size={20} className="mr-2" />,
       'Address Book': <Contact size={20} className="mr-2" />,
       History: <History size={20} className="mr-2" />,
+      'Lightning Node': <Zap size={20} className="mr-2 text-yellow-400" />,
       Settings: <Settings size={20} className="mr-2" />,
       '$TEMP Token Pre-Sale': <Star size={20} className="mr-2" />,
   };
@@ -60,6 +62,7 @@ export function Sidebar({ activeItem: propActiveItem, onNavClick }: SidebarProps
     '$TEMP Token Pre-Sale': '/presale',
     'Address Book': '/address-book',
     History: '/history',
+    'Lightning Node': '/lightning',
     Settings: '/settings',
   };
   
@@ -77,7 +80,7 @@ export function Sidebar({ activeItem: propActiveItem, onNavClick }: SidebarProps
   
   const handleNavClick = (item: string, event?: React.MouseEvent) => {
     analyticsService.trackEvent(EventName.NAVIGATION_CLICKED, { destination: item });
-    const comingSoonItems = ['Address Book', 'History']; // Removed 'Settings' from coming soon items
+    const comingSoonItems = ['Address Book', 'History']; // Lightning Node and Settings are active
     
     if (comingSoonItems.includes(item)) {
       if (event) {

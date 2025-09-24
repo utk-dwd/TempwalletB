@@ -1,0 +1,118 @@
+import { 
+  Controller, 
+  Post, 
+  Get, 
+  Put, 
+  Body, 
+  Param, 
+  Query,
+  HttpCode,
+  HttpStatus
+} from '@nestjs/common';
+import { LightningService } from './lightning.service.js';
+import { CreateChannelDto } from './dto/create-channel.dto.js';
+import { SendPaymentDto } from './dto/send-payment.dto.js';
+import { PaymentRequestDto, RespondToRequestDto } from './dto/payment-request.dto.js';
+
+@Controller('lightning')
+export class LightningController {
+  constructor(private readonly lightningService: LightningService) {}
+
+  // POST /lightning/channels - Create channel request (frontend expects this route)
+  @Post('channels')
+  @HttpCode(HttpStatus.CREATED)
+  async createChannel(@Body() createChannelDto: CreateChannelDto) {
+    return this.lightningService.createChannel(createChannelDto);
+  }
+
+  // POST /lightning/initiate - Create channel request (legacy route)
+  @Post('initiate')
+  @HttpCode(HttpStatus.CREATED)
+  async initiateChannel(@Body() createChannelDto: CreateChannelDto) {
+    return this.lightningService.createChannel(createChannelDto);
+  }
+
+  // POST /lightning/accept/:channelId - Accept channel invitation
+  @Post('accept/:channelId')
+  @HttpCode(HttpStatus.OK)
+  async acceptChannel(
+    @Param('channelId') channelId: string,
+    @Body('userAddress') userAddress: string
+  ) {
+    return this.lightningService.acceptChannel(channelId, userAddress);
+  }
+
+  // POST /lightning/send-payment - Send payment with 4-second timer
+  @Post('send-payment')
+  @HttpCode(HttpStatus.OK)
+  async sendPayment(@Body() sendPaymentDto: SendPaymentDto) {
+    return this.lightningService.sendPayment(sendPaymentDto);
+  }
+
+  // POST /lightning/request-payment - Request funds from other user
+  @Post('request-payment')
+  @HttpCode(HttpStatus.CREATED)
+  async requestPayment(@Body() paymentRequestDto: PaymentRequestDto) {
+    return this.lightningService.createPaymentRequest(paymentRequestDto);
+  }
+
+  // PUT /lightning/respond-request/:requestId - Accept/decline request
+  @Put('respond-request/:requestId')
+  @HttpCode(HttpStatus.OK)
+  async respondToRequest(
+    @Param('requestId') requestId: string,
+    @Body() respondDto: RespondToRequestDto,
+    @Query('userAddress') userAddress: string
+  ) {
+    return this.lightningService.respondToPaymentRequest(
+      requestId, 
+      respondDto.response, 
+      userAddress
+    );
+  }
+
+  // POST /lightning/refill-margin - Add more BASE to channel
+  @Post('refill-margin')
+  @HttpCode(HttpStatus.OK)
+  async refillMargin(
+    @Body('channelId') channelId: string,
+    @Body('userAddress') userAddress: string,
+    @Body('amount') amount: number
+  ) {
+    return this.lightningService.refillMargin(channelId, userAddress, amount);
+  }
+
+  // GET /lightning/channels?userAddress=... - Get user's channels (query param version)
+  @Get('channels')
+  async getUserChannelsQuery(@Query('userAddress') userAddress: string) {
+    return this.lightningService.getUserChannels(userAddress);
+  }
+
+  // GET /lightning/channels/pending?userAddress=... - Get pending channel invitations
+  @Get('channels/pending')
+  async getPendingChannels(@Query('userAddress') userAddress: string) {
+    return this.lightningService.getPendingChannels(userAddress);
+  }
+
+  // GET /lightning/channels/:userAddress - Get user's channels (path param version)
+  @Get('channels/:userAddress')
+  async getUserChannels(@Param('userAddress') userAddress: string) {
+    return this.lightningService.getUserChannels(userAddress);
+  }
+
+  // GET /lightning/channel/:channelId - Get specific channel details
+  @Get('channel/:channelId')
+  async getChannelDetails(@Param('channelId') channelId: string) {
+    return this.lightningService.getChannelDetails(channelId);
+  }
+
+  // GET /lightning/health - Health check endpoint
+  @Get('health')
+  getHealth() {
+    return { 
+      status: 'ok', 
+      service: 'lightning',
+      timestamp: new Date().toISOString()
+    };
+  }
+}

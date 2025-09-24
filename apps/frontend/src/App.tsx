@@ -10,6 +10,7 @@ import { Sidebar } from '@/components/layout/Sidebar';
 import { MainContent } from '@/components/layout/MainContent';
 import { AnimatedLandingPage } from '@/components/pages/AnimatedLandingPage';
 import { UnsupportedDevice } from '@/components/pages/UnsupportedDevice';
+import LightningNode from '@/components/lightning/LightningNode';
 import { Wallet, UserData, TransactionStatus } from '@/utils/types';
 import { exportUserData, importUserData } from './utils/exportImport';
 import '@/index.css';
@@ -313,8 +314,18 @@ function AppRoutes({
       />
       <Route path="/faq" element={<BlogListing />} />
       <Route path="/presale" element={<PresalePage />} />
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      <Route 
+        path="/lightning" 
+        element={
+          <LightningNode 
+            walletAddress={walletAddress}
+            userWallets={currentAccountWallets}
+            setNotification={setNotification}
+          />
+        } 
+      />
       <Route path="/settings" element={<Settings />} />
+      <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   );
 }
@@ -331,9 +342,11 @@ function AppRouterContent(props: any) {
       case '/dashboard':
         return 'Dashboard';
       case '/faq':
-        return 'FAQ';
+        return 'FAQs';
       case '/presale':
-        return 'Presale';
+        return '$TEMP Token Pre-Sale';
+      case '/lightning':
+        return 'Lightning Node';
       case '/settings':
         return 'Settings';
       default:
@@ -350,11 +363,17 @@ function AppRouterContent(props: any) {
       case 'Dashboard':
         navigate('/dashboard');
         break;
-      case 'FAQ':
+      case 'FAQs':
         navigate('/faq');
         break;
-      case 'Presale':
+      case '$TEMP Token Pre-Sale':
         navigate('/presale');
+        break;
+      case 'Lightning Node':
+        navigate('/lightning');
+        break;
+      case 'Settings':
+        navigate('/settings');
         break;
       default:
         break;
@@ -550,12 +569,12 @@ function App() {
                 account: walletAddress,
                 name: walletName,
                 externalAccountNumber: 1,
-                wallets: wallets || []
+                wallets: walletsWithBalances || []
               };
               newUserData.accounts = [...newUserData.accounts, newAccount];
             } else {
               const account = { ...newUserData.accounts[accountIndex] };
-              account.wallets = wallets || [];
+              account.wallets = walletsWithBalances || [];
               newUserData.accounts = newUserData.accounts.map((acc, index) =>
                 index === accountIndex ? account : acc
               );

@@ -89,3 +89,77 @@ model Transaction {
 
   temp_wallet     TempWallet @relation(fields: [temp_wallet_id], references: [id], onDelete: Cascade) // Relation to TempWallet model
 }
+
+
+// Lightning Network Models
+model LightningChannel {
+  id                String   @id @default(cuid())
+  channelNumber     String   @unique // "LC001234"
+  user1Address      String
+  user2Address      String
+  user1MarginLeft   Float    @default(0)
+  user2MarginLeft   Float    @default(0)
+  status            ChannelStatus @default(PENDING)
+  transactionCount  Int      @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  // Relations
+  transactions      LightningTransaction[]
+  requests          PaymentRequest[]
+  
+  @@map("lightning_channels")
+}
+
+model LightningTransaction {
+  id          String   @id @default(cuid())
+  channelId   String
+  fromUser    String
+  toUser      String
+  amount      Float
+  type        TransactionType
+  note        String?
+  status      String   @default("COMPLETED")
+  createdAt   DateTime @default(now())
+  
+  // Relations
+  channel     LightningChannel @relation(fields: [channelId], references: [id])
+  
+  @@map("lightning_transactions")
+}
+
+model PaymentRequest {
+  id          String   @id @default(cuid())
+  channelId   String
+  fromUser    String
+  toUser      String
+  amount      Float
+  reason      String
+  status      RequestStatus @default(PENDING)
+  createdAt   DateTime @default(now())
+  respondedAt DateTime?
+  
+  // Relations
+  channel     LightningChannel @relation(fields: [channelId], references: [id])
+  
+  @@map("payment_requests")
+}
+
+// Enums for Lightning Network
+enum ChannelStatus {
+  PENDING
+  ACTIVE
+  CLOSED
+}
+
+enum TransactionType {
+  PAYMENT
+  REFILL
+  REQUEST_ACCEPTED
+}
+
+enum RequestStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}

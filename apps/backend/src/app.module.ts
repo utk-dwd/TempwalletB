@@ -17,6 +17,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { WebhooksModule } from './webhooks/webhooks.module.js';
 import { NotificationsModule } from './notifications/notifications.module.js';
 import { IexecModule } from './iexec/iexec.module.js';
+import { LightningModule } from './lightning/lightning.module.js';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { IexecModule } from './iexec/iexec.module.js';
     WebhooksModule,
     NotificationsModule,
     IexecModule,
+    LightningModule,
   ],
   controllers: [AppController, HealthController, CorsProxyController, TestController],
   providers: [AppService],

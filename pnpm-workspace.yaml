@@ -1,3 +1,18 @@
 packages:
-  - 'apps/*'
-  # packages/ directory removed - zero workspace dependencies achieved!
+  - apps/*
+ignoredBuiltDependencies:
+  - '@nestjs/core'
+  - '@prisma/client'
+  - '@prisma/engines'
+  - '@tailwindcss/oxide'
+  - bufferutil
+  - es5-ext
+  - esbuild
+  - keccak
+  - node-hid
+  - prisma
+  - secp256k1
+  - supabase
+  - unrs-resolver
+  - usb
+  - utf-8-validate

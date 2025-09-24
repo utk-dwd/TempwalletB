@@ -20,9 +20,9 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   app.enableCors();
-  // Respect Railway/Heroku-style PORT and listen on IPv6 '::' (also serves IPv4)
+  // Listen on all interfaces (IPv4 and IPv6)
   const port = Number(process.env.PORT) || 3001;
-  await app.listen(port, '::');
+  await app.listen(port, '0.0.0.0');
   
   const prismaService = app.get(PrismaService); 
   await prismaService.$connect(); 
