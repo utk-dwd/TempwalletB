@@ -19,6 +19,8 @@ import { NotificationsModule } from './notifications/notifications.module.js';
 import { IexecModule } from './iexec/iexec.module.js';
 import { LightningModule } from './lightning/lightning.module.js';
 
+import type { NitroliteService as _NitroliteService } from './nitrolite/nitrolite.service.js';
+
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),

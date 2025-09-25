@@ -24,6 +24,13 @@ import api from '@/services/api.js';
 import { NETWORKS } from '@/utils/networks';
 import { fetchWalletAllBalances } from '@/utils/walletUtils';
 
+try {
+  if (import.meta.env.VITE_ENABLE_NITROLITE === 'true') {
+    
+    import('@/services/nitrolite/client');
+  }
+} catch {}
+
 const toCamel = (s: string) => {
   return s.replace(/([-_][a-z])/ig, ($1) => {
     return $1.toUpperCase()

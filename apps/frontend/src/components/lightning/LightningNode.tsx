@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import type { NitroliteClient as _NitroliteClient } from '@erc7824/nitrolite';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import LightningChannelForm from './LightningChannelForm';
 import LightningChannelAccept from './LightningChannelAccept';
@@ -96,6 +97,26 @@ const LightningNode: React.FC<LightningNodeProps> = ({
   // Use env if provided; fallback to direct backend without /api prefix
   // Backend serves routes at /lightning/... (no global /api prefix)
   const API_BASE = (import.meta.env.VITE_API_BASE_URL as string) || 'http://localhost:3001';
+
+ 
+  useEffect(() => {
+    if (import.meta.env.VITE_ENABLE_NITROLITE === 'true') {
+      (async () => {
+        try {
+          const [{ createNitroliteClient }, { ClearNodeClient }] = await Promise.all([
+            import('@/services/nitrolite/client'),
+            import('@/services/nitrolite/clearnode'),
+          ]);
+        
+          const cn = new ClearNodeClient();
+          cn.connect(); // stub returns a fake socket-like object (no network)
+          console.debug('[Nitrolite] SDK stubs present (feature-flag enabled).');
+        } catch (e) {
+          console.debug('[Nitrolite] Feature-flag enabled but stubs failed to load:', e);
+        }
+      })();
+    }
+  }, []);
 
   useEffect(() => {
     fetchTempWallets();

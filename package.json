@@ -15,5 +15,9 @@
   "devDependencies": {
     "@types/node": "^20.19.11",
     "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "@erc7824/nitrolite": "^0.3.0",
+    "ws": "^8.18.3"
   }
 }
