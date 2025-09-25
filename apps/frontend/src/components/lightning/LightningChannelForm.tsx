@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import BASEToken from './BASEToken';
+import { getUSDCBalanceFor, subscribeUSDCConfig } from '@/services/localTokenStore';
 
 interface TempWallet {
   id: string;
@@ -28,6 +29,16 @@ const LightningChannelForm: React.FC<LightningChannelFormProps> = ({
   const [user1Margin, setUser1Margin] = useState('');
   const [user2Margin, setUser2Margin] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [availableBalance, setAvailableBalance] = useState<number | null>(null);
+
+  // Read available local balance for the active wallet (demo: wallets #3 and #7)
+  useEffect(() => {
+    setAvailableBalance(getUSDCBalanceFor(activeWalletAddress));
+    const unsub = subscribeUSDCConfig(() => {
+      setAvailableBalance(getUSDCBalanceFor(activeWalletAddress));
+    });
+    return () => { unsub && unsub(); };
+  }, [activeWalletAddress]);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -46,6 +57,8 @@ const LightningChannelForm: React.FC<LightningChannelFormProps> = ({
 
     if (!user1Margin || parseFloat(user1Margin) <= 0) {
       newErrors.user1Margin = 'Your margin must be greater than 0';
+    } else if (availableBalance != null && parseFloat(user1Margin) > availableBalance) {
+      newErrors.user1Margin = `Exceeds available balance (${availableBalance} max)`;
     }
 
     if (!user2Margin || parseFloat(user2Margin) <= 0) {
@@ -80,6 +93,18 @@ const LightningChannelForm: React.FC<LightningChannelFormProps> = ({
       console.error('Failed to initiate channel:', error);
       setErrors({ submit: 'Failed to create channel. Please try again.' });
     }
+  };
+
+  const handleUser1MarginChange = (val: string) => {
+    // Clamp to available balance if configured
+    let next = val;
+    const n = parseFloat(val);
+    if (availableBalance != null && !Number.isNaN(n) && n > availableBalance) {
+      next = String(availableBalance);
+    }
+    setUser1Margin(next);
+    // Clear any previous error as user types; validation will re-run on submit
+    setErrors((e) => ({ ...e, user1Margin: '' }));
   };
 
   return (
@@ -132,8 +157,9 @@ const LightningChannelForm: React.FC<LightningChannelFormProps> = ({
               type="number"
               step="0.01"
               min="0"
+              max={availableBalance != null ? availableBalance : undefined}
               value={user1Margin}
-              onChange={(e) => setUser1Margin(e.target.value)}
+              onChange={(e) => handleUser1MarginChange(e.target.value)}
               placeholder="5.0"
               className="w-full px-2.5 py-1.5 pr-12 bg-white/5 border border-white/20 rounded-md text-white text-sm placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
               disabled={isLoading}
@@ -142,6 +168,11 @@ const LightningChannelForm: React.FC<LightningChannelFormProps> = ({
               <BASEToken size="xs" showSymbol />
             </div>
           </div>
+          {availableBalance != null && (
+            <div className="mt-1 text-[11px] text-gray-400">
+              Available: <span className="text-white">{availableBalance}</span>
+            </div>
+          )}
           {errors.user1Margin && (
             <p className="text-red-400 text-xs mt-1">{errors.user1Margin}</p>
           )}

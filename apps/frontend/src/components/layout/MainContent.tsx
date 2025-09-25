@@ -1,5 +1,5 @@
 // src/components/layout/MainContent.tsx
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -21,6 +21,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ChevronDown } from "lucide-react";
+import { overlayLocalUSDC, subscribeUSDCNumberChanges } from '../../services/localUSDCByNumber';
 
 
 interface MainContentProps {
@@ -51,6 +52,46 @@ export function MainContent({ walletAddress, wallets, onWalletCreated, onWalletD
   const [selectedNetworkKey, setSelectedNetworkKey] = useState<SupportedNetwork>('Avalanche');
   const selectedNetwork = NETWORKS[selectedNetworkKey];
   const [showCopiedPopup, setShowCopiedPopup] = useState(false);
+  // Local USDC by walletNumber (frontend-only demo) – subscribe so future updates (e.g., withdraw) reflect immediately
+  const [usdcTick, setUsdcTick] = useState(0);
+  useEffect(() => {
+    const unsubscribe = subscribeUSDCNumberChanges(() => setUsdcTick(t => t + 1));
+    return () => { if (unsubscribe) unsubscribe(); };
+  }, []);
+
+  // Auto-refresh balances: periodic polling + broadcast-based invalidation
+  const refreshInFlight = useRef(false);
+  useEffect(() => {
+    let bc: BroadcastChannel | null = null;
+    try {
+      bc = new BroadcastChannel('tw-wallets');
+      bc.onmessage = (e) => {
+        const msg = e?.data || {};
+        if (msg && msg.type === 'wallets:refresh') {
+          if (!refreshInFlight.current) {
+            refreshInFlight.current = true;
+            onRefreshWallets().finally(() => { refreshInFlight.current = false; });
+          }
+        }
+      };
+    } catch {}
+
+    const tick = () => {
+      if (document.hidden) return; // avoid work when not visible
+      if (refreshInFlight.current) return;
+      refreshInFlight.current = true;
+      onRefreshWallets().finally(() => { refreshInFlight.current = false; });
+    };
+    const id = window.setInterval(tick, 10000); // poll every 10s
+
+    const visHandler = () => { if (!document.hidden) tick(); };
+    document.addEventListener('visibilitychange', visHandler);
+    return () => {
+      window.clearInterval(id);
+      document.removeEventListener('visibilitychange', visHandler);
+      try { bc && bc.close(); } catch {}
+    };
+  }, [onRefreshWallets]);
   
 
 
@@ -113,7 +154,9 @@ export function MainContent({ walletAddress, wallets, onWalletCreated, onWalletD
   
 
   useEffect(() => {
-    let networkWallets = wallets.filter(w => w.networkKey === selectedNetworkKey);
+    // Overlay local USDC (if display walletNumber matches) before sorting/filtering
+    let overlayed = wallets.map(w => overlayLocalUSDC(w));
+    let networkWallets = overlayed.filter(w => w.networkKey === selectedNetworkKey);
     if (sortType === 'walletNumber') {
       networkWallets.sort((a, b) => a.walletNumber - b.walletNumber);
     } else if (sortType === 'balance') {
@@ -134,7 +177,7 @@ export function MainContent({ walletAddress, wallets, onWalletCreated, onWalletD
       });
       setSelectedWallet(null);
     }
-  }, [wallets, sortType, selectedNetworkKey, selectedWallet]);
+  }, [wallets, sortType, selectedNetworkKey, selectedWallet, usdcTick]);
 
 // Fetch all wallets once on mount - filtering by network happens locally
 const fetchWallets = async () => {
@@ -404,6 +447,17 @@ const handleRefreshBalance = async (wallet: Wallet, isPostTransaction: boolean =
     });
     return acc;
   }, new Map<string, { amount: bigint; decimals: number }>());
+
+  // Helper to format bigint by decimals
+  const formatByDecimals = (value: bigint, decimals: number) => {
+    const s = value.toString();
+    if (decimals === 0) return s;
+    const pad = decimals - Math.max(0, s.length - decimals);
+    const whole = s.length > decimals ? s.slice(0, -decimals) : '0';
+    const fracRaw = s.length > decimals ? s.slice(-decimals) : '0'.repeat(decimals - s.length) + s;
+    const frac = fracRaw.replace(/0+$/, '') || '0';
+    return `${whole}.${frac}`;
+  };
 
   return (
     <>
@@ -718,9 +772,11 @@ const handleRefreshBalance = async (wallet: Wallet, isPostTransaction: boolean =
                   </div>
                 )}
 
-                {selectedWallet && selectedWallet.allTokenBalances ? (
-                  selectedWallet.allTokenBalances.length > 0 ? (
-                    selectedWallet.allTokenBalances.map(token => (
+                {(() => {
+                  const overlayedSelected = overlayLocalUSDC(selectedWallet);
+                  const list = overlayedSelected.allTokenBalances || [];
+                  return list.length > 0 ? (
+                    list.map(token => (
                       <p key={token.address} className="text-sm text-white mt-2 flex items-center">
                         {token.iconUrl && (
                           <img 
@@ -735,10 +791,8 @@ const handleRefreshBalance = async (wallet: Wallet, isPostTransaction: boolean =
                     ))
                   ) : (
                     <p className="text-sm text-gray-400 mt-2">No token balances found.</p>
-                  )
-                ) : (
-                  <p className="text-sm text-gray-400 mt-2">Balances not loaded.</p>
-                )}
+                  );
+                })()}
               </>
             )}
             {!selectedWallet && wallets.length > 0 && (

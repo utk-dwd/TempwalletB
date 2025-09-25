@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import BASEToken from './BASEToken';
-import TransactionTimer from './TransactionTimer';
 import PaymentRequestModal from './PaymentRequestModal.js';
 
 interface LightningTransaction {
@@ -62,6 +61,7 @@ interface LightningChannelDashboardProps {
     amount: number;
   }) => Promise<void>;
   onRespondToRequest: (requestId: string, response: 'ACCEPTED' | 'DECLINED') => Promise<void>;
+  onLeaveChannel: (channel: LightningChannel) => void;
 }
 
 const LightningChannelDashboard: React.FC<LightningChannelDashboardProps> = ({
@@ -70,7 +70,8 @@ const LightningChannelDashboard: React.FC<LightningChannelDashboardProps> = ({
   onSendPayment,
   onRequestPayment,
   onRefillMargin,
-  onRespondToRequest
+  onRespondToRequest,
+  onLeaveChannel
 }) => {
   const [sendAmount, setSendAmount] = useState('');
   const [sendNote, setSendNote] = useState('');
@@ -114,6 +115,8 @@ const LightningChannelDashboard: React.FC<LightningChannelDashboardProps> = ({
     const newErrors: Record<string, string> = {};
     if (!requestAmount || parseFloat(requestAmount) <= 0) {
       newErrors.requestAmount = 'Amount must be greater than 0';
+    } else if (parseFloat(requestAmount) > otherUserMarginLeft) {
+      newErrors.requestAmount = `Exceeds other user's available margin (${otherUserMarginLeft} BASE)`;
     }
     if (!requestReason.trim()) {
       newErrors.requestReason = 'Reason is required';
@@ -134,8 +137,8 @@ const LightningChannelDashboard: React.FC<LightningChannelDashboardProps> = ({
   const handleSendPayment = async () => {
     if (!validateSendForm()) return;
 
-    setIsProcessing(true);
-    setProcessingType('payment');
+  setIsProcessing(true);
+  setProcessingType('payment');
 
     try {
       await onSendPayment({
@@ -152,6 +155,8 @@ const LightningChannelDashboard: React.FC<LightningChannelDashboardProps> = ({
     } catch (error) {
       console.error('Payment failed:', error);
       setErrors({ send: 'Payment failed. Please try again.' });
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -179,8 +184,8 @@ const LightningChannelDashboard: React.FC<LightningChannelDashboardProps> = ({
   const handleRefillMargin = async () => {
     if (!validateRefillForm()) return;
 
-    setIsProcessing(true);
-    setProcessingType('refill');
+  setIsProcessing(true);
+  setProcessingType('refill');
 
     try {
       await onRefillMargin({
@@ -194,6 +199,8 @@ const LightningChannelDashboard: React.FC<LightningChannelDashboardProps> = ({
     } catch (error) {
       console.error('Refill failed:', error);
       setErrors({ refill: 'Refill failed. Please try again.' });
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -245,22 +252,15 @@ const LightningChannelDashboard: React.FC<LightningChannelDashboardProps> = ({
     return `+${transaction.amount}`;
   };
 
+  const gasSavedUSD = (transaction: LightningTransaction) => {
+    if (transaction.type === 'REFILL') return 0;
+    const amt = Number(transaction.amount) || 0;
+    // $0.0000427 per 0.1 USDC => 0.000427 per 1 USDC
+    return amt * (0.0000427 / 0.1);
+  };
+
   return (
     <div className="space-y-4">
-      {/* Transaction Timer Overlay */}
-      <TransactionTimer
-        isActive={isProcessing}
-        duration={processingType === 'refill' ? 2 : 4}
-        type={processingType}
-        onComplete={() => setIsProcessing(false)}
-        message={
-          processingType === 'payment' 
-            ? 'Processing Lightning payment...' 
-            : processingType === 'refill'
-            ? 'Adding margin to channel...'
-            : 'Processing request...'
-        }
-      />
 
       {/* Payment Request Modal */}
       {activeRequest && (
@@ -287,13 +287,19 @@ const LightningChannelDashboard: React.FC<LightningChannelDashboardProps> = ({
             </div>
           </div>
           <div className="text-right">
-            <div className={`px-3 py-1 rounded-full text-xs font-medium ${
-              channel.status === 'ACTIVE' 
-                ? 'bg-green-500/20 text-green-400 border border-green-500/40'
-                : 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/40'
-            }`}>
-              {channel.status}
-            </div>
+            {channel.status === 'ACTIVE' ? (
+              <button
+                onClick={() => onLeaveChannel(channel)}
+                className="px-3 py-1 rounded-full text-xs font-medium bg-red-600 hover:bg-red-700 text-white border border-red-500/60"
+                title="Propose to leave (settle) this channel"
+              >
+                Leave Channel
+              </button>
+            ) : (
+              <div className="px-3 py-1 rounded-full text-xs font-medium bg-yellow-500/20 text-yellow-400 border border-yellow-500/40">
+                {channel.status}
+              </div>
+            )}
           </div>
         </div>
 
@@ -301,15 +307,24 @@ const LightningChannelDashboard: React.FC<LightningChannelDashboardProps> = ({
         <div className="grid grid-cols-2 gap-4">
           <div className="bg-white/5 rounded-lg p-4 border border-white/10">
             <div className="text-sm text-gray-400 mb-1">
+                      max={otherUserMarginLeft}
               👤 {isUser1 ? 'You' : 'Other User'}
             </div>
             <div className="text-xs text-gray-500 font-mono mb-2">
+                      <button
+                        type="button"
+                        className="text-xs text-yellow-300 hover:text-yellow-200 bg-yellow-500/10 border border-yellow-500/30 px-2 py-0.5 rounded"
+                        onClick={() => setRequestAmount(String(otherUserMarginLeft))}
+                        title="Request up to the counterparty's available margin"
+                      >
+                        Max
+                      </button>
               {formatAddress(channel.user1Address)}
             </div>
             <div className="flex items-center gap-2">
               <span className="text-sm text-gray-300">Margin Left:</span>
               <BASEToken 
-                amount={channel.user1MarginLeft} 
+                amount={otherUserMarginLeft}
                 size="sm"
                 className={myMarginLeft < 1 ? 'text-red-400' : 'text-green-400'}
               />
@@ -372,6 +387,11 @@ const LightningChannelDashboard: React.FC<LightningChannelDashboardProps> = ({
                       <div className="text-xs text-gray-400">
                         {formatDate(transaction.createdAt)}
                       </div>
+                      {transaction.type !== 'REFILL' && (
+                        <div className="text-xs text-blue-300 mt-0.5">
+                          Gas saved: ${gasSavedUSD(transaction).toFixed(6)}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -499,7 +519,7 @@ const LightningChannelDashboard: React.FC<LightningChannelDashboardProps> = ({
                       className="w-full px-3 py-2 pr-16 bg-white/5 border border-white/20 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-500"
                     />
                     <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
-                      <BASEToken size="xs" showSymbol />
+                      <BASEToken amount={otherUserMarginLeft} size="xs" showSymbol />
                     </div>
                   </div>
                   {errors.requestAmount && (

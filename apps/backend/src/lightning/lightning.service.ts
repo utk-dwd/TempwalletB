@@ -11,6 +11,97 @@ export class LightningService {
     private notificationsGateway: NotificationsGateway
   ) {}
 
+  // --- UI-only Settlement (in-memory prototype) ---
+  private settlementStates: Map<string, {
+    channelId: string;
+    user1Address: string;
+    user2Address: string;
+    user1Initial: number;
+    user2Initial: number;
+    approvals: Record<string, boolean>; // addressLower -> approved
+    status: 'OPEN' | 'CANCELLED' | 'FINALIZED';
+    updatedAt: number;
+  }> = new Map();
+
+  async openSettlement(channelId: string, openedBy: string) {
+    const channel = await this.prisma.lightningChannel.findUnique({ where: { id: channelId } });
+    if (!channel) throw new NotFoundException('Channel not found');
+    if (channel.status !== ChannelStatus.ACTIVE) throw new BadRequestException('Channel not active');
+    const state = {
+      channelId,
+      user1Address: channel.user1Address,
+      user2Address: channel.user2Address,
+      user1Initial: channel.user1MarginLeft,
+      user2Initial: channel.user2MarginLeft,
+      approvals: {},
+      status: 'OPEN' as const,
+      updatedAt: Date.now()
+    };
+    this.settlementStates.set(channelId, state);
+    return state;
+  }
+
+  async approveSettlement(channelId: string, address: string) {
+    const state = this.settlementStates.get(channelId);
+    if (!state) throw new NotFoundException('Settlement not open');
+    if (state.status !== 'OPEN') return state;
+    const addr = (address || '').toLowerCase();
+    state.approvals[addr] = true;
+    const u1 = state.user1Address.toLowerCase();
+    const u2 = state.user2Address.toLowerCase();
+    if (state.approvals[u1] && state.approvals[u2]) {
+      state.status = 'FINALIZED';
+      // Persistently close the channel to allow new channels between the same users
+      try {
+        await this.prisma.lightningChannel.update({
+          where: { id: channelId },
+          data: { status: ChannelStatus.CLOSED }
+        });
+      } catch (e) {
+        // If the channel was already closed or missing, ignore
+      }
+    }
+    state.updatedAt = Date.now();
+    return state;
+  }
+
+  async cancelSettlement(channelId: string) {
+    const state = this.settlementStates.get(channelId);
+    if (!state) return { status: 'NONE' } as any;
+    state.status = 'CANCELLED';
+    state.updatedAt = Date.now();
+    return state;
+  }
+
+  async getSettlement(channelId: string) {
+    const state = this.settlementStates.get(channelId);
+    if (!state) return { status: 'NONE' } as any;
+    return state;
+  }
+
+  // Force-close a channel (dev utility)
+  async closeChannel(channelId: string) {
+    const channel = await this.prisma.lightningChannel.findUnique({ where: { id: channelId } });
+    if (!channel) throw new NotFoundException('Channel not found');
+    if (channel.status === ChannelStatus.CLOSED) return channel;
+    return this.prisma.lightningChannel.update({ where: { id: channelId }, data: { status: ChannelStatus.CLOSED } });
+  }
+
+  // Force-close any PENDING/ACTIVE channel between two users (dev utility)
+  async closeBetween(user1Address: string, user2Address: string) {
+    const res = await this.prisma.lightningChannel.updateMany({
+      where: {
+        OR: [
+          { user1Address, user2Address },
+          { user1Address: user2Address, user2Address: user1Address },
+        ],
+        status: { in: [ChannelStatus.PENDING, ChannelStatus.ACTIVE] }
+      },
+      data: { status: ChannelStatus.CLOSED }
+    });
+    return { closedCount: res.count };
+  }
+
   // Generate unique channel number
   private generateChannelNumber(): string {
     const timestamp = Date.now().toString(36);
@@ -114,12 +205,9 @@ export class LightningService {
       throw new BadRequestException('Insufficient margin');
     }
 
-    // Notify both users that transaction is processing
-    this.notificationsGateway.notifyTransactionProcessing(fromUser, amount, toUser);
-    this.notificationsGateway.notifyTransactionProcessing(toUser, amount, fromUser);
-
-    // Simulate 4-second processing delay
-    await new Promise(resolve => setTimeout(resolve, 4000));
+  // Optional processing notification (no artificial delay)
+  this.notificationsGateway.notifyTransactionProcessing(fromUser, amount, toUser);
+  this.notificationsGateway.notifyTransactionProcessing(toUser, amount, fromUser);
 
     // Update channel balances and create transaction
     const updatedChannel = await this.prisma.$transaction(async (tx) => {
@@ -214,14 +302,22 @@ export class LightningService {
     }
 
     if (response === 'ACCEPTED') {
-      // Process the payment
-      await this.sendPayment({
-        channelId: request.channelId,
-        fromUser: request.toUser,
-        toUser: request.fromUser,
-        amount: request.amount,
-        note: `Payment for: ${request.reason}`
-      });
+      // Detect if this is a margin refill request based on reason prefix
+      const reason = (request.reason || '').trim().toUpperCase();
+      const isMarginRefill = reason.startsWith('[MARGIN]');
+      if (isMarginRefill) {
+        // Refill the acceptor's margin (the recipient of the request)
+        await this.refillMargin(request.channelId, request.toUser, request.amount);
+      } else {
+        // Process the payment (shift margin from acceptor to requester)
+        await this.sendPayment({
+          channelId: request.channelId,
+          fromUser: request.toUser,
+          toUser: request.fromUser,
+          amount: request.amount,
+          note: `Payment for: ${request.reason}`
+        });
+      }
     }
 
     // Update request status

@@ -112,7 +112,7 @@ const PaymentRequestModal: React.FC<PaymentRequestModalProps> = ({
 
         <div className="mt-4 text-center">
           <p className="text-xs text-gray-400">
-            Payment will be processed with a 4-second confirmation timer
+            Payment is processed instantly upon acceptance.
           </p>
         </div>
       </div>

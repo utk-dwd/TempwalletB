@@ -115,4 +115,44 @@ export class LightningController {
       timestamp: new Date().toISOString()
     };
   }
+
+  // --- UI-only Settlement (in-memory prototype) ---
+  @Post('settlement/open/:channelId')
+  @HttpCode(HttpStatus.OK)
+  openSettlement(@Param('channelId') channelId: string, @Body('openedBy') openedBy: string) {
+    return this.lightningService.openSettlement(channelId, openedBy);
+  }
+
+  @Post('settlement/approve/:channelId')
+  @HttpCode(HttpStatus.OK)
+  approveSettlement(@Param('channelId') channelId: string, @Body('address') address: string) {
+    return this.lightningService.approveSettlement(channelId, address);
+  }
+
+  @Post('settlement/cancel/:channelId')
+  @HttpCode(HttpStatus.OK)
+  cancelSettlement(@Param('channelId') channelId: string) {
+    return this.lightningService.cancelSettlement(channelId);
+  }
+
+  @Get('settlement/:channelId')
+  getSettlement(@Param('channelId') channelId: string) {
+    return this.lightningService.getSettlement(channelId);
+  }
+
+  // --- Dev utilities to unblock new channel creation when previous channel exists ---
+  @Put('close/:channelId')
+  @HttpCode(HttpStatus.OK)
+  closeChannel(@Param('channelId') channelId: string) {
+    return this.lightningService.closeChannel(channelId);
+  }
+
+  @Put('close-between')
+  @HttpCode(HttpStatus.OK)
+  closeBetween(
+    @Query('a') a: string,
+    @Query('b') b: string,
+  ) {
+    return this.lightningService.closeBetween(a, b);
+  }
 }

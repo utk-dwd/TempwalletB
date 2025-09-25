@@ -38,20 +38,24 @@ export function Header({
   const [tempProfilePicture, setTempProfilePicture] = useState<string | null>(profilePicture);
   const [tempWalletName, setTempWalletName] = useState(walletName);
   const [animeAvatarUrl, setAnimeAvatarUrl] = useState<string | null>(null);
+  // Local-only overrides (not persisted)
+  const [localNameOverride, setLocalNameOverride] = useState<string | null>(null);
+  const [localAvatarOverride, setLocalAvatarOverride] = useState<string | null>(null);
 
   // On mount, fetch the anime avatar (only if no profilePicture is set)
   useEffect(() => {
-    if (!profilePicture && !tempProfilePicture) {
+    // If no explicit avatar provided (via props or local override or temp), fall back to anime avatar
+    if (!profilePicture && !tempProfilePicture && !localAvatarOverride) {
       const newAnimeAvatarUrl = getAnimeAvatarUrl(name);
       console.log('[HEADER] Setting anime avatar URL to:', newAnimeAvatarUrl);
       setAnimeAvatarUrl(newAnimeAvatarUrl);
-    } else if (profilePicture || tempProfilePicture) {
+    } else if (profilePicture || tempProfilePicture || localAvatarOverride) {
       if (animeAvatarUrl) {
         console.log('[HEADER] User picture present, clearing anime avatar URL.');
         setAnimeAvatarUrl(null);
       }
     }
-  }, [name, profilePicture, tempProfilePicture, animeAvatarUrl]);
+  }, [name, profilePicture, tempProfilePicture, localAvatarOverride, animeAvatarUrl]);
 
   const handleEditProfile = () => {
     setIsEditingProfile(true);
@@ -59,7 +63,9 @@ export function Header({
   };
 
   const handleSaveProfile = () => {
-    onEditProfile(tempName, tempProfilePicture);
+    // Local-only: do not persist via props; just override locally until reload
+    setLocalNameOverride(tempName || null);
+    setLocalAvatarOverride(tempProfilePicture || null);
     analyticsService.trackEvent(EventName.PROFILE_EDIT_SAVED);
     if (tempName !== name) {
       analyticsService.trackEvent(EventName.PROFILE_NAME_CHANGED, { characterCount: tempName.length });
@@ -69,8 +75,8 @@ export function Header({
     }
     setIsEditingProfile(false);
     setNotification({
-      brief: 'Profile updated',
-      full: 'Profile settings saved successfully',
+      brief: 'Profile updated (local)',
+      full: 'Changes will reset on refresh',
       type: 'success',
     });
   };
@@ -152,9 +158,10 @@ export function Header({
   };
 
   // Use this helper to decide which avatar image to show
+  const displayName = localNameOverride ?? name;
   const avatarSrc = isEditingProfile
-    ? tempProfilePicture || animeAvatarUrl || null
-    : profilePicture || animeAvatarUrl || null;
+    ? tempProfilePicture || localAvatarOverride || profilePicture || animeAvatarUrl || null
+    : localAvatarOverride || profilePicture || animeAvatarUrl || null;
 
   return (
     <header className="h-28 bg-[var(--overlay)] backdrop-blur-[var(--blur)] rounded-xl px-8 py-6 flex items-center justify-between ml-5 mr-5 mt-5 mb-3 border border-white/30">
@@ -166,6 +173,13 @@ export function Header({
               type="file"
               accept="image/*"
               onChange={handleFileChange}
+              className="px-3 py-2 bg-transparent text-white border border-white/20 rounded-[var(--radius)] focus:outline-none focus:ring-2 focus:ring-white"
+            />
+            <input
+              type="text"
+              placeholder="Image URL (optional)"
+              value={tempProfilePicture || ''}
+              onChange={(e) => setTempProfilePicture(e.target.value || null)}
               className="px-3 py-2 bg-transparent text-white border border-white/20 rounded-[var(--radius)] focus:outline-none focus:ring-2 focus:ring-white"
             />
             <input
@@ -187,10 +201,10 @@ export function Header({
               {avatarSrc ? (
                 <AvatarImage src={avatarSrc} alt="Profile Picture" className="object-cover w-full h-full -top-0" />
               ) : (
-                <AvatarFallback className="text-2xl">{name.charAt(0)}</AvatarFallback>
+                <AvatarFallback className="text-2xl">{displayName.charAt(0)}</AvatarFallback>
               )}
             </Avatar>
-            <p className="text-xl font-medium text-white">Welcome {name}</p>
+            <p className="text-xl font-medium text-white">Welcome {displayName}</p>
             <Tooltip.Provider>
               <Tooltip.Root>
                 <Tooltip.Trigger asChild>
