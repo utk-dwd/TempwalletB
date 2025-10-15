@@ -23,6 +23,78 @@ export class LightningService {
     updatedAt: number;
   }> = new Map();
 
+  // --- In-memory Game Sessions (AI Tetris demo) ---
+  private gameSessions: Map<string, {
+    channelId: string;
+    user1Address: string;
+    user2Address: string;
+    score: { u1: number; u2: number };
+    status: 'idle' | 'running' | 'stopped';
+    startedAt: number | null;
+    lastPointAt: number | null;
+  }> = new Map();
+
+  async startGame(channelId: string, user1Address: string, user2Address: string) {
+    const channel = await this.prisma.lightningChannel.findUnique({ where: { id: channelId } });
+    if (!channel) throw new NotFoundException('Channel not found');
+    if (channel.status !== ChannelStatus.ACTIVE) throw new BadRequestException('Channel not active');
+    const now = Date.now();
+    const session = {
+      channelId,
+      user1Address,
+      user2Address,
+      score: { u1: 0, u2: 0 },
+      status: 'running' as const,
+      startedAt: now,
+      lastPointAt: null,
+    };
+    this.gameSessions.set(channelId, session);
+    return session;
+  }
+
+  async stopGame(channelId: string) {
+    const session = this.gameSessions.get(channelId);
+    if (!session) return { status: 'none' } as any;
+    session.status = 'stopped';
+    return session;
+  }
+
+  async getGame(channelId: string) {
+    const session = this.gameSessions.get(channelId);
+    if (!session) return { status: 'none' } as any;
+    return session;
+  }
+
+  async scoreGamePoint(channelId: string, scorer: 'u1' | 'u2') {
+    const session = this.gameSessions.get(channelId);
+    if (!session) throw new NotFoundException('Game not started');
+    if (session.status !== 'running') return session;
+
+    const channel = await this.prisma.lightningChannel.findUnique({ where: { id: channelId } });
+    if (!channel) throw new NotFoundException('Channel not found');
+    if (channel.status !== ChannelStatus.ACTIVE) throw new BadRequestException('Channel not active');
+
+    const amount = 0.1;
+    const fromUser = scorer === 'u1' ? channel.user2Address : channel.user1Address; // loser pays
+    const toUser = scorer === 'u1' ? channel.user1Address : channel.user2Address; // winner gets
+
+    // Check loser margin before sending
+    const loserMargin = fromUser === channel.user1Address ? channel.user1MarginLeft : channel.user2MarginLeft;
+    if (loserMargin < amount) {
+      // Stop game loop on client; report insufficient margin
+      const err: any = new BadRequestException('Insufficient margin');
+      (err as any).status = 409; // hint frontend to treat specially
+      throw err;
+    }
+
+    await this.sendPayment({ channelId, fromUser, toUser, amount, note: 'Game point' });
+
+    // Update session score and timestamp
+    if (scorer === 'u1') session.score.u1 += 1; else session.score.u2 += 1;
+    session.lastPointAt = Date.now();
+    return session;
+  }
+
   async openSettlement(channelId: string, openedBy: string) {
     const channel = await this.prisma.lightningChannel.findUnique({ where: { id: channelId } });
     if (!channel) throw new NotFoundException('Channel not found');
@@ -302,22 +374,14 @@ export class LightningService {
     }
 
     if (response === 'ACCEPTED') {
-      // Detect if this is a margin refill request based on reason prefix
-      const reason = (request.reason || '').trim().toUpperCase();
-      const isMarginRefill = reason.startsWith('[MARGIN]');
-      if (isMarginRefill) {
-        // Refill the acceptor's margin (the recipient of the request)
-        await this.refillMargin(request.channelId, request.toUser, request.amount);
-      } else {
-        // Process the payment (shift margin from acceptor to requester)
-        await this.sendPayment({
-          channelId: request.channelId,
-          fromUser: request.toUser,
-          toUser: request.fromUser,
-          amount: request.amount,
-          note: `Payment for: ${request.reason}`
-        });
-      }
+      // Process the payment
+      await this.sendPayment({
+        channelId: request.channelId,
+        fromUser: request.toUser,
+        toUser: request.fromUser,
+        amount: request.amount,
+        note: `Payment for: ${request.reason}`
+      });
     }
 
     // Update request status
@@ -385,6 +449,11 @@ export class LightningService {
         }
       }
     });
+  }
+
+  // Optional helper: find channel by number (for TempService deep link resolution)
+  async getChannelByNumber(channelNumber: string) {
+    return this.prisma.lightningChannel.findFirst({ where: { channelNumber } });
   }
 
   // Refill channel margin

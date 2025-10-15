@@ -106,6 +106,12 @@ export class LightningController {
     return this.lightningService.getChannelDetails(channelId);
   }
 
+  // GET /lightning/channel-by-number/:channelNumber - Resolve channel by human-readable number
+  @Get('channel-by-number/:channelNumber')
+  async getChannelByNumber(@Param('channelNumber') channelNumber: string) {
+    return this.lightningService.getChannelByNumber(channelNumber);
+  }
+
   // GET /lightning/health - Health check endpoint
   @Get('health')
   getHealth() {
@@ -138,6 +144,37 @@ export class LightningController {
   @Get('settlement/:channelId')
   getSettlement(@Param('channelId') channelId: string) {
     return this.lightningService.getSettlement(channelId);
+  }
+
+  // --- In-memory Game (AI Tetris demo) ---
+  @Post('game/start')
+  @HttpCode(HttpStatus.OK)
+  startGame(
+    @Body('channelId') channelId: string,
+    @Body('user1Address') user1Address: string,
+    @Body('user2Address') user2Address: string,
+  ) {
+    return this.lightningService.startGame(channelId, user1Address, user2Address);
+  }
+
+  @Post('game/score')
+  @HttpCode(HttpStatus.OK)
+  scoreGame(
+    @Body('channelId') channelId: string,
+    @Body('scorer') scorer: 'u1' | 'u2',
+  ) {
+    return this.lightningService.scoreGamePoint(channelId, scorer);
+  }
+
+  @Post('game/stop')
+  @HttpCode(HttpStatus.OK)
+  stopGame(@Body('channelId') channelId: string) {
+    return this.lightningService.stopGame(channelId);
+  }
+
+  @Get('game/:channelId')
+  getGame(@Param('channelId') channelId: string) {
+    return this.lightningService.getGame(channelId);
   }
 
   // --- Dev utilities to unblock new channel creation when previous channel exists ---

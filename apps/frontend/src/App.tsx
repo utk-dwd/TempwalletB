@@ -16,6 +16,7 @@ import { exportUserData, importUserData } from './utils/exportImport';
 import '@/index.css';
 import { Image } from 'lucide-react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import GameArena from '@/components/games/GameArena';
 import { BlogListing } from '@/components/pages/BlogListing';
 import PresalePage from './components/pages/PresalePage';
 import { connectWallet } from './utils/provider';
@@ -321,6 +322,7 @@ function AppRoutes({
       />
       <Route path="/faq" element={<BlogListing />} />
       <Route path="/presale" element={<PresalePage />} />
+      <Route path="/game" element={<GameArena />} />
       <Route 
         path="/lightning" 
         element={
